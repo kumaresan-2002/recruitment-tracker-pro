@@ -5,7 +5,9 @@ const STORE_KEYS = {
     worklogs: 'recruitmentTracker_worklogs_v1',
     settings: 'recruitmentTracker_settings_v1',
     role: 'recruitmentTracker_role_v1',
-    reminders: 'recruitmentTracker_reminders_v1'
+    reminders: 'recruitmentTracker_reminders_v1',
+    campaigns: 'recruitmentTracker_campaigns_v1',
+    enrollments: 'recruitmentTracker_enrollments_v1'
 };
 
 // Initialize State
@@ -13,6 +15,8 @@ let requirements = JSON.parse(localStorage.getItem(STORE_KEYS.reqs)) || [];
 let candidates = JSON.parse(localStorage.getItem(STORE_KEYS.candidates)) || [];
 let worklogs = JSON.parse(localStorage.getItem(STORE_KEYS.worklogs)) || [];
 let reminders = JSON.parse(localStorage.getItem(STORE_KEYS.reminders)) || [];
+let campaigns = JSON.parse(localStorage.getItem(STORE_KEYS.campaigns)) || [];
+let enrollments = JSON.parse(localStorage.getItem(STORE_KEYS.enrollments)) || [];
 let appSettings = JSON.parse(localStorage.getItem(STORE_KEYS.settings)) || { inactivity: 3, sla: 7, minMargin: 15 };
 let currentRole = localStorage.getItem(STORE_KEYS.role) || "Management";
 let editingReqId = null;
@@ -50,6 +54,8 @@ async function saveData(silent = false) {
     localStorage.setItem(STORE_KEYS.candidates, JSON.stringify(candidates));
     localStorage.setItem(STORE_KEYS.worklogs, JSON.stringify(worklogs));
     localStorage.setItem(STORE_KEYS.reminders, JSON.stringify(reminders));
+    localStorage.setItem(STORE_KEYS.campaigns, JSON.stringify(campaigns));
+    localStorage.setItem(STORE_KEYS.enrollments, JSON.stringify(enrollments));
     
     if (!silent) showLoading();
     const ind = document.getElementById('sync-indicator');
@@ -1572,6 +1578,7 @@ function renderCandidates() {
                 <div class="actions-dropdown" id="dropdown-${can.id}">
                     <div class="actions-item" onclick="openCandidateDetailsModal('${can.id}')">View Profile</div>
                     <div class="actions-item" onclick="openStageModal('${can.id}')">Update Stage</div>
+                    <div class="actions-item" onclick="openCampaignEnrollment('${can.id}')">✉️ Enroll in Campaign</div>
                     ${['Offer Released', 'Joined'].includes(can.stage) ? `<div class="actions-item" style="color:var(--success); font-weight:600;" onclick="openOfferConfig('${can.id}')">📜 Generate Offer Letter</div>` : ''}
                     <div class="actions-item" onclick="editCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Edit Info</div>
                     <div class="actions-item" onclick="deleteCandidate('${can.id}')" ${['Admin', 'Management'].includes(currentRole) ? '' : 'style="display:none;"'} style="color:var(--danger)">Delete</div>
@@ -3227,6 +3234,162 @@ function openEmailInGmail() {
     const can = candidates.find(c => c.id === document.getElementById('email_canId').value);
     const to = (can && can.email) ? can.email : '';
     window.open(`mailto:${to}?subject=${encodeURIComponent(document.getElementById('email_subject').value)}&body=${encodeURIComponent(document.getElementById('email_body').value)}`, '_blank');
+}
+
+// --- Phase 58: Campaign Builder & Drip Logic ---
+function switchEmailTab(tab) {
+    document.getElementById('email-templates-tab').style.display = tab === 'templates' ? 'block' : 'none';
+    document.getElementById('email-campaigns-tab').style.display = tab === 'campaigns' ? 'block' : 'none';
+    document.getElementById('btn-tab-templates').className = tab === 'templates' ? 'btn btn-sm' : 'btn btn-sm btn-outline';
+    document.getElementById('btn-tab-campaigns').className = tab === 'campaigns' ? 'btn btn-sm' : 'btn btn-sm btn-outline';
+    
+    if (tab === 'campaigns') renderCampaigns();
+}
+
+function openCampaignBuilder() {
+    const s1 = document.getElementById('cmp_step1_template');
+    const s2 = document.getElementById('cmp_step2_template');
+    const tpls = getTemplates();
+    const opts = Object.keys(tpls).map(k => `<option value="${k}">${tpls[k].name}</option>`).join('');
+    s1.innerHTML = opts; s2.innerHTML = opts;
+    document.getElementById('cmp_name').value = '';
+    openModal('campaignBuilderModal');
+}
+
+function saveCampaign(e) {
+    e.preventDefault();
+    const name = document.getElementById('cmp_name').value;
+    const s1 = document.getElementById('cmp_step1_template').value;
+    const wait = parseInt(document.getElementById('cmp_step2_wait').value) || 3;
+    const s2 = document.getElementById('cmp_step2_template').value;
+    
+    const newCamp = {
+        id: 'CMP-' + Date.now(),
+        name,
+        steps: [
+            { step: 1, template: s1, delay: 0 },
+            { step: 2, template: s2, delay: wait }
+        ],
+        createdAt: new Date().toLocaleDateString()
+    };
+    campaigns.push(newCamp);
+    saveData();
+    closeModal('campaignBuilderModal');
+    renderCampaigns();
+    createAlert(`Campaign "${name}" created successfully.`, 'success');
+}
+
+function renderCampaigns() {
+    const tbody = document.getElementById('campaigns-table');
+    if (!tbody) return;
+    
+    if (campaigns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-light); padding:20px;">No active campaigns. Build one to start automating emails!</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = campaigns.map(cmp => {
+        const activeCount = enrollments.filter(en => en.campaignId === cmp.id && en.status === 'Active').length;
+        return `<tr>
+            <td><strong>${cmp.name}</strong></td>
+            <td>2 Steps</td>
+            <td>${activeCount}</td>
+            <td><span class="badge active">Active</span></td>
+            <td><button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="deleteCampaign('${cmp.id}')">Delete</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function deleteCampaign(id) {
+    if(confirm('Delete this campaign? Enrolled candidates will stop receiving automated steps.')) {
+        campaigns = campaigns.filter(c => c.id !== id);
+        enrollments = enrollments.filter(e => e.campaignId !== id);
+        saveData();
+        renderCampaigns();
+    }
+}
+
+// Enrollment logic
+function openCampaignEnrollment(canId) {
+    if (campaigns.length === 0) {
+        createAlert('No campaigns available. Create one first in Email Templates!', 'warning');
+        return;
+    }
+    
+    const existing = document.getElementById('tempEnrollModal');
+    if (existing) existing.remove();
+    
+    const m = document.createElement('div');
+    m.id = 'tempEnrollModal';
+    m.className = 'modal';
+    m.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h2>Enroll Candidate</h2>
+                <span class="close-btn" onclick="closeModal('tempEnrollModal')">&times;</span>
+            </div>
+            <p style="margin-bottom:15px; font-size:0.9rem; color:var(--text-light);">Select an automated email campaign for this candidate.</p>
+            <select id="enroll_cmp_id" style="width:100%; margin-bottom:20px; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                ${campaigns.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+            <button class="btn" style="width:100%;" onclick="executeEnrollment('${canId}')">Enroll & Start Step 1</button>
+        </div>
+    `;
+    document.body.appendChild(m);
+    openModal('tempEnrollModal');
+}
+
+function executeEnrollment(canId) {
+    const cmpId = document.getElementById('enroll_cmp_id').value;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    // Add enrollment
+    enrollments.push({
+        id: 'ENR-' + Date.now(),
+        canId,
+        campaignId: cmpId,
+        currentStep: 1,
+        status: 'Active',
+        startDate: new Date().toISOString()
+    });
+    
+    // Simulate sending Step 1
+    can.history = can.history || [];
+    can.history.push({ date: new Date().toLocaleDateString(), stage: can.stage, comment: \`Campaign Step 1 Sent\`, user: 'System' });
+    saveData();
+    closeModal('tempEnrollModal');
+    createAlert(\`Enrolled! Step 1 email dispatched to \${can.name}.\`, 'success');
+}
+
+function simulateCampaignDay() {
+    let triggered = 0;
+    const now = new Date();
+    
+    enrollments.forEach(en => {
+        if (en.status === 'Active') {
+            const cmp = campaigns.find(c => c.id === en.campaignId);
+            if (cmp && cmp.steps.length > en.currentStep) {
+                en.currentStep += 1;
+                if (en.currentStep >= cmp.steps.length) en.status = 'Completed';
+                
+                const can = candidates.find(c => c.id === en.canId);
+                if (can) {
+                    can.history = can.history || [];
+                    can.history.push({ date: now.toLocaleDateString(), stage: can.stage, comment: \`Campaign Step \${en.currentStep} Sent\`, user: 'System' });
+                }
+                triggered++;
+            }
+        }
+    });
+    
+    if (triggered > 0) {
+        saveData();
+        renderCampaigns();
+        createAlert(\`Simulated 1 day forward. \${triggered} sequence emails triggered!\`, 'success');
+    } else {
+        createAlert('No active enrollments ready for the next step.', 'info');
+    }
 }
 
 // ============================================

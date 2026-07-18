@@ -7,10 +7,18 @@
         <button class="btn" onclick="openSendEmailModal(null, null)">✉️ Compose Custom Email</button>
     </div>
 
-    <!-- Template Library Cards -->
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); margin-bottom:28px;" id="template-card-grid">
-        <!-- Populated via JS -->
+    <!-- Tab Navigation -->
+    <div style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        <button id="btn-tab-templates" class="btn btn-sm" style="border-radius:20px;" onclick="switchEmailTab('templates')">Email Templates</button>
+        <button id="btn-tab-campaigns" class="btn btn-sm btn-outline" style="border-radius:20px;" onclick="switchEmailTab('campaigns')">Drip Campaigns</button>
     </div>
+
+    <!-- Templates Tab -->
+    <div id="email-templates-tab">
+        <!-- Template Library Cards -->
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); margin-bottom:28px;" id="template-card-grid">
+            <!-- Populated via JS -->
+        </div>
 
     <!-- Template Editor -->
     <div class="card" id="template-editor-panel" style="display:none;">
@@ -47,6 +55,68 @@
                     <button class="btn btn-outline" onclick="openMailtoLink()">📤 Open in Gmail</button>
                 </div>
             </div>
+        </div>
+        </div>
+    </div>
+    </div> <!-- Close email-templates-tab -->
+
+    <!-- Campaigns Tab -->
+    <div id="email-campaigns-tab" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;">Active Campaigns</h3>
+            <div>
+                <button class="btn btn-sm btn-outline" style="margin-right:10px;" onclick="simulateCampaignDay()">⏩ Simulate Next Day</button>
+                <button class="btn btn-sm" onclick="openCampaignBuilder()">+ New Campaign</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Campaign Name</th>
+                        <th>Steps</th>
+                        <th>Active Enrollees</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="campaigns-table">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Campaign Builder Modal -->
+    <div id="campaignBuilderModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Build Drip Campaign</h2>
+                <span class="close-btn" onclick="closeModal('campaignBuilderModal')">&times;</span>
+            </div>
+            <form onsubmit="saveCampaign(event)">
+                <div class="form-group">
+                    <label>Campaign Name</label>
+                    <input type="text" id="cmp_name" required style="width:100%;">
+                </div>
+                
+                <div style="background:var(--bg-light); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                    <h4 style="margin-top:0; color:var(--primary);">Step 1: Initial Outreach</h4>
+                    <label style="font-size:0.8rem;">Select Template:</label>
+                    <select id="cmp_step1_template" required style="width:100%; margin-bottom:10px;"></select>
+                </div>
+                
+                <div style="background:var(--bg-light); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                    <h4 style="margin-top:0; color:var(--primary);">Step 2: Follow Up</h4>
+                    <label style="font-size:0.8rem;">Wait (Days):</label>
+                    <input type="number" id="cmp_step2_wait" min="1" max="14" value="3" style="width:60px; margin-bottom:10px;">
+                    <label style="font-size:0.8rem; display:block;">Select Template:</label>
+                    <select id="cmp_step2_template" required style="width:100%; margin-bottom:10px;"></select>
+                </div>
+                
+                <button type="submit" class="btn" style="width:100%;">Save Campaign</button>
+            </form>
         </div>
     </div>
 </div>
