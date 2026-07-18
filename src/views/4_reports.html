@@ -1,0 +1,51 @@
+<!-- Interviews & Reports View -->
+<div id="interviews" class="view">
+    <h3 style="margin-bottom:20px;">Upcoming Interviews</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Requirement</th>
+                    <th>Date & Time</th>
+                    <th>Round</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="interview-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="reports" class="view">
+    <h3 style="margin-bottom:20px;">Data Export & Reports</h3>
+    
+    <!-- Turnaround Time Card -->
+    <div class="dashboard-grid" style="margin-bottom: 25px;">
+        <div class="card" style="border-color: var(--primary);">
+            <h3>Average Requirement Turnaround Time (TAT)</h3>
+            <div class="value" id="kpi-avg-tat" style="color: var(--primary);">0 Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Average days from job creation date to closure/fulfillment date.</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Full Database Backup</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export all JSON data from LocalStorage.</p>
+            <button class="btn" onclick="exportData()">Download JSON</button>
+        </div>
+        <div class="card">
+            <h3>Requirements Report</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export current requirements pipeline.</p>
+            <button class="btn btn-outline" onclick="exportRequirementsCSV()">Export CSV</button>
+        </div>
+        <div class="card">
+            <h3>Candidate Report</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export full candidate and stage history.</p>
+            <button class="btn btn-outline" onclick="exportCandidatesCSV()">Export CSV</button>
+        </div>
+    </div>
+</div>

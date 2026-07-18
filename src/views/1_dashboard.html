@@ -1,0 +1,87 @@
+<!-- Dashboard View -->
+<div id="dashboard" class="view active">
+    
+    <!-- Top KPIs -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Total Requirements</h3>
+            <div class="value" id="kpi-total-req">0</div>
+        </div>
+        <div class="card">
+            <h3>Active Requirements</h3>
+            <div class="value" id="kpi-active-req">0</div>
+        </div>
+        <div class="card">
+            <h3>Pending / Stalled</h3>
+            <div class="value" id="kpi-stalled-req" style="color: var(--warning)">0</div>
+        </div>
+        <div class="card">
+            <h3>Candidates Joined</h3>
+            <div class="value" id="kpi-joined" style="color: var(--success)">0</div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+        <div class="chart-container">
+            <h3>Recruitment Funnel</h3>
+            <canvas id="funnelChart" height="200"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>US vs India Requirements</h3>
+            <canvas id="geoChart" height="200"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Pipeline Drop-out Reasons</h3>
+            <canvas id="dropoutChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Aging & Bottlenecks Row -->
+    <div class="charts-grid">
+        <div class="chart-container" style="height: auto;">
+            <h3>Requirement Aging Breakdown (Click tags to view)</h3>
+            <div style="display:flex; justify-content:space-around; margin-top:20px; font-size:0.95rem; flex-wrap:wrap; gap:10px;">
+                <div onclick="filterRequirementsByAge(0, 3)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>0-3 Days:</strong> <span id="aging-0-3" style="color:var(--success); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(4, 7)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>4-7 Days:</strong> <span id="aging-4-7" style="color:var(--primary); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(8, 15)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>8-15 Days:</strong> <span id="aging-8-15" style="color:var(--warning); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(16, 30)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>16-30 Days:</strong> <span id="aging-16-30" style="color:var(--danger); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(31, 999)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>30+ Days:</strong> <span id="aging-30plus" style="color:darkred; font-weight:bold;">0</span></div>
+            </div>
+        </div>
+        <div class="chart-container" style="height: auto;">
+            <h3>Bottleneck & Stalled Reasons</h3>
+            <div style="font-size:0.9rem; color:var(--text-light); margin-top: 10px;" id="bottleneck-list">
+                No active bottlenecks identified.
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Alerts -->
+    <div class="card" style="margin-bottom: 30px; border-color: var(--danger); background: var(--danger-light);">
+        <h3 style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+            ⚠️ Management Actions Required Alerts
+        </h3>
+        <div id="management-alerts-container" style="font-size: 0.85rem; line-height: 1.6; margin-top: 10px;">
+            No active flags.
+        </div>
+    </div>
+
+    <h3>Priority Requirements (Aging > 15 days or Critical)</h3>
+    <div class="table-container" style="margin-top: 15px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Job Title</th>
+                    <th>Client</th>
+                    <th>Location</th>
+                    <th>Age (Days)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="dash-priority-table">
+            </tbody>
+        </table>
+    </div>
+</div>

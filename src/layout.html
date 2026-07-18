@@ -1,0 +1,539 @@
+<!-- Sidebar Navigation (Full 12-Tab Structure) -->
+<div class="sidebar" id="sidebar-menu">
+    <h2 style="padding: 20px 15px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center;">
+        Recruitment OS
+        <span onclick="toggleSidebar()" class="close-btn" style="color: white; font-size: 1rem; cursor: pointer; display: none;" id="sidebar-close">&times;</span>
+    </h2>
+    <div class="nav-items" style="font-size: 0.85rem;">
+        <div class="nav-item active" onclick="switchView('dashboard')" data-role-visible="Management,Account Manager,Recruiter">Executive Dashboard</div>
+        <div class="nav-item" onclick="switchView('requirements')" data-role-visible="Management,Account Manager,Recruiter">All Requirements <span class="nav-badge" id="nav-req-count">0</span></div>
+        <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
+        <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
+        <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
+        <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
+        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers & Onboarding <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
+        <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
+        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">Reports & Analytics</div>
+        <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
+        <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
+        <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
+        <div class="nav-item" onclick="loadSampleData()" data-role-visible="Management,Account Manager,Recruiter">Load Sample Data</div>
+        <div class="nav-item" style="color: var(--danger)" onclick="clearData()" data-role-visible="Management,Account Manager,Recruiter">Reset All Data</div>
+    </div>
+</div>
+
+<!-- Modal: New Requirement (Tabbed/Categorized Form) -->
+<div id="reqModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>Add New Requirement</h2>
+            <span class="close-btn" onclick="closeModal('reqModal')">&times;</span>
+        </div>
+        
+        <!-- Form Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <button class="btn btn-sm" type="button" onclick="switchFormTab('req', 'req-basic')">1. Basic Info</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-ownership')">2. Ownership</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-details')">3. Job Details</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-rates')">4. Rates & CTC</button>
+        </div>
+
+        <form id="reqForm" onsubmit="handleReqSubmit(event)">
+            
+            <!-- Tab 1: Basic Info -->
+            <div id="req-basic" class="form-tab-content active">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Job Title *</label>
+                        <input type="text" id="r_title" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Name *</label>
+                        <input type="text" id="r_client" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>End Client</label>
+                        <input type="text" id="r_endclient">
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <select id="r_country" required onchange="toggleCountryFields(); updateRatesMargin(); checkDuplicateReq();">
+                            <option value="US">United States</option>
+                            <option value="IN">India</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Work Mode *</label>
+                        <select id="r_workmode" required>
+                            <option value="Remote">Remote</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="Onsite">Onsite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location (City, State) *</label>
+                        <input type="text" id="r_location" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>Target Headcount *</label>
+                        <input type="number" id="r_headcount" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority *</label>
+                        <select id="r_priority" required>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <div id="req-duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
+                        ⚠️ Warning: A requirement with similar Job Title, Client, and Location already exists!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Ownership -->
+            <div id="req-ownership" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Account Manager</label>
+                        <input type="text" id="r_am">
+                    </div>
+                    <div class="form-group">
+                        <label>BD Owner</label>
+                        <input type="text" id="r_bd">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Recruiter</label>
+                        <input type="text" id="r_recruiter">
+                    </div>
+                    <div class="form-group">
+                        <label>Recruitment Lead</label>
+                        <input type="text" id="r_lead">
+                    </div>
+                    <div class="form-group">
+                        <label>Recruitment Work Status</label>
+                        <select id="r_workstatus">
+                            <option value="Not Yet Picked Up">Not Yet Picked Up</option>
+                            <option value="Assigned but Not Started">Assigned but Not Started</option>
+                            <option value="Sourcing Started">Sourcing Started</option>
+                            <option value="Profiles Identified">Profiles Identified</option>
+                            <option value="Interviews in Progress">Interviews in Progress</option>
+                            <option value="Stalled">Stalled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Job Details & Skills -->
+            <div id="req-details" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Min Experience (Years)</label>
+                        <input type="number" id="r_minexp" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Experience (Years)</label>
+                        <input type="number" id="r_maxexp" min="0">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Mandatory Skills (Comma separated) *</label>
+                        <input type="text" id="r_skills" placeholder="e.g. React, TypeScript, Node.js" required onkeyup="checkSimilarRequirements()">
+                        <div id="req-similarity-tip" style="display:none; color:var(--primary); font-size:0.8rem; font-weight:600; margin-top:5px; background:hsl(215, 95%, 97%); padding:6px 10px; border-radius:6px; border:1px solid hsl(215, 95%, 90%);"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Job Description</label>
+                        <textarea id="r_jd" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Rates & Finance -->
+            <div id="req-rates" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <!-- US specific -->
+                    <div class="form-group conditional-field us-field active">
+                        <label>Position Type *</label>
+                        <select id="r_us_postype">
+                            <option value="W2">W2</option>
+                            <option value="C2C">C2C</option>
+                            <option value="1099">1099</option>
+                            <option value="Direct Hire">Direct Hire</option>
+                        </select>
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Client Bill Rate ($/hr) *</label>
+                        <input type="number" id="r_us_billrate" value="0" oninput="updateRatesMargin()">
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Pay Rate ($/hr) *</label>
+                        <input type="number" id="r_us_payrate" value="0" oninput="updateRatesMargin()">
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Calculated Margin ($/hr)</label>
+                        <input type="number" id="r_us_margin" readonly style="background:#f1f5f9;">
+                    </div>
+
+                    <!-- India specific -->
+                    <div class="form-group conditional-field in-field">
+                        <label>Employment Type *</label>
+                        <select id="r_in_emptype">
+                            <option value="Permanent">Permanent</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Third-Party">Third-Party Payroll</option>
+                        </select>
+                    </div>
+                    <div class="form-group conditional-field in-field">
+                        <label>Max Budget (LPA) *</label>
+                        <input type="number" id="r_in_budget" step="0.1" value="0">
+                    </div>
+                    <div class="form-group conditional-field in-field">
+                        <label>Notice Period Accepted</label>
+                        <input type="text" id="r_in_notice" placeholder="e.g. 30 days">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline" type="button" onclick="closeModal('reqModal')">Cancel</button>
+                <button type="submit" class="btn">Save Requirement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: New Candidate Pipeline Entry -->
+<div id="candidateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Candidate to Pipeline</h2>
+            <span class="close-btn" onclick="closeModal('candidateModal')">&times;</span>
+        </div>
+        <form id="candidateForm" onsubmit="handleCandidateSubmit(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="c_firstname" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="c_lastname" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="c_email" required onchange="checkDuplicateCandidate()">
+                </div>
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="text" id="c_phone" required onchange="checkDuplicateCandidate()">
+                </div>
+                <div class="form-group full-width">
+                    <label>Submit to Requirement *</label>
+                    <select id="c_reqId" required onchange="checkDuplicateCandidate()">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Visa Status / Work Auth *</label>
+                    <input type="text" id="c_visa" required placeholder="e.g. US Citizen / H1B / Immediate">
+                </div>
+                <div class="form-group">
+                    <label>Notice Period</label>
+                    <input type="text" id="c_notice" placeholder="e.g. Immediate / 2 Weeks">
+                </div>
+                <div class="form-group">
+                    <label>Source</label>
+                    <select id="c_source">
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Dice">Dice</option>
+                        <option value="Naukri">Naukri</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Internal">Internal Database</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Target Country *</label>
+                    <select id="c_country" required>
+                        <option value="US">United States</option>
+                        <option value="IN">India</option>
+                    </select>
+                </div>
+                
+                <div id="duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
+                    ⚠️ Warning: Candidate with this email/phone or submission already exists!
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Add Candidate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Stage Update / Interview Scheduler -->
+<div id="stageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Candidate Stage</h2>
+            <span class="close-btn" onclick="closeModal('stageModal')">&times;</span>
+        </div>
+        <form id="stageForm" onsubmit="handleStageUpdate(event)">
+            <input type="hidden" id="s_candidateId">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>New Stage *</label>
+                    <select id="s_newStage" required onchange="toggleStageFields()">
+                        <option value="Sourced">Sourced</option>
+                        <option value="Screened">Screened</option>
+                        <option value="Submitted to Client">Submitted to Client (Requires Rate)</option>
+                        <option value="Interview Scheduled">Interview Scheduled (Requires Details)</option>
+                        <option value="Offer Released">Offer Released (Requires Offer Info)</option>
+                        <option value="Joined">Joined (Requires Date & Final Pay)</option>
+                        <option value="Rejected">Rejected (Requires Reason)</option>
+                        <option value="Candidate Withdrew">Candidate Withdrew (Requires Reason)</option>
+                    </select>
+                </div>
+                
+                <!-- Submitted to Client Extra Fields -->
+                <div class="form-group conditional-field stage-submit">
+                    <label>Submitted Compensation / Rate *</label>
+                    <input type="text" id="s_submitRate" placeholder="e.g. $70/hr or 15 LPA">
+                </div>
+                <div class="form-group conditional-field stage-submit">
+                    <label>Availability *</label>
+                    <input type="text" id="s_availability" placeholder="e.g. 2 weeks notice">
+                </div>
+
+                <!-- Interview Fields -->
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Date & Time *</label>
+                    <input type="datetime-local" id="s_interviewDate">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Time Zone *</label>
+                    <input type="text" id="s_timezone" placeholder="e.g. EST or IST">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Round *</label>
+                    <input type="text" id="s_interviewRound" placeholder="e.g. Technical Round 1">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Mode *</label>
+                    <select id="s_interviewMode">
+                        <option value="Video">Video Call</option>
+                        <option value="Phone">Phone Call</option>
+                        <option value="Onsite">Onsite Interview</option>
+                    </select>
+                </div>
+
+                <!-- Offer Fields -->
+                <div class="form-group conditional-field stage-offer">
+                    <label>Offer Date *</label>
+                    <input type="date" id="s_offerDate">
+                </div>
+                <div class="form-group conditional-field stage-offer" data-role-hide="Recruiter">
+                    <label>Offered Compensation *</label>
+                    <input type="text" id="s_offeredComp" placeholder="e.g. $75/hr or 18 LPA">
+                </div>
+                <div class="form-group conditional-field stage-offer">
+                    <label>Expected Joining Date *</label>
+                    <input type="date" id="s_expectJoin">
+                </div>
+                <div class="form-group conditional-field stage-offer">
+                    <label>Joining Risk Level</label>
+                    <select id="s_joiningrisk">
+                        <option value="Low">Low Risk</option>
+                        <option value="Medium">Medium Risk</option>
+                        <option value="High">High Risk</option>
+                    </select>
+                </div>
+                <div class="form-group conditional-field stage-offer full-width">
+                    <label>Counter-offer Details / Risk Reason</label>
+                    <input type="text" id="s_counterdetails" placeholder="e.g. Holds competing offer from competitor">
+                </div>
+
+                <!-- Joined Fields -->
+                <div class="form-group conditional-field stage-joined">
+                    <label>Actual Joining Date *</label>
+                    <input type="date" id="s_actualJoin">
+                </div>
+                <div class="form-group conditional-field stage-joined" data-role-hide="Recruiter">
+                    <label>Final Agreed Compensation *</label>
+                    <input type="text" id="s_finalComp" placeholder="e.g. $75/hr or 18 LPA">
+                </div>
+
+                <!-- Rejection Field -->
+                <div class="form-group conditional-field stage-reject full-width">
+                    <label>Rejection Reason *</label>
+                    <input type="text" id="s_rejectReason" placeholder="e.g. Tech evaluation failed">
+                </div>
+
+                <!-- Withdrawal Field -->
+                <div class="form-group conditional-field stage-withdraw full-width">
+                    <label>Withdrawal Reason *</label>
+                    <input type="text" id="s_withdrawReason" placeholder="e.g. Accepted another offer">
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Comments / Updates</label>
+                    <textarea id="s_comments" rows="3"></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Update Stage & Save Details</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Requirement Closure Wizard -->
+<div id="closureModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Close / Cancel Requirement</h2>
+            <span class="close-btn" onclick="closeModal('closureModal')">&times;</span>
+        </div>
+        <form id="closureForm" onsubmit="handleClosureSubmit(event)">
+            <input type="hidden" id="c_closeReqId">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Closure Status *</label>
+                    <select id="c_closeStatus" required>
+                        <option value="Closed">Closed (Fulfillment complete)</option>
+                        <option value="Cancelled">Cancelled (Budget or request cancelled)</option>
+                        <option value="Lost">Lost (Competitor filled)</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Closure Reason *</label>
+                    <select id="c_closeReason" required>
+                        <option value="Fully Filled">Fully Filled</option>
+                        <option value="Client Cancelled">Client Cancelled</option>
+                        <option value="Budget Frozen">Budget Frozen</option>
+                        <option value="Lost to Competitor">Lost to Competitor</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Lessons Learned / Final Client Feedback *</label>
+                    <textarea id="c_closeFeedback" rows="3" required></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width:100%;">Confirm Requirement Closure</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Talent Acquisition Work Log -->
+<div id="worklogModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Recruiter Work Log</h2>
+            <span class="close-btn" onclick="closeModal('worklogModal')">&times;</span>
+        </div>
+        <form id="worklogForm" onsubmit="handleWorklogSubmit(event)">
+            <input type="hidden" id="w_reqId">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Recruiter Name *</label>
+                    <select id="w_recruiter" required>
+                        <option value="Recruiter A">Recruiter A</option>
+                        <option value="Recruiter B">Recruiter B</option>
+                        <option value="Recruiter C">Recruiter C</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Activity Type *</label>
+                    <select id="w_activity" required>
+                        <option value="LinkedIn Search">LinkedIn Search</option>
+                        <option value="Job Portal Search">Job Portal Search</option>
+                        <option value="Candidate Calling">Candidate Calling</option>
+                        <option value="Candidate Screening">Candidate Screening</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Profiles Sourced</label>
+                    <input type="number" id="w_sourced" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Profiles Screened</label>
+                    <input type="number" id="w_screened" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Profiles Submitted</label>
+                    <input type="number" id="w_submitted" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Challenges / Comments</label>
+                    <input type="text" id="w_challenges" placeholder="e.g. Rate expectation high">
+                </div>
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Save Work Log</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Candidate History Timeline -->
+<div id="historyModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Candidate Pipeline History</h2>
+            <span class="close-btn" onclick="closeModal('historyModal')">&times;</span>
+        </div>
+        <h4 id="history-candidate-name" style="margin-bottom: 15px; color: var(--primary);">Candidate Name</h4>
+        <div class="timeline" id="history-timeline-container">
+            <!-- Timeline events populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Job Requisition Detail Inspector -->
+<div id="reqDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2>Requisition Details Inspector</h2>
+            <span class="close-btn" onclick="closeModal('reqDetailsModal')">&times;</span>
+        </div>
+        <div id="req-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Candidate Profile Inspector -->
+<div id="candidateDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2>Candidate Profile Card</h2>
+            <span class="close-btn" onclick="closeModal('candidateDetailsModal')">&times;</span>
+        </div>
+        <div id="candidate-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Client Account Summary Card -->
+<div id="clientDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 750px;">
+        <div class="modal-header">
+            <h2>Client Account Profile</h2>
+            <span class="close-btn" onclick="closeModal('clientDetailsModal')">&times;</span>
+        </div>
+        <div id="client-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+
+

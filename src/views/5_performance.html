@@ -1,0 +1,72 @@
+<!-- Recruiter Performance View -->
+<div id="performance" class="view">
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Recruiter Performance Dashboard</h3>
+        <select id="filterRecruiter" onchange="renderPerformance()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="All">All Recruiters</option>
+            <option value="Unassigned">Unassigned</option>
+            <option value="Recruiter A">Recruiter A</option>
+            <option value="Recruiter B">Recruiter B</option>
+            <option value="Recruiter C">Recruiter C</option>
+        </select>
+    </div>
+
+    <!-- Conversion Ratios -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Submission to Interview Ratio</h3>
+            <div class="value" id="kpi-ratio-sub-int">0%</div>
+        </div>
+        <div class="card">
+            <h3>Interview to Offer Ratio</h3>
+            <div class="value" id="kpi-ratio-int-off">0%</div>
+        </div>
+        <div class="card">
+            <h3>Offer to Joining Ratio</h3>
+            <div class="value" id="kpi-ratio-off-join">0%</div>
+        </div>
+    </div>
+
+    <!-- Recruiter Leaderboard -->
+    <h3 style="margin-top: 30px; margin-bottom: 15px;">Recruiter Cumulative Performance Leaderboard</h3>
+    <div class="table-container" style="margin-bottom: 30px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Recruiter Name</th>
+                    <th>Total Sourced</th>
+                    <th>Total Screened</th>
+                    <th>Total Submitted</th>
+                    <th>Interviews Scheduled</th>
+                    <th>Joined (Placements)</th>
+                    <th>Placement Ratio</th>
+                    <th>Avg Placement TAT</th>
+                </tr>
+            </thead>
+            <tbody id="recruiter-leaderboard-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Work Logs Table -->
+    <h3 style="margin-top: 30px; margin-bottom: 15px;">Recent Talent Acquisition Work Logs</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Req ID</th>
+                    <th>Recruiter</th>
+                    <th>Activity</th>
+                    <th>Profiles Sourced</th>
+                    <th>Screened</th>
+                    <th>Submitted</th>
+                </tr>
+            </thead>
+            <tbody id="worklog-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,20 @@
+<!-- Data Management View -->
+<div id="datamanagement" class="view">
+    <h3 style="margin-bottom: 20px;">Database & Storage Control</h3>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Data Backup</h3>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Export all local records to a downloadable JSON file.</p>
+            <button class="btn" onclick="exportData()">Download Backup (JSON)</button>
+        </div>
+        <div class="card">
+            <h3>Data Restore / Merge</h3>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Upload and parse an existing backup JSON file.</p>
+            <input type="file" id="importFile" accept=".json" style="margin-bottom: 10px; font-size: 0.8rem;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-sm" onclick="importData(false)">Merge Data</button>
+                <button class="btn btn-sm btn-outline" onclick="importData(true)">Overwrite All</button>
+            </div>
+        </div>
+    </div>
+</div>

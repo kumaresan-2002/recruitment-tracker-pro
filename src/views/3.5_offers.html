@@ -1,0 +1,54 @@
+<!-- Offers & Onboarding View -->
+<div id="offers" class="view">
+    
+    <!-- Offers & Onboarding KPIs -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Outstanding Offers</h3>
+            <div class="value" id="kpi-off-outstanding">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Candidates currently in Offer Released stage.</p>
+        </div>
+        <div class="card" style="border-color: var(--warning);">
+            <h3>High/Medium Risk Offers</h3>
+            <div class="value" id="kpi-off-at-risk" style="color: var(--warning);">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Offers flagged with onboarding risk.</p>
+        </div>
+        <div class="card" style="border-color: var(--success);" data-role-hide="Recruiter">
+            <h3>Pending US Margin Forecast</h3>
+            <div class="value" id="kpi-off-margin-pipeline" style="color: var(--success);">$0.00/hr</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Hourly margin sum of pending US offers.</p>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <!-- Main Offers Table -->
+        <div class="table-container" style="margin-bottom: 20px;">
+            <h4 style="padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--bg-light); font-weight:700;">Offers & Onboarding Status</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Req ID</th>
+                        <th>Offer Date</th>
+                        <th>Offered Comp</th>
+                        <th>Expected Joining</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="offers-onboarding-table">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Risk Mitigation Panel -->
+        <div class="card" style="height: fit-content; border-color: var(--danger); background: var(--danger-light);">
+            <h4 style="color: var(--danger); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                ⚠️ Counter-Offer Risk mitigation Card
+            </h4>
+            <div style="max-height: 250px; overflow-y:auto; font-size: 0.8rem;" id="onboarding-risk-roster">
+                No outstanding counter-offer risks.
+            </div>
+        </div>
+    </div>
+</div>

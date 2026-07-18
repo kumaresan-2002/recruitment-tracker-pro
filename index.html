@@ -1,0 +1,3277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Tracker Pro</title>
+    <!-- Chart.js for Dashboards -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: hsl(220, 85%, 57%);
+    --primary-dark: hsl(220, 85%, 47%);
+    --sidebar: hsl(215, 28%, 17%);
+    --bg-light: hsl(210, 40%, 98%);
+    --text-dark: hsl(224, 71%, 4%);
+    --text-light: hsl(215, 16%, 47%);
+    --border: hsl(214, 32%, 91%);
+    --success: hsl(150, 84%, 37%);
+    --success-light: hsl(150, 84%, 96%);
+    --warning: hsl(38, 92%, 50%);
+    --warning-light: hsl(38, 92%, 96%);
+    --danger: hsl(0, 84%, 60%);
+    --danger-light: hsl(0, 84%, 96%);
+    --info: hsl(200, 95%, 48%);
+    --purple: hsl(265, 89%, 65%);
+    --white: hsl(0, 0%, 100%);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+body { display: flex; height: 100vh; background-color: var(--bg-light); color: var(--text-dark); overflow: hidden; }
+
+/* Sidebar Layout */
+.sidebar { 
+    width: 260px; 
+    background-color: var(--sidebar); 
+    color: var(--white); 
+    display: flex; 
+    flex-direction: column; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    z-index: 100; 
+}
+.sidebar h2 { 
+    padding: 24px 20px; 
+    font-size: 1.25rem; 
+    font-weight: 700; 
+    letter-spacing: -0.025em; 
+    border-bottom: 1px solid rgba(255,255,255,0.06); 
+}
+.nav-items { flex: 1; overflow-y: auto; padding: 15px 10px; }
+.nav-item { 
+    padding: 12px 16px; 
+    margin-bottom: 4px;
+    border-radius: 6px;
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    font-size: 0.875rem; 
+    font-weight: 500;
+    color: hsl(215, 20%, 75%);
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+.nav-item:hover, .nav-item.active { 
+    background-color: rgba(255,255,255,0.08); 
+    color: var(--white);
+}
+.nav-item.active {
+    background-color: var(--primary);
+}
+.nav-badge { 
+    background: rgba(255,255,255,0.15); 
+    color: white; 
+    border-radius: 12px; 
+    padding: 2px 8px; 
+    font-size: 0.75rem; 
+    font-weight: 600;
+}
+.nav-item.active .nav-badge {
+    background: rgba(255,255,255,0.25);
+}
+
+/* Main Content & Header */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.header { 
+    height: 70px; 
+    background-color: var(--white); 
+    border-bottom: 1px solid var(--border); 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    padding: 0 30px; 
+    z-index: 5;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+}
+.header h3 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.content { flex: 1; padding: 30px; overflow-y: auto; }
+
+/* Hamburger Menu (Mobile Only) */
+.menu-toggle { display: none; cursor: pointer; font-size: 1.5rem; margin-right: 15px; }
+
+/* Dashboard Cards & Layout */
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+.card { 
+    background: var(--white); 
+    padding: 24px; 
+    border-radius: 12px; 
+    box-shadow: var(--shadow); 
+    border: 1px solid var(--border); 
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.card h3 { font-size: 0.875rem; font-weight: 600; color: var(--text-light); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.card .value { font-size: 2.25rem; font-weight: 700; color: var(--text-dark); letter-spacing: -0.03em; }
+
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
+.chart-container { 
+    background: var(--white); 
+    padding: 24px; 
+    border-radius: 12px; 
+    border: 1px solid var(--border); 
+    box-shadow: var(--shadow); 
+    height: 320px;
+    position: relative;
+}
+.chart-container h3 { font-size: 1rem; font-weight: 700; margin-bottom: 15px; letter-spacing: -0.01em; }
+
+/* Tables */
+.table-container { 
+    background: var(--white); 
+    border-radius: 12px; 
+    box-shadow: var(--shadow); 
+    border: 1px solid var(--border);
+    overflow: visible; 
+    margin-bottom: 20px;
+}
+table { width: 100%; border-collapse: collapse; min-width: 800px; }
+th, td { padding: 16px 20px; text-align: left; font-size: 0.875rem; }
+th { 
+    background-color: hsl(210, 40%, 96.5%); 
+    font-weight: 600; 
+    color: var(--text-dark); 
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 2;
+}
+td { border-bottom: 1px solid var(--border); color: hsl(220, 9%, 20%); position: relative; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: hsl(210, 40%, 99%); }
+
+/* Actions Dropdown CSS Rules */
+.actions-cell { position: relative; }
+.actions-menu-btn { cursor: pointer; color: var(--primary); font-weight: 600; }
+.actions-dropdown { 
+    display: none; position: absolute; right: 20px; top: 35px; 
+    background: white; border: 1.5px solid var(--border); border-radius: 8px; 
+    box-shadow: var(--shadow-lg); z-index: 100; min-width: 150px; overflow: hidden;
+}
+.actions-dropdown.show { display: block; }
+.actions-item { 
+    padding: 10px 15px; font-size: 0.8rem; cursor: pointer; 
+    transition: background 0.2s; color: var(--text-dark);
+}
+.actions-item:hover { background: var(--bg-light); }
+
+/* Status Badges */
+.badge { 
+    padding: 6px 12px; 
+    border-radius: 9999px; 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    display: inline-block;
+    letter-spacing: -0.01em;
+}
+.badge.active { background: var(--success-light); color: var(--success); }
+.badge.joined { background: var(--success-light); color: var(--success); }
+.badge.pending { background: var(--warning-light); color: var(--warning); }
+.badge.stalled { background: var(--warning-light); color: var(--warning); }
+.badge.closed { background: var(--border); color: var(--text-light); }
+.badge.rejected { background: var(--danger-light); color: var(--danger); }
+.badge.interview { background: hsl(265, 89%, 95%); color: var(--purple); }
+.badge.offer { background: hsl(200, 95%, 93%); color: var(--info); }
+
+/* Buttons & Interactive Elements */
+.btn { 
+    padding: 10px 20px; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 0.875rem; 
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+.btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-outline { 
+    background: transparent; 
+    border: 1.5px solid var(--primary); 
+    color: var(--primary); 
+    box-shadow: none;
+}
+.btn-outline:hover { background: var(--primary); color: white; }
+.btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; }
+
+/* Modals */
+.modal { 
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; z-index: 1000;
+    transition: opacity 0.2s ease;
+}
+.modal-content { 
+    background: var(--white); width: 90%; max-width: 800px; border-radius: 16px; 
+    padding: 30px; max-height: 90vh; overflow-y: auto; 
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+.modal-header h2 { font-weight: 700; letter-spacing: -0.02em; }
+.close-btn { cursor: pointer; font-size: 1.5rem; color: var(--text-light); transition: color 0.2s ease; }
+.close-btn:hover { color: var(--text-dark); }
+
+/* Forms */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-group { margin-bottom: 18px; }
+.form-group.full-width { grid-column: span 2; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); }
+.form-group input, .form-group select, .form-group textarea { 
+    width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; 
+    font-size: 0.875rem; outline: none; transition: border-color 0.2s ease;
+    color: var(--text-dark);
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--primary);
+}
+.form-section-title { font-size: 1rem; font-weight: 700; margin: 25px 0 10px; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; grid-column: span 2; }
+
+/* Dynamic / Utility Classes */
+.view { display: none; }
+.view.active { display: block; }
+.conditional-field { display: none; }
+.conditional-field.active { display: block; }
+
+/* Responsive Adaptations */
+@media(max-width: 1024px) {
+    .charts-grid { grid-template-columns: 1fr; }
+}
+
+@media(max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { 
+        width: 100%; height: auto; position: relative; border-bottom: 1px solid var(--border);
+    }
+    .sidebar.collapsed {
+        display: none;
+    }
+    .menu-toggle { display: block; }
+    .header { padding: 0 15px; }
+    .content { padding: 15px; }
+    .dashboard-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full-width { grid-column: span 1; }
+    .form-section-title { grid-column: span 1; }
+}
+
+/* Candidate Timeline CSS */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+    margin-top: 15px;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 20px;
+    width: 2px;
+    background: var(--border);
+}
+.timeline-event {
+    position: relative;
+    padding-left: 50px;
+    margin-bottom: 25px;
+}
+.timeline-event:last-child {
+    margin-bottom: 0;
+}
+.timeline-marker {
+    position: absolute;
+    left: 11px;
+    top: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 4px solid var(--white);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.timeline-marker.joined { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+.timeline-marker.rejected { background: var(--danger); box-shadow: 0 0 0 2px var(--danger); }
+.timeline-content {
+    background: var(--bg-light);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+.timeline-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+.timeline-date {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-bottom: 8px;
+}
+.timeline-desc {
+    font-size: 0.85rem;
+    color: hsl(220, 9%, 30%);
+}
+
+
+    </style>
+</head>
+<body>
+<!-- Sidebar Navigation (Full 12-Tab Structure) -->
+<div class="sidebar" id="sidebar-menu">
+    <h2 style="padding: 20px 15px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center;">
+        Recruitment OS
+        <span onclick="toggleSidebar()" class="close-btn" style="color: white; font-size: 1rem; cursor: pointer; display: none;" id="sidebar-close">&times;</span>
+    </h2>
+    <div class="nav-items" style="font-size: 0.85rem;">
+        <div class="nav-item active" onclick="switchView('dashboard')" data-role-visible="Management,Account Manager,Recruiter">Executive Dashboard</div>
+        <div class="nav-item" onclick="switchView('requirements')" data-role-visible="Management,Account Manager,Recruiter">All Requirements <span class="nav-badge" id="nav-req-count">0</span></div>
+        <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
+        <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
+        <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
+        <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
+        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers & Onboarding <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
+        <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
+        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">Reports & Analytics</div>
+        <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
+        <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
+        <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
+        <div class="nav-item" onclick="loadSampleData()" data-role-visible="Management,Account Manager,Recruiter">Load Sample Data</div>
+        <div class="nav-item" style="color: var(--danger)" onclick="clearData()" data-role-visible="Management,Account Manager,Recruiter">Reset All Data</div>
+    </div>
+</div>
+
+<!-- Modal: New Requirement (Tabbed/Categorized Form) -->
+<div id="reqModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>Add New Requirement</h2>
+            <span class="close-btn" onclick="closeModal('reqModal')">&times;</span>
+        </div>
+        
+        <!-- Form Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <button class="btn btn-sm" type="button" onclick="switchFormTab('req', 'req-basic')">1. Basic Info</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-ownership')">2. Ownership</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-details')">3. Job Details</button>
+            <button class="btn btn-sm btn-outline" type="button" onclick="switchFormTab('req', 'req-rates')">4. Rates & CTC</button>
+        </div>
+
+        <form id="reqForm" onsubmit="handleReqSubmit(event)">
+            
+            <!-- Tab 1: Basic Info -->
+            <div id="req-basic" class="form-tab-content active">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Job Title *</label>
+                        <input type="text" id="r_title" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Name *</label>
+                        <input type="text" id="r_client" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>End Client</label>
+                        <input type="text" id="r_endclient">
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <select id="r_country" required onchange="toggleCountryFields(); updateRatesMargin(); checkDuplicateReq();">
+                            <option value="US">United States</option>
+                            <option value="IN">India</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Work Mode *</label>
+                        <select id="r_workmode" required>
+                            <option value="Remote">Remote</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="Onsite">Onsite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location (City, State) *</label>
+                        <input type="text" id="r_location" required onchange="checkDuplicateReq()">
+                    </div>
+                    <div class="form-group">
+                        <label>Target Headcount *</label>
+                        <input type="number" id="r_headcount" value="1" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority *</label>
+                        <select id="r_priority" required>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <div id="req-duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
+                        ⚠️ Warning: A requirement with similar Job Title, Client, and Location already exists!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Ownership -->
+            <div id="req-ownership" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Account Manager</label>
+                        <input type="text" id="r_am">
+                    </div>
+                    <div class="form-group">
+                        <label>BD Owner</label>
+                        <input type="text" id="r_bd">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Recruiter</label>
+                        <input type="text" id="r_recruiter">
+                    </div>
+                    <div class="form-group">
+                        <label>Recruitment Lead</label>
+                        <input type="text" id="r_lead">
+                    </div>
+                    <div class="form-group">
+                        <label>Recruitment Work Status</label>
+                        <select id="r_workstatus">
+                            <option value="Not Yet Picked Up">Not Yet Picked Up</option>
+                            <option value="Assigned but Not Started">Assigned but Not Started</option>
+                            <option value="Sourcing Started">Sourcing Started</option>
+                            <option value="Profiles Identified">Profiles Identified</option>
+                            <option value="Interviews in Progress">Interviews in Progress</option>
+                            <option value="Stalled">Stalled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Job Details & Skills -->
+            <div id="req-details" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Min Experience (Years)</label>
+                        <input type="number" id="r_minexp" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Experience (Years)</label>
+                        <input type="number" id="r_maxexp" min="0">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Mandatory Skills (Comma separated) *</label>
+                        <input type="text" id="r_skills" placeholder="e.g. React, TypeScript, Node.js" required onkeyup="checkSimilarRequirements()">
+                        <div id="req-similarity-tip" style="display:none; color:var(--primary); font-size:0.8rem; font-weight:600; margin-top:5px; background:hsl(215, 95%, 97%); padding:6px 10px; border-radius:6px; border:1px solid hsl(215, 95%, 90%);"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Job Description</label>
+                        <textarea id="r_jd" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Rates & Finance -->
+            <div id="req-rates" class="form-tab-content" style="display:none;">
+                <div class="form-grid">
+                    <!-- US specific -->
+                    <div class="form-group conditional-field us-field active">
+                        <label>Position Type *</label>
+                        <select id="r_us_postype">
+                            <option value="W2">W2</option>
+                            <option value="C2C">C2C</option>
+                            <option value="1099">1099</option>
+                            <option value="Direct Hire">Direct Hire</option>
+                        </select>
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Client Bill Rate ($/hr) *</label>
+                        <input type="number" id="r_us_billrate" value="0" oninput="updateRatesMargin()">
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Pay Rate ($/hr) *</label>
+                        <input type="number" id="r_us_payrate" value="0" oninput="updateRatesMargin()">
+                    </div>
+                    <div class="form-group conditional-field us-field active">
+                        <label>Calculated Margin ($/hr)</label>
+                        <input type="number" id="r_us_margin" readonly style="background:#f1f5f9;">
+                    </div>
+
+                    <!-- India specific -->
+                    <div class="form-group conditional-field in-field">
+                        <label>Employment Type *</label>
+                        <select id="r_in_emptype">
+                            <option value="Permanent">Permanent</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Third-Party">Third-Party Payroll</option>
+                        </select>
+                    </div>
+                    <div class="form-group conditional-field in-field">
+                        <label>Max Budget (LPA) *</label>
+                        <input type="number" id="r_in_budget" step="0.1" value="0">
+                    </div>
+                    <div class="form-group conditional-field in-field">
+                        <label>Notice Period Accepted</label>
+                        <input type="text" id="r_in_notice" placeholder="e.g. 30 days">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline" type="button" onclick="closeModal('reqModal')">Cancel</button>
+                <button type="submit" class="btn">Save Requirement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: New Candidate Pipeline Entry -->
+<div id="candidateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Candidate to Pipeline</h2>
+            <span class="close-btn" onclick="closeModal('candidateModal')">&times;</span>
+        </div>
+        <form id="candidateForm" onsubmit="handleCandidateSubmit(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="c_firstname" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="c_lastname" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="c_email" required onchange="checkDuplicateCandidate()">
+                </div>
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="text" id="c_phone" required onchange="checkDuplicateCandidate()">
+                </div>
+                <div class="form-group full-width">
+                    <label>Submit to Requirement *</label>
+                    <select id="c_reqId" required onchange="checkDuplicateCandidate()">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Visa Status / Work Auth *</label>
+                    <input type="text" id="c_visa" required placeholder="e.g. US Citizen / H1B / Immediate">
+                </div>
+                <div class="form-group">
+                    <label>Notice Period</label>
+                    <input type="text" id="c_notice" placeholder="e.g. Immediate / 2 Weeks">
+                </div>
+                <div class="form-group">
+                    <label>Source</label>
+                    <select id="c_source">
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Dice">Dice</option>
+                        <option value="Naukri">Naukri</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Internal">Internal Database</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Upload Resume (PDF/Docx)</label>
+                    <input type="file" id="c_resume" accept=".pdf,.doc,.docx" style="padding: 5px;">
+                </div>
+                <div class="form-group">
+                    <label>Target Country *</label>
+                    <select id="c_country" required>
+                        <option value="US">United States</option>
+                        <option value="IN">India</option>
+                    </select>
+                </div>
+                
+                <div id="duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
+                    ⚠️ Warning: Candidate with this email/phone or submission already exists!
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Add Candidate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Stage Update / Interview Scheduler -->
+<div id="stageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Candidate Stage</h2>
+            <span class="close-btn" onclick="closeModal('stageModal')">&times;</span>
+        </div>
+        <form id="stageForm" onsubmit="handleStageUpdate(event)">
+            <input type="hidden" id="s_candidateId">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>New Stage *</label>
+                    <select id="s_newStage" required onchange="toggleStageFields()">
+                        <option value="Sourced">Sourced</option>
+                        <option value="Screened">Screened</option>
+                        <option value="Submitted to Client">Submitted to Client (Requires Rate)</option>
+                        <option value="Interview Scheduled">Interview Scheduled (Requires Details)</option>
+                        <option value="Offer Released">Offer Released (Requires Offer Info)</option>
+                        <option value="Joined">Joined (Requires Date & Final Pay)</option>
+                        <option value="Rejected">Rejected (Requires Reason)</option>
+                        <option value="Candidate Withdrew">Candidate Withdrew (Requires Reason)</option>
+                    </select>
+                </div>
+                
+                <!-- Submitted to Client Extra Fields -->
+                <div class="form-group conditional-field stage-submit">
+                    <label>Submitted Compensation / Rate *</label>
+                    <input type="text" id="s_submitRate" placeholder="e.g. $70/hr or 15 LPA">
+                </div>
+                <div class="form-group conditional-field stage-submit">
+                    <label>Availability *</label>
+                    <input type="text" id="s_availability" placeholder="e.g. 2 weeks notice">
+                </div>
+
+                <!-- Interview Fields -->
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Date & Time *</label>
+                    <input type="datetime-local" id="s_interviewDate">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Time Zone *</label>
+                    <input type="text" id="s_timezone" placeholder="e.g. EST or IST">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Round *</label>
+                    <input type="text" id="s_interviewRound" placeholder="e.g. Technical Round 1">
+                </div>
+                <div class="form-group conditional-field stage-interview">
+                    <label>Interview Mode *</label>
+                    <select id="s_interviewMode">
+                        <option value="Video">Video Call</option>
+                        <option value="Phone">Phone Call</option>
+                        <option value="Onsite">Onsite Interview</option>
+                    </select>
+                </div>
+
+                <!-- Offer Fields -->
+                <div class="form-group conditional-field stage-offer">
+                    <label>Offer Date *</label>
+                    <input type="date" id="s_offerDate">
+                </div>
+                <div class="form-group conditional-field stage-offer" data-role-hide="Recruiter">
+                    <label>Offered Compensation *</label>
+                    <input type="text" id="s_offeredComp" placeholder="e.g. $75/hr or 18 LPA">
+                </div>
+                <div class="form-group conditional-field stage-offer">
+                    <label>Expected Joining Date *</label>
+                    <input type="date" id="s_expectJoin">
+                </div>
+                <div class="form-group conditional-field stage-offer">
+                    <label>Joining Risk Level</label>
+                    <select id="s_joiningrisk">
+                        <option value="Low">Low Risk</option>
+                        <option value="Medium">Medium Risk</option>
+                        <option value="High">High Risk</option>
+                    </select>
+                </div>
+                <div class="form-group conditional-field stage-offer full-width">
+                    <label>Counter-offer Details / Risk Reason</label>
+                    <input type="text" id="s_counterdetails" placeholder="e.g. Holds competing offer from competitor">
+                </div>
+
+                <!-- Joined Fields -->
+                <div class="form-group conditional-field stage-joined">
+                    <label>Actual Joining Date *</label>
+                    <input type="date" id="s_actualJoin">
+                </div>
+                <div class="form-group conditional-field stage-joined" data-role-hide="Recruiter">
+                    <label>Final Agreed Compensation *</label>
+                    <input type="text" id="s_finalComp" placeholder="e.g. $75/hr or 18 LPA">
+                </div>
+
+                <!-- Rejection Field -->
+                <div class="form-group conditional-field stage-reject full-width">
+                    <label>Rejection Reason *</label>
+                    <input type="text" id="s_rejectReason" placeholder="e.g. Tech evaluation failed">
+                </div>
+
+                <!-- Withdrawal Field -->
+                <div class="form-group conditional-field stage-withdraw full-width">
+                    <label>Withdrawal Reason *</label>
+                    <input type="text" id="s_withdrawReason" placeholder="e.g. Accepted another offer">
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Comments / Updates</label>
+                    <textarea id="s_comments" rows="3"></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Update Stage & Save Details</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Requirement Closure Wizard -->
+<div id="closureModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Close / Cancel Requirement</h2>
+            <span class="close-btn" onclick="closeModal('closureModal')">&times;</span>
+        </div>
+        <form id="closureForm" onsubmit="handleClosureSubmit(event)">
+            <input type="hidden" id="c_closeReqId">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Closure Status *</label>
+                    <select id="c_closeStatus" required>
+                        <option value="Closed">Closed (Fulfillment complete)</option>
+                        <option value="Cancelled">Cancelled (Budget or request cancelled)</option>
+                        <option value="Lost">Lost (Competitor filled)</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Closure Reason *</label>
+                    <select id="c_closeReason" required>
+                        <option value="Fully Filled">Fully Filled</option>
+                        <option value="Client Cancelled">Client Cancelled</option>
+                        <option value="Budget Frozen">Budget Frozen</option>
+                        <option value="Lost to Competitor">Lost to Competitor</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Lessons Learned / Final Client Feedback *</label>
+                    <textarea id="c_closeFeedback" rows="3" required></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width:100%;">Confirm Requirement Closure</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Talent Acquisition Work Log -->
+<div id="worklogModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Recruiter Work Log</h2>
+            <span class="close-btn" onclick="closeModal('worklogModal')">&times;</span>
+        </div>
+        <form id="worklogForm" onsubmit="handleWorklogSubmit(event)">
+            <input type="hidden" id="w_reqId">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Recruiter Name *</label>
+                    <select id="w_recruiter" required>
+                        <option value="Recruiter A">Recruiter A</option>
+                        <option value="Recruiter B">Recruiter B</option>
+                        <option value="Recruiter C">Recruiter C</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Activity Type *</label>
+                    <select id="w_activity" required>
+                        <option value="LinkedIn Search">LinkedIn Search</option>
+                        <option value="Job Portal Search">Job Portal Search</option>
+                        <option value="Candidate Calling">Candidate Calling</option>
+                        <option value="Candidate Screening">Candidate Screening</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Profiles Sourced</label>
+                    <input type="number" id="w_sourced" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Profiles Screened</label>
+                    <input type="number" id="w_screened" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Profiles Submitted</label>
+                    <input type="number" id="w_submitted" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Challenges / Comments</label>
+                    <input type="text" id="w_challenges" placeholder="e.g. Rate expectation high">
+                </div>
+                <div class="form-group full-width">
+                    <button type="submit" class="btn" style="width: 100%;">Save Work Log</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Candidate History Timeline -->
+<div id="historyModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Candidate Pipeline History</h2>
+            <span class="close-btn" onclick="closeModal('historyModal')">&times;</span>
+        </div>
+        <h4 id="history-candidate-name" style="margin-bottom: 15px; color: var(--primary);">Candidate Name</h4>
+        <div class="timeline" id="history-timeline-container">
+            <!-- Timeline events populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Job Requisition Detail Inspector -->
+<div id="reqDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2>Requisition Details Inspector</h2>
+            <span class="close-btn" onclick="closeModal('reqDetailsModal')">&times;</span>
+        </div>
+        <div id="req-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Candidate Profile Inspector -->
+<div id="candidateDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2>Candidate Profile Card</h2>
+            <span class="close-btn" onclick="closeModal('candidateDetailsModal')">&times;</span>
+        </div>
+        <div id="candidate-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Client Account Summary Card -->
+<div id="clientDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 750px;">
+        <div class="modal-header">
+            <h2>Client Account Profile</h2>
+            <span class="close-btn" onclick="closeModal('clientDetailsModal')">&times;</span>
+        </div>
+        <div id="client-details-content" style="font-size: 0.9rem; line-height: 1.6;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<div class="main-content">
+    <div class="header">
+        <h3 id="current-view-title">Dashboard</h3>
+        <div style="flex: 1; max-width: 400px; margin: 0 20px; position: relative;">
+            <input type="text" id="globalSearchInput" placeholder="Global search reqs, candidates..." oninput="handleGlobalSearch(this.value)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+            <div id="globalSearchResults" style="display: none; position: absolute; top: 40px; left: 0; width: 100%; background: white; box-shadow: var(--shadow-lg); border-radius: 6px; z-index: 1000; max-height: 400px; overflow-y: auto;"></div>
+        </div>
+        <div>
+            <button class="btn" onclick="openModal('reqModal')">+ New Requirement</button>
+            <button class="btn btn-outline" onclick="openModal('candidateModal')">+ New Candidate</button>
+        </div>
+    </div>
+    
+    <div id="undoToast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--text-dark); color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; box-shadow: var(--shadow-lg); align-items: center; gap: 15px;">
+        <span id="undoMessage">Candidate deleted.</span>
+        <button class="btn btn-sm" id="undoBtn" style="background: var(--warning); color: var(--text-dark);">Undo</button>
+    </div>
+    
+    <div class="content" id="view-container">
+<!-- Dashboard View -->
+<div id="dashboard" class="view active">
+    
+    <!-- Top KPIs -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Total Requirements</h3>
+            <div class="value" id="kpi-total-req">0</div>
+        </div>
+        <div class="card">
+            <h3>Active Requirements</h3>
+            <div class="value" id="kpi-active-req">0</div>
+        </div>
+        <div class="card">
+            <h3>Pending / Stalled</h3>
+            <div class="value" id="kpi-stalled-req" style="color: var(--warning)">0</div>
+        </div>
+        <div class="card">
+            <h3>Candidates Joined</h3>
+            <div class="value" id="kpi-joined" style="color: var(--success)">0</div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+        <div class="chart-container">
+            <h3>Recruitment Funnel</h3>
+            <canvas id="funnelChart" height="200"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>US vs India Requirements</h3>
+            <canvas id="geoChart" height="200"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Pipeline Drop-out Reasons</h3>
+            <canvas id="dropoutChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Aging & Bottlenecks Row -->
+    <div class="charts-grid">
+        <div class="chart-container" style="height: auto;">
+            <h3>Requirement Aging Breakdown (Click tags to view)</h3>
+            <div style="display:flex; justify-content:space-around; margin-top:20px; font-size:0.95rem; flex-wrap:wrap; gap:10px;">
+                <div onclick="filterRequirementsByAge(0, 3)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>0-3 Days:</strong> <span id="aging-0-3" style="color:var(--success); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(4, 7)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>4-7 Days:</strong> <span id="aging-4-7" style="color:var(--primary); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(8, 15)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>8-15 Days:</strong> <span id="aging-8-15" style="color:var(--warning); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(16, 30)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>16-30 Days:</strong> <span id="aging-16-30" style="color:var(--danger); font-weight:bold;">0</span></div>
+                <div onclick="filterRequirementsByAge(31, 999)" style="cursor:pointer; padding: 6px 12px; background: var(--bg-light); border-radius: 6px; border: 1.5px solid var(--border);"><strong>30+ Days:</strong> <span id="aging-30plus" style="color:darkred; font-weight:bold;">0</span></div>
+            </div>
+        </div>
+        <div class="chart-container" style="height: auto;">
+            <h3>Bottleneck & Stalled Reasons</h3>
+            <div style="font-size:0.9rem; color:var(--text-light); margin-top: 10px;" id="bottleneck-list">
+                No active bottlenecks identified.
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Alerts -->
+    <div class="card" style="margin-bottom: 30px; border-color: var(--danger); background: var(--danger-light);">
+        <h3 style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+            ⚠️ Management Actions Required Alerts
+        </h3>
+        <div id="management-alerts-container" style="font-size: 0.85rem; line-height: 1.6; margin-top: 10px;">
+            No active flags.
+        </div>
+    </div>
+
+    <h3>Priority Requirements (Aging > 15 days or Critical)</h3>
+    <div class="table-container" style="margin-top: 15px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Job Title</th>
+                    <th>Client</th>
+                    <th>Location</th>
+                    <th>Age (Days)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="dash-priority-table">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- US Requirements View -->
+<div id="us_reqs" class="view">
+    <h3 style="margin-bottom: 20px;">US Requirements Overview</h3>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>US W2 Positions</h3>
+            <div class="value" id="kpi-us-w2">0</div>
+        </div>
+        <div class="card">
+            <h3>US C2C Positions</h3>
+            <div class="value" id="kpi-us-c2c">0</div>
+        </div>
+        <div class="card">
+            <h3>Active US Requirements</h3>
+            <div class="value" id="kpi-us-active">0</div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Title & Client</th>
+                    <th>Location</th>
+                    <th>Post Type</th>
+                    <th>Bill Rate</th>
+                    <th>Pay Rate</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="us-req-table">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- India Requirements View -->
+<div id="in_reqs" class="view">
+    <h3 style="margin-bottom: 20px;">India Requirements Overview</h3>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Permanent Positions</h3>
+            <div class="value" id="kpi-in-perm">0</div>
+        </div>
+        <div class="card">
+            <h3>Contract Positions</h3>
+            <div class="value" id="kpi-in-contract">0</div>
+        </div>
+        <div class="card">
+            <h3>Active India Requirements</h3>
+            <div class="value" id="kpi-in-active">0</div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Title & Client</th>
+                    <th>Location</th>
+                    <th>Employment Type</th>
+                    <th>Max Budget</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="in-req-table">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Requirements View -->
+<div id="requirements" class="view">
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 15px;">
+            <input type="text" id="searchReq" placeholder="Search requirements..." onkeyup="filterRequirements()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+            <select id="filterCountry" onchange="filterRequirements()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <option value="All">All Countries</option>
+                <option value="US">US Requirements</option>
+                <option value="IN">India Requirements</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Title & Client</th>
+                    <th>Location</th>
+                    <th>Priority</th>
+                    <th>Headcount / Filled</th>
+                    <th>Age</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="req-table">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Offers & Onboarding View -->
+<div id="offers" class="view">
+    
+    <!-- Offers & Onboarding KPIs -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Outstanding Offers</h3>
+            <div class="value" id="kpi-off-outstanding">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Candidates currently in Offer Released stage.</p>
+        </div>
+        <div class="card" style="border-color: var(--warning);">
+            <h3>High/Medium Risk Offers</h3>
+            <div class="value" id="kpi-off-at-risk" style="color: var(--warning);">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Offers flagged with onboarding risk.</p>
+        </div>
+        <div class="card" style="border-color: var(--success);" data-role-hide="Recruiter">
+            <h3>Pending US Margin Forecast</h3>
+            <div class="value" id="kpi-off-margin-pipeline" style="color: var(--success);">$0.00/hr</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Hourly margin sum of pending US offers.</p>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <!-- Main Offers Table -->
+        <div class="table-container" style="margin-bottom: 20px;">
+            <h4 style="padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--bg-light); font-weight:700;">Offers & Onboarding Status</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Req ID</th>
+                        <th>Offer Date</th>
+                        <th>Offered Comp</th>
+                        <th>Expected Joining</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="offers-onboarding-table">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Risk Mitigation Panel -->
+        <div class="card" style="height: fit-content; border-color: var(--danger); background: var(--danger-light);">
+            <h4 style="color: var(--danger); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                ⚠️ Counter-Offer Risk mitigation Card
+            </h4>
+            <div style="max-height: 250px; overflow-y:auto; font-size: 0.8rem;" id="onboarding-risk-roster">
+                No outstanding counter-offer risks.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Candidates View -->
+<div id="candidates" class="view">
+    
+    <!-- Candidate Sub-folders (Sub-tabs) -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
+        <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
+        <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+    </div>
+
+    <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center;">
+        <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+        <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="All">All Stages</option>
+            <option value="Sourced">Sourced</option>
+            <option value="Screened">Screened</option>
+            <option value="Submitted to Client">Submitted to Client</option>
+            <option value="Interview Scheduled">Interview Scheduled</option>
+            <option value="Offer Released">Offer Released</option>
+            <option value="Joined">Joined</option>
+        </select>
+        
+        <div style="margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
+            <select id="bulkActionStage" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <option value="">-- Bulk Update Stage --</option>
+                <option value="Screened">Screened</option>
+                <option value="Submitted to Client">Submitted to Client</option>
+                <option value="Interview Scheduled">Interview Scheduled</option>
+                <option value="Offer Released">Offer Released</option>
+            </select>
+            <button class="btn btn-sm btn-outline" onclick="applyBulkAction()">Apply</button>
+        </div>
+
+        <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAllCands" onclick="toggleAllCheckboxes(this)"></th>
+                    <th>Candidate ID</th>
+                    <th>Name & Email</th>
+                    <th>Req ID</th>
+                    <th>Source</th>
+                    <th>Current Stage</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="candidate-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Interviews & Reports View -->
+<div id="interviews" class="view">
+    <h3 style="margin-bottom:20px;">Upcoming Interviews</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Requirement</th>
+                    <th>Date & Time</th>
+                    <th>Round</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="interview-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="reports" class="view">
+    <h3 style="margin-bottom:20px;">Data Export & Reports</h3>
+    
+    <!-- Turnaround Time Card -->
+    <div class="dashboard-grid" style="margin-bottom: 25px;">
+        <div class="card" style="border-color: var(--primary);">
+            <h3>Average Requirement Turnaround Time (TAT)</h3>
+            <div class="value" id="kpi-avg-tat" style="color: var(--primary);">0 Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Average days from job creation date to closure/fulfillment date.</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Full Database Backup</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export all JSON data from LocalStorage.</p>
+            <button class="btn" onclick="exportData()">Download JSON</button>
+        </div>
+        <div class="card">
+            <h3>Requirements Report</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export current requirements pipeline.</p>
+            <button class="btn btn-outline" onclick="exportRequirementsCSV()">Export CSV</button>
+        </div>
+        <div class="card">
+            <h3>Candidate Report</h3>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export full candidate and stage history.</p>
+            <button class="btn btn-outline" onclick="exportCandidatesCSV()">Export CSV</button>
+        </div>
+    </div>
+</div>
+
+<!-- Data Management View -->
+<div id="datamanagement" class="view">
+    <h3 style="margin-bottom: 20px;">Database & Storage Control</h3>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Data Backup</h3>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Export all local records to a downloadable JSON file.</p>
+            <button class="btn" onclick="exportData()">Download Backup (JSON)</button>
+        </div>
+        <div class="card">
+            <h3>Data Restore / Merge</h3>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Upload and parse an existing backup JSON file.</p>
+            <input type="file" id="importFile" accept=".json" style="margin-bottom: 10px; font-size: 0.8rem;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-sm" onclick="importData(false)">Merge Data</button>
+                <button class="btn btn-sm btn-outline" onclick="importData(true)">Overwrite All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings View -->
+<div id="settings" class="view">
+    <h3 style="margin-bottom: 20px;">System Rules & Configurable Alerts</h3>
+    <div class="card" style="max-width: 600px;">
+        <div class="form-group">
+            <label>Inactivity Threshold (Business Days)</label>
+            <input type="number" id="cfg_inactivity" value="3" min="1">
+            <small style="color:var(--text-light)">Flags requirements that have no recent Recruiter Activity Logs within these days.</small>
+        </div>
+        <div class="form-group">
+            <label>SLA Warning Threshold (Days)</label>
+            <input type="number" id="cfg_sla" value="7" min="1">
+            <small style="color:var(--text-light)">Flags requirements that remain unfulfilled after these days from creation date.</small>
+        </div>
+        <div class="form-group">
+            <label>US staffing Minimum Target Gross Margin ($/hr)</label>
+            <input type="number" id="cfg_margin_threshold" value="15" min="1">
+            <small style="color:var(--text-light)">Highlights US staff augmentation placements with red warning text if margins fall below this threshold.</small>
+        </div>
+        <button class="btn" onclick="saveSettings()" style="margin-top: 15px;">Save Configurations</button>
+    </div>
+</div>
+
+<!-- Recruiter Performance View -->
+<div id="performance" class="view">
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Recruiter Performance Dashboard</h3>
+        <select id="filterRecruiter" onchange="renderPerformance()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="All">All Recruiters</option>
+            <option value="Unassigned">Unassigned</option>
+            <option value="Recruiter A">Recruiter A</option>
+            <option value="Recruiter B">Recruiter B</option>
+            <option value="Recruiter C">Recruiter C</option>
+        </select>
+    </div>
+
+    <!-- Conversion Ratios -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Submission to Interview Ratio</h3>
+            <div class="value" id="kpi-ratio-sub-int">0%</div>
+        </div>
+        <div class="card">
+            <h3>Interview to Offer Ratio</h3>
+            <div class="value" id="kpi-ratio-int-off">0%</div>
+        </div>
+        <div class="card">
+            <h3>Offer to Joining Ratio</h3>
+            <div class="value" id="kpi-ratio-off-join">0%</div>
+        </div>
+    </div>
+
+    <!-- Recruiter Leaderboard -->
+    <h3 style="margin-top: 30px; margin-bottom: 15px;">Recruiter Cumulative Performance Leaderboard</h3>
+    <div class="table-container" style="margin-bottom: 30px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Recruiter Name</th>
+                    <th>Total Sourced</th>
+                    <th>Total Screened</th>
+                    <th>Total Submitted</th>
+                    <th>Interviews Scheduled</th>
+                    <th>Joined (Placements)</th>
+                    <th>Placement Ratio</th>
+                    <th>Avg Placement TAT</th>
+                </tr>
+            </thead>
+            <tbody id="recruiter-leaderboard-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Work Logs Table -->
+    <h3 style="margin-top: 30px; margin-bottom: 15px;">Recent Talent Acquisition Work Logs</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Req ID</th>
+                    <th>Recruiter</th>
+                    <th>Activity</th>
+                    <th>Profiles Sourced</th>
+                    <th>Screened</th>
+                    <th>Submitted</th>
+                </tr>
+            </thead>
+            <tbody id="worklog-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Client and Account View -->
+<div id="clientview" class="view">
+    <h3 style="margin-bottom: 20px;">Client & Account Dashboard</h3>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Client Name</th>
+                    <th>Total Requirements</th>
+                    <th>Active Requirements</th>
+                    <th>Target Headcount</th>
+                    <th>Candidates Sourced</th>
+                    <th>Joined</th>
+                    <th>Fill Ratio</th>
+                    <th>Account Health</th>
+                </tr>
+            </thead>
+            <tbody id="client-summary-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<script>
+// Data Store Keys
+const STORE_KEYS = {
+    reqs: 'recruitmentTracker_requirements_v1',
+    candidates: 'recruitmentTracker_candidates_v1',
+    worklogs: 'recruitmentTracker_worklogs_v1',
+    settings: 'recruitmentTracker_settings_v1',
+    role: 'recruitmentTracker_role_v1'
+};
+
+// Initialize State
+let requirements = JSON.parse(localStorage.getItem(STORE_KEYS.reqs)) || [];
+let candidates = JSON.parse(localStorage.getItem(STORE_KEYS.candidates)) || [];
+let worklogs = JSON.parse(localStorage.getItem(STORE_KEYS.worklogs)) || [];
+let appSettings = JSON.parse(localStorage.getItem(STORE_KEYS.settings)) || { inactivity: 3, sla: 7, minMargin: 15 };
+let currentRole = localStorage.getItem(STORE_KEYS.role) || "Management";
+let editingReqId = null;
+let currentCandidateTab = "All";
+let editingCandidateId = null;
+
+// Aging filter state variables
+let reqAgeFilterMin = null;
+let reqAgeFilterMax = null;
+
+// Save to LocalStorage & Backend API
+async function saveData() {
+    localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
+    localStorage.setItem(STORE_KEYS.role, currentRole);
+    
+    showLoading();
+    try {
+        await fetch('http://localhost:3000/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requisitions: requirements, candidates, worklogs })
+        });
+    } catch (e) {
+        console.error('Failed to sync with API', e);
+    }
+    hideLoading();
+    updateAllViews();
+}
+
+// Navigation & Modals
+function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    // Reset aging filters if navigating away from requirements
+    if (viewId !== 'requirements') {
+        reqAgeFilterMin = null;
+        reqAgeFilterMax = null;
+    }
+    
+    const targetView = document.getElementById(viewId);
+    if(targetView) targetView.classList.add('active');
+    
+    const sidebarItems = document.querySelectorAll('.nav-item');
+    sidebarItems.forEach(n => {
+        if(n.getAttribute('onclick') && n.getAttribute('onclick').includes(viewId)) {
+            n.classList.add('active');
+        }
+    });
+    
+    const titleMap = {
+        'dashboard': 'Executive Dashboard',
+        'requirements': 'All Requirements',
+        'us_reqs': 'US Recruitment Queue',
+        'in_reqs': 'India Recruitment Queue',
+        'candidates': 'Candidate Pipeline',
+        'interviews': 'Interviews Dashboard',
+        'offers': 'Offers & Onboarding Tracker',
+        'performance': 'Recruiter Activity & Performance',
+        'clientview': 'Client Accounts View',
+        'reports': 'Reports & Analytics',
+        'datamanagement': 'Data Storage Control',
+        'settings': 'System Configurations'
+    };
+    document.getElementById('current-view-title').innerText = titleMap[viewId] || 'Workspace';
+    
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar-menu').style.display = 'none';
+    }
+    
+    updateAllViews();
+}
+
+function openModal(id) { 
+    document.getElementById(id).style.display = 'flex'; 
+}
+function closeModal(id) { 
+    document.getElementById(id).style.display = 'none'; 
+    if (id === 'reqModal') {
+        editingReqId = null;
+        document.getElementById('reqForm').reset();
+        switchFormTab('req', 'req-basic');
+        const simTip = document.getElementById('req-similarity-tip');
+        if (simTip) {
+            simTip.style.display = 'none';
+            simTip.innerText = '';
+        }
+    } else if (id === 'candidateModal') {
+        editingCandidateId = null;
+        document.getElementById('candidateForm').reset();
+    }
+}
+
+// Mobile Sidebar Toggle
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar-menu');
+    const closeBtn = document.getElementById('sidebar-close');
+    if (sidebar.style.display === 'flex') {
+        sidebar.style.display = 'none';
+        closeBtn.style.display = 'none';
+    } else {
+        sidebar.style.display = 'flex';
+        closeBtn.style.display = 'block';
+    }
+}
+
+// Form tab switcher
+function switchFormTab(prefix, tabId) {
+    const parent = document.getElementById(tabId).parentElement;
+    parent.querySelectorAll('.form-tab-content').forEach(tab => tab.style.display = 'none');
+    document.getElementById(tabId).style.display = 'block';
+    
+    const headerRow = parent.previousElementSibling;
+    headerRow.querySelectorAll('button').forEach(btn => btn.classList.add('btn-outline'));
+    event.currentTarget.classList.remove('btn-outline');
+}
+
+// Dynamic Form Fields & Calculations
+function toggleCountryFields() {
+    const isUS = document.getElementById('r_country').value === 'US';
+    document.querySelectorAll('.us-field').forEach(el => el.classList.toggle('active', isUS));
+    document.querySelectorAll('.in-field').forEach(el => el.classList.toggle('active', !isUS));
+}
+
+function updateRatesMargin() {
+    const bill = parseFloat(document.getElementById('r_us_billrate').value || 0);
+    const pay = parseFloat(document.getElementById('r_us_payrate').value || 0);
+    document.getElementById('r_us_margin').value = (bill - pay).toFixed(2);
+}
+
+function toggleStageFields() {
+    const stage = document.getElementById('s_newStage').value;
+    document.querySelectorAll('.stage-submit').forEach(el => el.style.display = stage === 'Submitted to Client' ? 'block' : 'none');
+    document.querySelectorAll('.stage-interview').forEach(el => el.style.display = stage === 'Interview Scheduled' ? 'block' : 'none');
+    document.querySelectorAll('.stage-offer').forEach(el => el.style.display = stage === 'Offer Released' ? 'block' : 'none');
+    document.querySelectorAll('.stage-joined').forEach(el => el.style.display = stage === 'Joined' ? 'block' : 'none');
+    document.querySelectorAll('.stage-reject').forEach(el => el.style.display = stage === 'Rejected' ? 'block' : 'none');
+    document.querySelectorAll('.stage-withdraw').forEach(el => el.style.display = stage === 'Candidate Withdrew' ? 'block' : 'none');
+}
+
+// Duplicate Req Check (Section 24)
+function checkDuplicateReq() {
+    const title = document.getElementById('r_title').value.trim().toLowerCase();
+    const client = document.getElementById('r_client').value.trim().toLowerCase();
+    const location = document.getElementById('r_location').value.trim().toLowerCase();
+    const warningDiv = document.getElementById('req-duplicate-warning');
+    
+    const duplicate = requirements.some(r => r.id !== editingReqId && r.title.toLowerCase() === title && r.client.toLowerCase() === client && r.location.toLowerCase() === location);
+    warningDiv.style.display = duplicate ? 'block' : 'none';
+}
+
+function checkSimilarRequirements() {
+    const inputVal = document.getElementById('r_skills').value.trim().toLowerCase();
+    const tipDiv = document.getElementById('req-similarity-tip');
+    if (!tipDiv) return;
+    
+    if (inputVal.length < 3) {
+        tipDiv.style.display = 'none';
+        return;
+    }
+    
+    // Split user input by comma, trim whitespace
+    const inputSkills = inputVal.split(',').map(s => s.trim()).filter(s => s !== "");
+    if (inputSkills.length < 1) {
+        tipDiv.style.display = 'none';
+        return;
+    }
+    
+    const matches = [];
+    requirements.forEach(req => {
+        if (req.id === editingReqId) return;
+        if (!['Active', 'New'].includes(req.status)) return;
+        
+        const reqSkills = (req.skills || '').toLowerCase().split(',').map(s => s.trim()).filter(s => s !== "");
+        const overlap = inputSkills.filter(s => reqSkills.includes(s));
+        
+        if (overlap.length >= 2) {
+            matches.push({ id: req.id, title: req.title, overlap: overlap });
+        }
+    });
+    
+    if (matches.length > 0) {
+        tipDiv.style.display = 'block';
+        tipDiv.innerHTML = matches.map(m => `
+            💡 <strong>Sourcing Pool Tip:</strong> Active Job <span style="color:var(--text-dark);">${m.id} (${m.title})</span> also requires similar skills [${m.overlap.join(', ')}]. You can share candidate pipelines!
+        `).join('<br>');
+    } else {
+        tipDiv.style.display = 'none';
+    }
+}
+
+// Duplicate Candidate Warning (Section 24)
+function checkDuplicateCandidate() {
+    const email = document.getElementById('c_email').value.trim().toLowerCase();
+    const phone = document.getElementById('c_phone').value.trim();
+    const reqId = document.getElementById('c_reqId').value;
+    const warningDiv = document.getElementById('duplicate-warning');
+    
+    const duplicateEmail = candidates.some(c => c.id !== editingCandidateId && c.email.toLowerCase() === email && email !== "");
+    const duplicatePhone = candidates.some(c => c.id !== editingCandidateId && c.phone === phone && phone !== "");
+    const duplicateSubmission = candidates.some(c => c.id !== editingCandidateId && c.email.toLowerCase() === email && c.reqId === reqId && email !== "");
+    
+    if (duplicateEmail || duplicatePhone || duplicateSubmission) {
+        warningDiv.style.display = 'block';
+    } else {
+        warningDiv.style.display = 'none';
+    }
+}
+
+// Actions Dropdown Toggle
+function toggleActionsDropdown(id) {
+    event.stopPropagation();
+    document.querySelectorAll('.actions-dropdown').forEach(d => {
+        if(d.id !== 'dropdown-' + id) d.classList.remove('show');
+    });
+    document.getElementById('dropdown-' + id).classList.toggle('show');
+}
+
+// Close dropdowns on window click
+window.onclick = function() {
+    document.querySelectorAll('.actions-dropdown').forEach(d => d.classList.remove('show'));
+};
+
+// Requirements CRUD
+function handleReqSubmit(e) {
+    e.preventDefault();
+    const country = document.getElementById('r_country').value;
+    const isUS = country === 'US';
+    
+    // Strict Math Form Validation checks
+    const minExp = parseInt(document.getElementById('r_minexp').value || 0);
+    const maxExp = parseInt(document.getElementById('r_maxexp').value || 0);
+    if (maxExp > 0 && minExp > maxExp) {
+        alert("Validation Error: Minimum Experience cannot be greater than Maximum Experience.");
+        return;
+    }
+    
+    if (isUS) {
+        const bill = parseFloat(document.getElementById('r_us_billrate').value || 0);
+        const pay = parseFloat(document.getElementById('r_us_payrate').value || 0);
+        if (pay > bill) {
+            alert("Validation Error: Recruiter pay rate cannot exceed client billing rate.");
+            return;
+        }
+    }
+    
+    const reqData = {
+        title: document.getElementById('r_title').value,
+        client: document.getElementById('r_client').value,
+        endClient: document.getElementById('r_endclient').value,
+        country: country,
+        location: document.getElementById('r_location').value,
+        workMode: document.getElementById('r_workmode').value,
+        headcount: parseInt(document.getElementById('r_headcount').value),
+        priority: document.getElementById('r_priority').value,
+        am: document.getElementById('r_am').value,
+        bd: document.getElementById('r_bd').value,
+        recruiter: document.getElementById('r_recruiter').value,
+        lead: document.getElementById('r_lead').value,
+        minexp: minExp,
+        maxexp: maxExp,
+        skills: document.getElementById('r_skills').value,
+        jd: document.getElementById('r_jd').value,
+        type: isUS ? document.getElementById('r_us_postype').value : document.getElementById('r_in_emptype').value,
+        billRate: isUS ? parseFloat(document.getElementById('r_us_billrate').value || 0) : 0,
+        payRate: isUS ? parseFloat(document.getElementById('r_us_payrate').value || 0) : 0,
+        margin: isUS ? parseFloat(document.getElementById('r_us_margin').value || 0) : 0,
+        budget: !isUS ? parseFloat(document.getElementById('r_in_budget').value || 0) : 0,
+        noticePeriod: !isUS ? document.getElementById('r_in_notice').value : ''
+    };
+
+    if (editingReqId) {
+        const req = requirements.find(r => r.id === editingReqId);
+        if(req) Object.assign(req, reqData);
+        editingReqId = null;
+    } else {
+        const newReq = Object.assign({
+            id: `${country}-${new Date().getFullYear()}-${String(requirements.length + 1).padStart(4, '0')}`,
+            status: 'New',
+            workStatus: document.getElementById('r_workstatus').value || 'Not Yet Picked Up',
+            dateOpened: new Date().toISOString().split('T')[0],
+            filled: 0
+        }, reqData);
+        requirements.push(newReq);
+    }
+    
+    saveData();
+    closeModal('reqModal');
+    e.target.reset();
+}
+
+function editRequirement(reqId) {
+    editingReqId = reqId;
+    const r = requirements.find(req => req.id === reqId);
+    if(r) {
+        document.getElementById('r_title').value = r.title;
+        document.getElementById('r_client').value = r.client;
+        document.getElementById('r_endclient').value = r.endClient || '';
+        document.getElementById('r_country').value = r.country;
+        document.getElementById('r_workmode').value = r.workMode;
+        document.getElementById('r_location').value = r.location;
+        document.getElementById('r_headcount').value = r.headcount;
+        document.getElementById('r_priority').value = r.priority;
+        
+        document.getElementById('r_am').value = r.am || '';
+        document.getElementById('r_bd').value = r.bd || '';
+        document.getElementById('r_recruiter').value = r.recruiter || '';
+        document.getElementById('r_lead').value = r.lead || '';
+        document.getElementById('r_workstatus').value = r.workStatus || 'Not Yet Picked Up';
+        
+        document.getElementById('r_minexp').value = r.minexp || '';
+        document.getElementById('r_maxexp').value = r.maxexp || '';
+        document.getElementById('r_skills').value = r.skills || '';
+        document.getElementById('r_jd').value = r.jd || '';
+        
+        toggleCountryFields();
+        if(r.country === 'US') {
+            document.getElementById('r_us_postype').value = r.type;
+            document.getElementById('r_us_billrate').value = r.billRate;
+            document.getElementById('r_us_payrate').value = r.payRate;
+            document.getElementById('r_us_margin').value = r.margin;
+        } else {
+            document.getElementById('r_in_emptype').value = r.type;
+            document.getElementById('r_in_budget').value = r.budget;
+            document.getElementById('r_in_notice').value = r.noticePeriod || '';
+        }
+        
+        openModal('reqModal');
+    }
+}
+
+function duplicateRequirement(reqId) {
+    const r = requirements.find(req => req.id === reqId);
+    if(r) {
+        const country = r.country;
+        const newReq = Object.assign({}, r, {
+            id: `${country}-${new Date().getFullYear()}-${String(requirements.length + 1).padStart(4, '0')}`,
+            dateOpened: new Date().toISOString().split('T')[0],
+            filled: 0,
+            status: 'New',
+            workStatus: 'Not Yet Picked Up'
+        });
+        requirements.push(newReq);
+        saveData();
+        alert(`Requirement duplicated as ${newReq.id}`);
+    }
+}
+
+function deleteRequirement(reqId) {
+    if(confirm(`Are you absolutely sure you want to delete requirement ${reqId}? This will remove it permanently.`)) {
+        requirements = requirements.filter(r => r.id !== reqId);
+        saveData();
+    }
+}
+
+// Requirement Closure Wizard triggers
+function openClosureModal(reqId) {
+    document.getElementById('c_closeReqId').value = reqId;
+    openModal('closureModal');
+}
+
+function openHistoryModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if(can) {
+        document.getElementById('history-candidate-name').innerText = `${can.name} (${can.id})`;
+        const container = document.getElementById('history-timeline-container');
+        container.innerHTML = '';
+        
+        const history = can.history || [];
+        history.forEach(h => {
+            const ev = document.createElement('div');
+            ev.className = 'timeline-event';
+            
+            let markerClass = '';
+            if (h.stage === 'Joined') markerClass = 'joined';
+            else if (h.stage === 'Rejected' || h.stage === 'Candidate Withdrew') markerClass = 'rejected';
+            
+            ev.innerHTML = `
+                <div class="timeline-marker ${markerClass}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">${h.stage}</div>
+                    <div class="timeline-date">${h.date}</div>
+                    <div class="timeline-desc">${h.comment}</div>
+                </div>
+            `;
+            container.appendChild(ev);
+        });
+        openModal('historyModal');
+    }
+}
+
+function openReqDetailsModal(reqId) {
+    const r = requirements.find(req => req.id === reqId);
+    if (r) {
+        const age = Math.floor((new Date() - new Date(r.dateOpened)) / (1000 * 60 * 60 * 24));
+        const rateDetails = r.country === 'US' ? `
+            <p><strong>Employment Type:</strong> ${r.type}</p>
+            <p><strong>Billing Rate:</strong> $${r.billRate}/hr</p>
+            <p><strong>Pay Rate:</strong> $${r.payRate}/hr</p>
+            <p><strong>Margin:</strong> $${r.margin}/hr</p>
+        ` : `
+            <p><strong>Employment Type:</strong> ${r.type}</p>
+            <p><strong>Max Budget:</strong> ${r.budget} LPA</p>
+            <p><strong>Notice Period Required:</strong> ${r.noticePeriod || 'N/A'}</p>
+        `;
+        
+        document.getElementById('req-details-content').innerHTML = `
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+                <button class="btn btn-sm btn-outline" onclick="cloneReq('${r.id}')">📋 Clone Requirement</button>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div>
+                    <p><strong>Requirement ID:</strong> ${r.id}</p>
+                    <p><strong>Job Title:</strong> ${r.title}</p>
+                    <p><strong>Client Name:</strong> ${r.client}</p>
+                    <p><strong>End Client:</strong> ${r.endClient || 'Direct'}</p>
+                    <p><strong>Location:</strong> ${r.location} (${r.workMode})</p>
+                </div>
+                <div>
+                    <p><strong>Priority Level:</strong> <span class="badge ${r.priority === 'Critical' ? 'rejected' : 'pending'}">${r.priority}</span></p>
+                    <p><strong>Headcount Target:</strong> ${r.filled} / ${r.headcount} Filled</p>
+                    <p><strong>Job Status:</strong> ${r.status} (${r.workStatus || 'Active Sourcing'})</p>
+                    <p><strong>Open Age:</strong> ${age} Days ago (Opened: ${r.dateOpened})</p>
+                </div>
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+                <h4 style="margin-bottom:8px; color:var(--primary);">Compensation & Contract Metrics</h4>
+                ${rateDetails}
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+                <h4 style="margin-bottom:8px; color:var(--primary);">Experience & Skills Required</h4>
+                <p><strong>Experience Level:</strong> ${r.minexp || '0'} - ${r.maxexp || 'Any'} Years</p>
+                <p><strong>Target Skills:</strong> ${r.skills || 'N/A'}</p>
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px;">
+                <h4 style="margin-bottom:8px; color:var(--primary);">Full Job Description (JD)</h4>
+                <pre style="white-space: pre-wrap; font-family:inherit; background:var(--bg-light); padding:10px; border-radius:6px; font-size:0.85rem; border:1px solid var(--border);">${r.jd || 'No description supplied.'}</pre>
+            </div>
+        `;
+        openModal('reqDetailsModal');
+    }
+}
+
+function openCandidateDetailsModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if(can) {
+        document.getElementById('candidate-details-content').innerHTML = `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div>
+                    <p><strong>Candidate ID:</strong> ${can.id}</p>
+                    <p><strong>Full Name:</strong> ${can.name}</p>
+                    <p><strong>Email Address:</strong> ${can.email}</p>
+                    <p><strong>Phone Contact:</strong> ${can.phone}</p>
+                </div>
+                <div>
+                    <p><strong>Target Country:</strong> <span class="badge active">${can.country || 'US'}</span></p>
+                    <p><strong>Current Pipeline Stage:</strong> <span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></p>
+                    <p><strong>Visa / Work Auth:</strong> ${can.visa || 'N/A'}</p>
+                    <p><strong>Notice Period:</strong> ${can.notice || 'Immediate'}</p>
+                </div>
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+                <p><strong>Submitted to Requisition:</strong> <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="closeModal('candidateDetailsModal'); openReqDetailsModal('${can.reqId}')">${can.reqId} ➔</span></p>
+                <p><strong>Candidate Source:</strong> ${can.source || 'Referral'}</p>
+                <p><strong>Resume Document:</strong> ${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">Not Uploaded</span>'}</p>
+                <p><strong>Profile Last Updated:</strong> ${can.lastUpdated}</p>
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px;">
+                <h4 style="margin-bottom:8px; color:var(--primary);">Transition & Audit Journey</h4>
+                <div class="timeline" style="max-height: 250px; overflow-y: auto;">
+                    ${(can.history || []).map(h => `
+                        <div class="timeline-event" style="margin-bottom:12px;">
+                            <div class="timeline-marker" style="width:12px; height:12px; left:15px;"></div>
+                            <div class="timeline-content" style="padding:8px;">
+                                <div class="timeline-title" style="font-size:0.8rem;">${h.stage}</div>
+                                <div style="font-size:0.7rem; color:var(--text-light);">${h.date}</div>
+                                <div style="font-size:0.75rem; color:var(--text-dark);">${h.comment}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
+                <h4 style="margin-bottom:8px; color:var(--primary);">Comments & Notes</h4>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <textarea id="new-comment-${can.id}" rows="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid var(--border);" placeholder="Add a timestamped note..."></textarea>
+                    <button class="btn btn-sm" style="align-self:flex-end;" onclick="addCandidateComment('${can.id}')">Add Comment</button>
+                </div>
+                <div class="comments-list" style="margin-top:15px; max-height:200px; overflow-y:auto; font-size:0.85rem;">
+                    ${(can.comments || []).slice().reverse().map(c => `
+                        <div style="background:var(--bg-light); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                <strong style="color:var(--primary);">${c.user || 'User'}</strong>
+                                <span style="color:var(--text-light); font-size:0.75rem;">${c.timestamp}</span>
+                            </div>
+                            <div>${c.text}</div>
+                        </div>
+                    `).join('') || '<div style="color:var(--text-light); font-style:italic;">No comments yet.</div>'}
+                </div>
+            </div>
+        `;
+        openModal('candidateDetailsModal');
+    }
+}
+
+function addCandidateComment(canId) {
+    const textInput = document.getElementById(`new-comment-${canId}`);
+    const text = textInput.value.trim();
+    if (!text) return;
+
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        if (!can.comments) can.comments = [];
+        can.comments.push({
+            timestamp: new Date().toLocaleString(),
+            user: currentRole,
+            text: text
+        });
+        saveData();
+        openCandidateDetailsModal(canId); // Refresh modal
+    }
+}
+
+function openClientDetailsModal(clientName) {
+    const clientReqs = requirements.filter(r => r.client.toLowerCase() === clientName.toLowerCase());
+    const clientJobsCount = clientReqs.length;
+    const activeJobsCount = clientReqs.filter(r => ['Active', 'New'].includes(r.status)).length;
+    
+    // Aggregate financial metrics
+    let totalBill = 0, totalPay = 0, totalMargin = 0;
+    clientReqs.forEach(r => {
+        if (r.country === 'US') {
+            totalBill += r.billRate;
+            totalPay += r.payRate;
+            totalMargin += r.margin;
+        }
+    });
+
+    const clientCans = candidates.filter(c => {
+        const req = requirements.find(r => r.id === c.reqId);
+        return req && req.client.toLowerCase() === clientName.toLowerCase();
+    });
+
+    const financeSection = currentRole === 'Recruiter' ? '' : `
+        <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+            <h4 style="margin-bottom:8px; color:var(--primary);">Accumulated Hourly Margins (US Reqs Only)</h4>
+            <p><strong>Combined Bill Rate:</strong> $${totalBill.toFixed(2)}/hr</p>
+            <p><strong>Combined Pay Rate:</strong> $${totalPay.toFixed(2)}/hr</p>
+            <p><strong>Combined Hourly Net Margin:</strong> <strong style="color:var(--success)">$${totalMargin.toFixed(2)}/hr</strong></p>
+        </div>
+    `;
+
+    document.getElementById('client-details-content').innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+            <div>
+                <p><strong>Client Account:</strong> ${clientName}</p>
+                <p><strong>Total Requisitions:</strong> ${clientJobsCount}</p>
+                <p><strong>Active Requisitions:</strong> ${activeJobsCount}</p>
+            </div>
+            <div>
+                <p><strong>Total Candidate Submissions:</strong> ${clientCans.length}</p>
+                <p><strong>Active Pipeline Stages:</strong> ${clientCans.filter(c => !['Joined','Rejected'].includes(c.stage)).length} Sourced/Scheduled</p>
+            </div>
+        </div>
+        ${financeSection}
+        <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+            <h4 style="margin-bottom:8px; color:var(--primary);">Requisition Roster</h4>
+            <div style="max-height: 150px; overflow-y:auto;">
+                <table style="font-size:0.8rem; min-width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Job ID</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${clientReqs.map(r => `
+                            <tr>
+                                <td><span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="closeModal('clientDetailsModal'); openReqDetailsModal('${r.id}')">${r.id}</span></td>
+                                <td>${r.title}</td>
+                                <td>${r.priority}</td>
+                                <td>${r.status}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div style="border-top:1.5px solid var(--border); padding-top:15px;">
+            <h4 style="margin-bottom:8px; color:var(--primary);">Sourcing Pool Roster</h4>
+            <div style="max-height: 150px; overflow-y:auto;">
+                <table style="font-size:0.8rem; min-width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Req ID</th>
+                            <th>Stage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${clientCans.map(c => `
+                            <tr>
+                                <td><span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="closeModal('clientDetailsModal'); openCandidateDetailsModal('${c.id}')">${c.name}</span></td>
+                                <td>${c.reqId}</td>
+                                <td><span class="badge ${getBadgeClass(c.stage)}" style="font-size:0.65rem; padding:2px 6px;">${c.stage}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    openModal('clientDetailsModal');
+}
+
+function handleClosureSubmit(e) {
+    e.preventDefault();
+    const reqId = document.getElementById('c_closeReqId').value;
+    const status = document.getElementById('c_closeStatus').value;
+    const reason = document.getElementById('c_closeReason').value;
+    const feedback = document.getElementById('c_closeFeedback').value;
+    
+    const req = requirements.find(r => r.id === reqId);
+    if(req) {
+        req.status = status;
+        req.closureReason = reason;
+        req.closureFeedback = feedback;
+        req.closureDate = new Date().toISOString().split('T')[0];
+    }
+    saveData();
+    closeModal('closureModal');
+    e.target.reset();
+}
+
+// Clickable Aging Filter Trigger
+function filterRequirementsByAge(minDays, maxDays) {
+    reqAgeFilterMin = minDays;
+    reqAgeFilterMax = maxDays;
+    
+    switchView('requirements');
+}
+
+// Candidates CRUD
+function openCandidateModal() {
+    const reqSelect = document.getElementById('c_reqId');
+    reqSelect.innerHTML = '<option value="">Select Requirement...</option>' + 
+        requirements.map(r => `<option value="${r.id}">${r.id} - ${r.title} (${r.client})</option>`).join('');
+    openModal('candidateModal');
+}
+
+async function handleCandidateSubmit(e) {
+    e.preventDefault();
+    const country = document.getElementById('c_country').value;
+    
+    let resumeUrl = null;
+    const fileInput = document.getElementById('c_resume');
+    if (fileInput && fileInput.files.length > 0) {
+        showLoading();
+        const formData = new FormData();
+        formData.append('resume', fileInput.files[0]);
+        try {
+            const res = await fetch('http://localhost:3000/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.url) resumeUrl = data.url;
+        } catch (err) {
+            console.error('File upload failed', err);
+        }
+        hideLoading();
+    }
+    
+    const canData = {
+        name: `${document.getElementById('c_firstname').value} ${document.getElementById('c_lastname').value}`,
+        email: document.getElementById('c_email').value,
+        phone: document.getElementById('c_phone').value,
+        reqId: document.getElementById('c_reqId').value,
+        source: document.getElementById('c_source').value,
+        visa: document.getElementById('c_visa').value,
+        notice: document.getElementById('c_notice').value,
+        country: country,
+        lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    
+    if (resumeUrl) canData.resumeUrl = resumeUrl;
+
+    if (editingCandidateId) {
+        const can = candidates.find(c => c.id === editingCandidateId);
+        if (can) {
+            Object.assign(can, canData);
+            if (!can.history) can.history = [];
+            can.history.push({ stage: can.stage, date: new Date().toISOString().split('T')[0], comment: 'Candidate details edited' });
+        }
+        editingCandidateId = null;
+    } else {
+        const newCan = Object.assign({
+            id: `CAN-${new Date().getFullYear()}-${String(candidates.length + 1).padStart(4, '0')}`,
+            stage: 'Sourced',
+            history: [{ stage: 'Sourced', date: new Date().toISOString().split('T')[0], comment: 'Candidate registered' }]
+        }, canData);
+        candidates.push(newCan);
+    }
+    
+    saveData();
+    closeModal('candidateModal');
+    e.target.reset();
+    document.getElementById('duplicate-warning').style.display = 'none';
+}
+
+function editCandidate(canId) {
+    editingCandidateId = canId;
+    const can = candidates.find(c => c.id === canId);
+    if(can) {
+        // Split name
+        const names = can.name.split(' ');
+        document.getElementById('c_firstname').value = names[0] || '';
+        document.getElementById('c_lastname').value = names.slice(1).join(' ') || '';
+        document.getElementById('c_email').value = can.email;
+        document.getElementById('c_phone').value = can.phone;
+        
+        // Populate requirements dropdown
+        const reqSelect = document.getElementById('c_reqId');
+        reqSelect.innerHTML = '<option value="">Select Requirement...</option>' + 
+            requirements.map(r => `<option value="${r.id}">${r.id} - ${r.title} (${r.client})</option>`).join('');
+        reqSelect.value = can.reqId;
+        
+        document.getElementById('c_visa').value = can.visa || '';
+        document.getElementById('c_notice').value = can.notice || '';
+        document.getElementById('c_source').value = can.source;
+        document.getElementById('c_country').value = can.country || 'US';
+        
+        openModal('candidateModal');
+    }
+}
+
+let lastDeletedCandidate = null;
+let undoTimeout = null;
+
+function deleteCandidate(canId) {
+    if(confirm(`Are you absolutely sure you want to delete candidate ${canId}?`)) {
+        lastDeletedCandidate = candidates.find(c => c.id === canId);
+        candidates = candidates.filter(c => c.id !== canId);
+        saveData();
+        
+        // Show Undo Toast
+        const toast = document.getElementById('undoToast');
+        document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
+        toast.style.display = 'flex';
+        
+        document.getElementById('undoBtn').onclick = () => {
+            if (lastDeletedCandidate) {
+                candidates.push(lastDeletedCandidate);
+                saveData();
+                toast.style.display = 'none';
+                clearTimeout(undoTimeout);
+                lastDeletedCandidate = null;
+            }
+        };
+
+        if (undoTimeout) clearTimeout(undoTimeout);
+        undoTimeout = setTimeout(() => {
+            toast.style.display = 'none';
+            lastDeletedCandidate = null;
+        }, 8000); // 8 seconds to undo
+    }
+}
+
+// Update Stage & Validate Inputs (Section 10)
+function openStageModal(canId) {
+    document.getElementById('s_candidateId').value = canId;
+    const can = candidates.find(c => c.id === canId);
+    if(can) {
+        document.getElementById('s_newStage').value = can.stage;
+        toggleStageFields();
+    }
+    openModal('stageModal');
+}
+
+function handleStageUpdate(e) {
+    e.preventDefault();
+    const canId = document.getElementById('s_candidateId').value;
+    const newStage = document.getElementById('s_newStage').value;
+    const comment = document.getElementById('s_comments').value || 'Stage updated';
+    const can = candidates.find(c => c.id === canId);
+    
+    if (can) {
+        // Validation Checks
+        if (newStage === 'Submitted to Client' && (!document.getElementById('s_submitRate').value || !document.getElementById('s_availability').value)) {
+            alert("Submitted compensation rate and availability are required for Client Submission.");
+            return;
+        }
+        if (newStage === 'Interview Scheduled' && (!document.getElementById('s_interviewDate').value || !document.getElementById('s_timezone').value || !document.getElementById('s_interviewRound').value)) {
+            alert("Interview date, round, and timezone are required to schedule an interview.");
+            return;
+        }
+        if (newStage === 'Offer Released' && (!document.getElementById('s_offerDate').value || !document.getElementById('s_offeredComp').value || !document.getElementById('s_expectJoin').value)) {
+            alert("Offer date, offered compensation, and expected joining date are required to release an offer.");
+            return;
+        }
+        if (newStage === 'Joined' && (!document.getElementById('s_actualJoin').value || !document.getElementById('s_finalComp').value)) {
+            alert("Actual joining date and final agreed compensation are required to confirm onboarding.");
+            return;
+        }
+        if (newStage === 'Rejected' && !document.getElementById('s_rejectReason').value) {
+            alert("Please supply a rejection reason.");
+            return;
+        }
+        if (newStage === 'Candidate Withdrew' && !document.getElementById('s_withdrawReason').value) {
+            alert("Please supply a candidate withdrawal reason.");
+            return;
+        }
+
+        // Apply state updates
+        can.stage = newStage;
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        let extraComment = "";
+        if (newStage === 'Submitted to Client') {
+            can.submitRate = document.getElementById('s_submitRate').value;
+            can.availability = document.getElementById('s_availability').value;
+            extraComment = `Rate: ${can.submitRate}, Avail: ${can.availability}`;
+        } else if (newStage === 'Interview Scheduled') {
+            can.interviewDate = document.getElementById('s_interviewDate').value;
+            can.interviewRound = document.getElementById('s_interviewRound').value;
+            can.interviewTimezone = document.getElementById('s_timezone').value;
+            can.interviewMode = document.getElementById('s_interviewMode').value;
+            extraComment = `Round: ${can.interviewRound} on ${new Date(can.interviewDate).toLocaleString()} ${can.interviewTimezone}`;
+        } else if (newStage === 'Offer Released') {
+            can.offerDate = document.getElementById('s_offerDate').value;
+            can.offeredComp = document.getElementById('s_offeredComp').value;
+            can.expectedJoining = document.getElementById('s_expectJoin').value;
+            can.joiningRisk = document.getElementById('s_joiningrisk').value;
+            can.counterDetails = document.getElementById('s_counterdetails').value;
+            extraComment = `Comp: ${can.offeredComp}, Joining: ${can.expectedJoining}, Risk: ${can.joiningRisk}`;
+        } else if (newStage === 'Joined') {
+            can.actualJoining = document.getElementById('s_actualJoin').value;
+            can.finalComp = document.getElementById('s_finalComp').value;
+            extraComment = `Onboarded on ${can.actualJoining} with comp ${can.finalComp}`;
+            
+            const req = requirements.find(r => r.id === can.reqId);
+            if (req) {
+                req.filled = (req.filled || 0) + 1;
+                if (req.filled >= req.headcount) {
+                    req.status = 'Filled';
+                }
+            }
+        } else if (newStage === 'Rejected') {
+            can.rejectionReason = document.getElementById('s_rejectReason').value;
+            extraComment = `Reason: ${can.rejectionReason}`;
+        } else if (newStage === 'Candidate Withdrew') {
+            can.withdrawalReason = document.getElementById('s_withdrawReason').value;
+            extraComment = `Reason: ${can.withdrawalReason}`;
+        }
+
+        if(!can.history) can.history = [];
+        can.history.push({ stage: newStage, date: new Date().toISOString().split('T')[0], comment: comment + (extraComment ? ` (${extraComment})` : "") });
+    }
+    saveData();
+    closeModal('stageModal');
+    e.target.reset();
+}
+
+// Work Log Handlers
+function openWorklogModal(reqId) {
+    document.getElementById('w_reqId').value = reqId;
+    openModal('worklogModal');
+}
+
+function handleWorklogSubmit(e) {
+    e.preventDefault();
+    const newLog = {
+        date: new Date().toISOString().split('T')[0],
+        reqId: document.getElementById('w_reqId').value,
+        recruiter: document.getElementById('w_recruiter').value,
+        activity: document.getElementById('w_activity').value,
+        sourced: parseInt(document.getElementById('w_sourced').value || 0),
+        screened: parseInt(document.getElementById('w_screened').value || 0),
+        submitted: parseInt(document.getElementById('w_submitted').value || 0),
+        challenges: document.getElementById('w_challenges').value
+    };
+    worklogs.push(newLog);
+    saveData();
+    closeModal('worklogModal');
+    e.target.reset();
+}
+
+function switchCandidateTab(tab) {
+    currentCandidateTab = tab;
+    
+    const btnAll = document.getElementById('btn-can-all');
+    const btnUs = document.getElementById('btn-can-us');
+    const btnIn = document.getElementById('btn-can-in');
+    
+    if(btnAll && btnUs && btnIn) {
+        btnAll.classList.toggle('btn-outline', tab !== 'All');
+        btnUs.classList.toggle('btn-outline', tab !== 'US');
+        btnIn.classList.toggle('btn-outline', tab !== 'IN');
+    }
+    
+    updateAllViews();
+}
+
+// Access Control Logic
+function changeRole(role) {
+    currentRole = role;
+    saveData();
+}
+
+function applyRolePermissions() {
+    document.querySelectorAll('.nav-item').forEach(nav => {
+        const allowedRoles = nav.getAttribute('data-role-visible').split(',');
+        nav.style.display = allowedRoles.includes(currentRole) ? 'flex' : 'none';
+    });
+
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav && activeNav.style.display === 'none') {
+        const dbNav = document.querySelector('.nav-item[onclick*="dashboard"]');
+        if (dbNav) dbNav.click();
+    }
+
+    document.querySelectorAll('[data-role-hide]').forEach(el => {
+        const hiddenRoles = el.getAttribute('data-role-hide').split(',');
+        el.style.display = hiddenRoles.includes(currentRole) ? 'none' : 'block';
+    });
+}
+
+// Render Views
+function updateAllViews() {
+    applyRolePermissions();
+    renderRequirements();
+    renderUSRequirements();
+    renderINRequirements();
+    renderCandidates();
+    renderInterviews();
+    renderOffers();
+    renderPerformance();
+    renderClients();
+    updateDashboard();
+    calculateReportsTAT();
+    
+    // Update nav badges
+    document.getElementById('nav-req-count').innerText = requirements.length;
+    document.getElementById('nav-us-count').innerText = requirements.filter(r => r.country === 'US').length;
+    document.getElementById('nav-in-count').innerText = requirements.filter(r => r.country === 'IN').length;
+    document.getElementById('nav-can-count').innerText = candidates.length;
+    document.getElementById('nav-int-count').innerText = candidates.filter(c => c.stage.includes('Interview')).length;
+    document.getElementById('nav-off-count').innerText = candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').length;
+}
+
+function getBadgeClass(status) {
+    const s = status.toLowerCase();
+    if (['active', 'joined'].includes(s)) return 'active';
+    if (['pending', 'stalled', 'sourced', 'new'].includes(s)) return 'pending';
+    if (['filled', 'closed', 'rejected', 'lost'].includes(s)) return 'closed';
+    if (s.includes('interview')) return 'interview';
+    if (s.includes('offer')) return 'offer';
+    return 'pending';
+}
+
+function renderRequirements() {
+    const tbody = document.getElementById('req-table');
+    if(!tbody) return;
+    const search = (document.getElementById('searchReq')?.value || '').toLowerCase();
+    const filter = document.getElementById('filterCountry')?.value || 'All';
+    
+    tbody.innerHTML = '';
+    requirements.filter(req => {
+        const matchesSearch = req.title.toLowerCase().includes(search) || req.id.toLowerCase().includes(search) || req.client.toLowerCase().includes(search);
+        const matchesCountry = filter === 'All' || req.country === filter;
+        
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        let matchesAge = true;
+        if(reqAgeFilterMin !== null && reqAgeFilterMax !== null) {
+            matchesAge = age >= reqAgeFilterMin && age <= reqAgeFilterMax;
+        }
+        
+        return matchesSearch && matchesCountry && matchesAge;
+    }).forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        const slaExceeded = age > appSettings.sla;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${req.id}')">${req.id}</strong></td>
+            <td>${req.title}<br><small style="color:var(--text-light)">${req.client} (End: ${req.endClient || 'N/A'})</small></td>
+            <td>${req.location} (${req.workMode})</td>
+            <td>${req.priority}</td>
+            <td>${req.filled || 0} / ${req.headcount}</td>
+            <td>
+                ${age} days 
+                ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">⚠️ SLA</span>' : ''}
+            </td>
+            <td>
+                <span class="badge ${getBadgeClass(req.status)}">${req.status}</span>
+                ${getReqInactivityDays(req.id, req.dateOpened) > appSettings.inactivity && ['Active', 'New'].includes(req.status) ? '<span class="badge" style="background:var(--warning-light); color:var(--warning); font-size:0.65rem; padding:2px 6px;">⚠️ Inactive</span>' : ''}
+                <br><small style="font-size:0.75rem; color:var(--text-light);">${req.workStatus || 'Not Started'}</small>
+            </td>
+            <td class="actions-cell">
+                <span class="actions-menu-btn" onclick="toggleActionsDropdown('${req.id}')">Actions ▾</span>
+                <div class="actions-dropdown" id="dropdown-${req.id}">
+                    <div class="actions-item" onclick="editRequirement('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Edit Job</div>
+                    <div class="actions-item" onclick="openWorklogModal('${req.id}')" ${currentRole === 'Account Manager' ? 'style="display:none;"' : ''}>Log Activity</div>
+                    <div class="actions-item" onclick="duplicateRequirement('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Duplicate</div>
+                    <div class="actions-item" onclick="openClosureModal('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger)">Close Job</div>
+                    <div class="actions-item" onclick="deleteRequirement('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger); font-weight:600;">Delete</div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderUSRequirements() {
+    const tbody = document.getElementById('us-req-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    const usReqs = requirements.filter(r => r.country === 'US');
+    document.getElementById('kpi-us-w2').innerText = usReqs.filter(r => r.type === 'W2').length;
+    document.getElementById('kpi-us-c2c').innerText = usReqs.filter(r => r.type === 'C2C').length;
+    document.getElementById('kpi-us-active').innerText = usReqs.filter(r => r.status === 'Active' || r.status === 'New').length;
+
+    usReqs.forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        const slaExceeded = age > appSettings.sla;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${req.id}')">${req.id}</strong></td>
+            <td>${req.title}<br><small style="color:var(--text-light)">${req.client}</small></td>
+            <td>${req.location}</td>
+            <td>${req.type}</td>
+            <td>
+                $${req.billRate}/hr
+                <br><small style="color: ${req.margin < (appSettings.minMargin || 15) ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">Margin: $${req.margin}/hr</small>
+            </td>
+            <td>$${req.payRate}/hr ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
+            <td>
+                <span class="badge ${getBadgeClass(req.status)}">${req.status}</span>
+                ${getReqInactivityDays(req.id, req.dateOpened) > appSettings.inactivity && ['Active', 'New'].includes(req.status) ? '<span class="badge" style="background:var(--warning-light); color:var(--warning); font-size:0.65rem; padding:2px 6px;">Inactive</span>' : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderINRequirements() {
+    const tbody = document.getElementById('in-req-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    const inReqs = requirements.filter(r => r.country === 'IN');
+    document.getElementById('kpi-in-perm').innerText = inReqs.filter(r => r.type === 'Permanent').length;
+    document.getElementById('kpi-in-contract').innerText = inReqs.filter(r => r.type === 'Contract').length;
+    document.getElementById('kpi-in-active').innerText = inReqs.filter(r => r.status === 'Active' || r.status === 'New').length;
+
+    inReqs.forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        const slaExceeded = age > appSettings.sla;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${req.id}')">${req.id}</strong></td>
+            <td>${req.title}<br><small style="color:var(--text-light)">${req.client}</small></td>
+            <td>${req.location}</td>
+            <td>${req.type}</td>
+            <td>${req.budget} LPA ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
+            <td>
+                <span class="badge ${getBadgeClass(req.status)}">${req.status}</span>
+                ${getReqInactivityDays(req.id, req.dateOpened) > appSettings.inactivity && ['Active', 'New'].includes(req.status) ? '<span class="badge" style="background:var(--warning-light); color:var(--warning); font-size:0.65rem; padding:2px 6px;">Inactive</span>' : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderCandidates() {
+    const tbody = document.getElementById('candidate-table');
+    if(!tbody) return;
+    const search = (document.getElementById('searchCan')?.value || '').toLowerCase();
+    const filterStage = document.getElementById('filterStage')?.value || 'All';
+    
+    tbody.innerHTML = '';
+    candidates.filter(can => {
+        const matchesSearch = can.name.toLowerCase().includes(search) || can.email.toLowerCase().includes(search);
+        const matchesStage = filterStage === 'All' || can.stage === filterStage;
+        const matchesCountry = currentCandidateTab === 'All' || (can.country || 'US') === currentCandidateTab;
+        return matchesSearch && matchesStage && matchesCountry;
+    }).forEach(can => {
+        const historyText = can.history ? can.history.map(h => `${h.date}: ${h.stage} (${h.comment})`).join(' | ') : 'No history';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align: center;"><input type="checkbox" class="cand-checkbox" value="${can.id}"></td>
+            <td>${can.id}</td>
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong><br><small style="color:var(--text-light)">${can.email} | ${can.phone}</small></td>
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${can.reqId}')">${can.reqId}</strong> <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span></td>
+            <td>${can.source}</td>
+            <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span><br><small style="font-size:0.75rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="openHistoryModal('${can.id}')">History (${can.history ? can.history.length : 0}) ➔</small></td>
+            <td>${can.lastUpdated}</td>
+            <td class="actions-cell">
+                <span class="actions-menu-btn" onclick="toggleActionsDropdown('${can.id}')">Actions ▾</span>
+                <div class="actions-dropdown" id="dropdown-${can.id}">
+                    <div class="actions-item" onclick="openCandidateDetailsModal('${can.id}')">View Profile</div>
+                    <div class="actions-item" onclick="openStageModal('${can.id}')">Update Stage</div>
+                    <div class="actions-item" onclick="editCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Edit Info</div>
+                    <div class="actions-item" onclick="deleteCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger)">Delete</div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderInterviews() {
+    const tbody = document.getElementById('interview-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    candidates.filter(c => c.stage.includes('Interview')).forEach(can => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${can.name}</strong></td>
+            <td>${can.reqId}</td>
+            <td>${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'Not Set'} ${can.interviewTimezone || ''}</td>
+            <td>${can.interviewRound || '-'} (${can.interviewMode || '-'})</td>
+            <td><span class="badge interview">${can.stage}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderOffers() {
+    const tbody = document.getElementById('offers-onboarding-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    const outstandingOffers = candidates.filter(c => c.stage === 'Offer Released');
+    const atRiskOffers = outstandingOffers.filter(c => ['Medium', 'High'].includes(c.joiningRisk));
+    
+    // Calculate pending margin sum
+    let pendingMargin = 0;
+    outstandingOffers.forEach(c => {
+        const req = requirements.find(r => r.id === c.reqId);
+        if (req && req.country === 'US') {
+            pendingMargin += (req.margin || 0);
+        }
+    });
+
+    const outstandingKpi = document.getElementById('kpi-off-outstanding');
+    const atRiskKpi = document.getElementById('kpi-off-at-risk');
+    const marginKpi = document.getElementById('kpi-off-margin-pipeline');
+    
+    if(outstandingKpi) outstandingKpi.innerText = outstandingOffers.length;
+    if(atRiskKpi) atRiskKpi.innerText = atRiskOffers.length;
+    if(marginKpi) marginKpi.innerText = `$${pendingMargin.toFixed(2)}/hr`;
+
+    // Render Risk roster list
+    const riskRoster = document.getElementById('onboarding-risk-roster');
+    if (riskRoster) {
+        if (atRiskOffers.length === 0) {
+            riskRoster.innerHTML = '<div style="color:var(--text-light); padding:10px 0;">No outstanding counter-offer risks.</div>';
+        } else {
+            riskRoster.innerHTML = atRiskOffers.map(can => `
+                <div style="border-bottom:1.5px solid var(--border); padding: 8px 0; line-height: 1.4;">
+                    👤 <strong>${can.name}</strong> (<span style="color:var(--danger); font-weight:bold;">${can.joiningRisk} Risk</span>)<br>
+                    <small><strong>Job:</strong> ${can.reqId} | <strong>Notice:</strong> ${can.notice || 'N/A'}</small><br>
+                    <small style="color:hsl(220, 9%, 30%)"><strong>Counter Info:</strong> ${can.counterDetails || 'No feedback logged.'}</small>
+                </div>
+            `).join('');
+        }
+    }
+
+    candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').forEach(can => {
+        const risk = can.joiningRisk ? can.joiningRisk : 'Low';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong></td>
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${can.reqId}')">${can.reqId}</strong></td>
+            <td>${can.offerDate || '-'}</td>
+            <td>${currentRole === 'Recruiter' ? 'Confidential' : (can.offeredComp || '-')}</td>
+            <td>${can.expectedJoining || '-'}</td>
+            <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span><br><small style="color:var(--danger)">Risk: ${risk}</small></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderPerformance() {
+    const filter = document.getElementById('filterRecruiter')?.value || 'All';
+    const tbody = document.getElementById('worklog-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    const filteredLogs = worklogs.filter(log => filter === 'All' || log.recruiter === filter);
+    filteredLogs.reverse().forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${log.date}</td>
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${log.reqId}')">${log.reqId}</strong></td>
+            <td>${log.recruiter}</td>
+            <td>${log.activity}</td>
+            <td>${log.sourced}</td>
+            <td>${log.screened}</td>
+            <td>${log.submitted}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Compute Recruiter Cumulative Leaderboard
+    const leaderboardBody = document.getElementById('recruiter-leaderboard-table');
+    if (leaderboardBody) {
+        leaderboardBody.innerHTML = '';
+        
+        // Find list of recruiters
+        const recruitersList = ["Recruiter A", "Recruiter B", "Recruiter C"];
+        const stats = {};
+        recruitersList.forEach(rec => {
+            stats[rec] = { sourced: 0, screened: 0, submitted: 0, interviews: 0, joined: 0, totalTatDays: 0 };
+        });
+
+        // Sum up from worklogs
+        worklogs.forEach(log => {
+            if (stats[log.recruiter]) {
+                stats[log.recruiter].sourced += (log.sourced || 0);
+                stats[log.recruiter].screened += (log.screened || 0);
+                stats[log.recruiter].submitted += (log.submitted || 0);
+            }
+        });
+
+        // Sum up from candidates (Interviews and Placements)
+        candidates.forEach(can => {
+            // Find recruiter assigned to this candidate's req
+            const req = requirements.find(r => r.id === can.reqId);
+            if (req && req.recruiter && stats[req.recruiter]) {
+                if (can.stage.includes('Interview')) {
+                    stats[req.recruiter].interviews += 1;
+                }
+                if (can.stage === 'Joined') {
+                    stats[req.recruiter].joined += 1;
+                    
+                    // Compute individual candidate TAT
+                    const openDate = new Date(req.dateOpened);
+                    const joinDate = can.expectedJoining ? new Date(can.expectedJoining) : new Date(can.lastUpdated);
+                    const diffTime = Math.abs(joinDate - openDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    stats[req.recruiter].totalTatDays += diffDays;
+                }
+            }
+        });
+
+        // Render rows sorted by placements (Joined)
+        Object.keys(stats).sort((a,b) => stats[b].joined - stats[a].joined).forEach(rec => {
+            const s = stats[rec];
+            const ratio = s.sourced > 0 ? Math.round((s.joined / s.sourced) * 100) : 0;
+            const avgTat = s.joined > 0 ? `${(s.totalTatDays / s.joined).toFixed(1)} Days` : 'N/A';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${rec}</strong></td>
+                <td>${s.sourced}</td>
+                <td>${s.screened}</td>
+                <td>${s.submitted}</td>
+                <td>${s.interviews}</td>
+                <td><strong style="color:var(--success)">${s.joined}</strong></td>
+                <td><strong>${ratio}%</strong></td>
+                <td style="font-weight:600; color:var(--primary);">${avgTat}</td>
+            `;
+            leaderboardBody.appendChild(tr);
+        });
+    }
+
+    const subCount = candidates.filter(c => filter === 'All' || c.source.includes(filter) || true).length;
+    const intCount = candidates.filter(c => c.stage.includes('Interview')).length;
+    const offCount = candidates.filter(c => c.stage.includes('Offer') || c.stage === 'Joined').length;
+    const joinCount = candidates.filter(c => c.stage === 'Joined').length;
+
+    const subIntRatio = subCount > 0 ? Math.round((intCount / subCount) * 100) : 0;
+    const intOffRatio = intCount > 0 ? Math.round((offCount / intCount) * 100) : 0;
+    const offJoinRatio = offCount > 0 ? Math.round((joinCount / offCount) * 100) : 0;
+
+    document.getElementById('kpi-ratio-sub-int').innerText = `${subIntRatio}%`;
+    document.getElementById('kpi-ratio-int-off').innerText = `${intOffRatio}%`;
+    document.getElementById('kpi-ratio-off-join').innerText = `${offJoinRatio}%`;
+}
+
+function renderClients() {
+    const tbody = document.getElementById('client-summary-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    const clientMap = {};
+    requirements.forEach(req => {
+        if (!clientMap[req.client]) {
+            clientMap[req.client] = { reqs: 0, active: 0, headcount: 0, filled: 0, sourced: 0 };
+        }
+        clientMap[req.client].reqs += 1;
+        clientMap[req.client].headcount += req.headcount;
+        clientMap[req.client].filled += (req.filled || 0);
+        if (req.status === 'Active' || req.status === 'New') clientMap[req.client].active += 1;
+    });
+
+    candidates.forEach(can => {
+        const req = requirements.find(r => r.id === can.reqId);
+        if (req && clientMap[req.client]) {
+            clientMap[req.client].sourced += 1;
+        }
+    });
+
+    Object.keys(clientMap).forEach(name => {
+        const c = clientMap[name];
+        const fillRatio = c.headcount > 0 ? Math.round((c.filled / c.headcount) * 100) : 0;
+        const tr = document.createElement('tr');
+        
+        let healthBadge = '';
+        if (fillRatio >= 50) {
+            healthBadge = '<span class="badge active">Healthy</span>';
+        } else if (fillRatio >= 20) {
+            healthBadge = '<span class="badge pending">At Risk</span>';
+        } else {
+            healthBadge = '<span class="badge rejected">Needs Attention</span>';
+        }
+
+        tr.innerHTML = `
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openClientDetailsModal('${name}')">${name}</strong></td>
+            <td>${c.reqs}</td>
+            <td>${c.active}</td>
+            <td>${c.headcount}</td>
+            <td>${c.sourced}</td>
+            <td>${c.filled}</td>
+            <td><strong style="color:var(--success)">${fillRatio}%</strong></td>
+            <td>${healthBadge}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Add User Role dropdown to layout header automatically and bind toggle
+function renderHeaderRoleSwitcher() {
+    const header = document.querySelector('.header');
+    if (header && !document.getElementById('header-role-selector')) {
+        const switcherDiv = document.createElement('div');
+        switcherDiv.style.display = 'flex';
+        switcherDiv.style.alignItems = 'center';
+        switcherDiv.style.gap = '10px';
+        switcherDiv.innerHTML = `
+            <span class="menu-toggle" onclick="toggleSidebar()">&#9776;</span>
+            <small style="color:var(--text-light); font-weight:bold;">View As:</small>
+            <select id="header-role-selector" onchange="changeRole(this.value)" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
+                <option value="Management" ${currentRole === 'Management' ? 'selected' : ''}>Management</option>
+                <option value="Account Manager" ${currentRole === 'Account Manager' ? 'selected' : ''}>Account Manager</option>
+                <option value="Recruiter" ${currentRole === 'Recruiter' ? 'selected' : ''}>Recruiter</option>
+            </select>
+        `;
+        header.insertBefore(switcherDiv, header.firstChild);
+    }
+}
+
+function getReqInactivityDays(reqId, dateOpened) {
+    let latestActivity = new Date(dateOpened);
+    
+    // Check candidate history transitions for this req
+    candidates.forEach(can => {
+        if (can.reqId === reqId && can.history) {
+            can.history.forEach(h => {
+                const hDate = new Date(h.date);
+                if (hDate > latestActivity) latestActivity = hDate;
+            });
+        }
+    });
+
+    // Check work logs for this req
+    worklogs.forEach(log => {
+        if (log.reqId === reqId) {
+            const lDate = new Date(log.date);
+            if (lDate > latestActivity) latestActivity = lDate;
+        }
+    });
+
+    const diff = Math.abs(new Date() - latestActivity);
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+// Turnaround Time (TAT) reports computation (Section 21)
+function calculateReportsTAT() {
+    const closedReqs = requirements.filter(r => ['Closed', 'Filled', 'Lost'].includes(r.status));
+    const kpiAvgTat = document.getElementById('kpi-avg-tat');
+    if(!kpiAvgTat) return;
+    
+    if (closedReqs.length === 0) {
+        kpiAvgTat.innerText = "0 Days";
+        return;
+    }
+    
+    let totalDays = 0;
+    closedReqs.forEach(r => {
+        const opened = new Date(r.dateOpened);
+        const closed = r.closureDate ? new Date(r.closureDate) : new Date(); // fallback to today if closureDate missing
+        const diffTime = Math.abs(closed - opened);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        totalDays += diffDays;
+    });
+    
+    const avg = Math.round(totalDays / closedReqs.length);
+    kpiAvgTat.innerText = `${avg} Days`;
+}
+
+function updateDashboard() {
+    document.getElementById('kpi-total-req').innerText = requirements.length;
+    document.getElementById('kpi-active-req').innerText = requirements.filter(r => r.status === 'Active' || r.status === 'New').length;
+    document.getElementById('kpi-stalled-req').innerText = requirements.filter(r => r.status === 'Pending' || r.status === 'Stalled').length;
+    document.getElementById('kpi-joined').innerText = candidates.filter(c => c.stage === 'Joined').length;
+    
+    let a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0;
+    const bottleneckReasons = {};
+    const unassignedJobs = [];
+    const zeroSubmissionJobs = [];
+
+    requirements.forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        if (age <= 3) a1++;
+        else if (age <= 7) a2++;
+        else if (age <= 15) a3++;
+        else if (age <= 30) a4++;
+        else a5++;
+
+        const isReqActive = ['Active', 'New'].includes(req.status);
+        if (isReqActive) {
+            if (!req.recruiter || req.recruiter.trim() === '') {
+                unassignedJobs.push(req);
+            }
+            
+            const submissions = candidates.filter(c => c.reqId === req.id).length;
+            if (submissions === 0 && age >= 2) {
+                zeroSubmissionJobs.push(req);
+            }
+        }
+
+        if (req.status === 'Stalled' || req.status === 'Pending' || req.workStatus === 'Stalled') {
+            const reason = req.priority === 'Critical' ? 'Critical Priority' : 'Bandwidth Shortage';
+            bottleneckReasons[reason] = (bottleneckReasons[reason] || 0) + 1;
+        }
+    });
+
+    document.getElementById('aging-0-3').innerText = a1;
+    document.getElementById('aging-4-7').innerText = a2;
+    document.getElementById('aging-8-15').innerText = a3;
+    document.getElementById('aging-16-30').innerText = a4;
+    document.getElementById('aging-30plus').innerText = a5;
+
+    const bList = document.getElementById('bottleneck-list');
+    if (Object.keys(bottleneckReasons).length > 0) {
+        bList.innerHTML = Object.keys(bottleneckReasons).map(r => `<div>⚠️ <strong>${r}:</strong> ${bottleneckReasons[r]} requirements</div>`).join('');
+    } else {
+        bList.innerHTML = 'No active bottlenecks identified.';
+    }
+
+    // Compute Overdue Interviews
+    const overdueInterviews = [];
+    const now = new Date();
+    candidates.forEach(can => {
+        if (can.stage === 'Interview Scheduled' && can.interviewDate) {
+            const intDate = new Date(can.interviewDate);
+            if (intDate < now) {
+                overdueInterviews.push(can);
+            }
+        }
+    });
+
+    // Populate Alerts Container
+    const alertsContainer = document.getElementById('management-alerts-container');
+    if(alertsContainer) {
+        let alertHTML = "";
+        
+        if (unassignedJobs.length > 0) {
+            alertHTML += `<div style="margin-bottom: 5px;">👤 <strong>${unassignedJobs.length} Unassigned Requisitions:</strong> Requisitions [${unassignedJobs.map(j => j.id).join(', ')}] have no recruiter assigned.</div>`;
+        }
+        if (zeroSubmissionJobs.length > 0) {
+            alertHTML += `<div style="margin-bottom: 5px;">⏳ <strong>${zeroSubmissionJobs.length} Zero-Submission Requisitions:</strong> Requisitions [${zeroSubmissionJobs.map(j => j.id).join(', ')}] have been open for >48 hours with no candidates.</div>`;
+        }
+        
+        // Find inactive jobs
+        const inactiveJobsList = requirements.filter(r => ['Active', 'New'].includes(r.status) && getReqInactivityDays(r.id, r.dateOpened) > appSettings.inactivity);
+        if (inactiveJobsList.length > 0) {
+            alertHTML += `<div style="margin-bottom: 5px;">💤 <strong>${inactiveJobsList.length} Inactive Requisitions:</strong> Requisitions [${inactiveJobsList.map(j => j.id).join(', ')}] have received no candidate updates or work logs for >${appSettings.inactivity} days.</div>`;
+        }
+
+        if (overdueInterviews.length > 0) {
+            alertHTML += `<div>📅 <strong>${overdueInterviews.length} Overdue Interview Feedbacks:</strong> Candidates [${overdueInterviews.map(c => c.name).join(', ')}] have completed scheduled interviews but stage is not updated.</div>`;
+        }
+        
+        if (alertHTML === "") {
+            alertsContainer.innerHTML = '✅ All operations running smoothly. No active alerts.';
+            alertsContainer.parentElement.style.display = 'none';
+        } else {
+            alertsContainer.innerHTML = alertHTML;
+            alertsContainer.parentElement.style.display = 'block';
+        }
+    }
+
+    const pTable = document.getElementById('dash-priority-table');
+    pTable.innerHTML = '';
+    requirements.filter(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        return req.priority === 'Critical' || age > appSettings.sla;
+    }).forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${req.id}</td>
+            <td>${req.title}</td>
+            <td>${req.client}</td>
+            <td>${req.location}</td>
+            <td style="${age > appSettings.sla ? 'color:var(--danger); font-weight:bold' : ''}">${age}</td>
+            <td><span class="badge ${getBadgeClass(req.status)}">${req.status}</span></td>
+        `;
+        pTable.appendChild(tr);
+    });
+
+    renderCharts();
+}
+
+// Chart.js Setup
+let funnelChart, geoChart, dropoutChart;
+function renderCharts() {
+    if (typeof Chart === 'undefined') return;
+    
+    const ctxFunnel = document.getElementById('funnelChart');
+    if(ctxFunnel) {
+        if(funnelChart) funnelChart.destroy();
+        const stages = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined'];
+        const data = stages.map(st => candidates.filter(c => c.stage.includes(st) || c.stage === 'Joined').length);
+        
+        funnelChart = new Chart(ctxFunnel, {
+            type: 'bar',
+            data: {
+                labels: stages,
+                datasets: [{ label: 'Candidates', data: data, backgroundColor: 'rgba(37, 99, 235, 0.7)' }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    const ctxGeo = document.getElementById('geoChart');
+    if(ctxGeo) {
+        if(geoChart) geoChart.destroy();
+        const usCount = requirements.filter(r => r.country === 'US').length;
+        const inCount = requirements.filter(r => r.country === 'IN').length;
+        
+        geoChart = new Chart(ctxGeo, {
+            type: 'doughnut',
+            data: {
+                labels: ['US', 'India'],
+                datasets: [{ data: [usCount, inCount], backgroundColor: ['#3b82f6', '#10b981'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    const ctxDropout = document.getElementById('dropoutChart');
+    if(ctxDropout) {
+        if(dropoutChart) dropoutChart.destroy();
+        
+        // Count drop-out reasons
+        const reasonsMap = {};
+        candidates.forEach(c => {
+            if (c.stage === 'Rejected' && c.rejectionReason) {
+                reasonsMap[c.rejectionReason] = (reasonsMap[c.rejectionReason] || 0) + 1;
+            } else if (c.stage === 'Candidate Withdrew' && c.withdrawalReason) {
+                reasonsMap[c.withdrawalReason] = (reasonsMap[c.withdrawalReason] || 0) + 1;
+            }
+        });
+        
+        const labels = Object.keys(reasonsMap);
+        const data = Object.values(reasonsMap);
+        
+        if (labels.length === 0) {
+            labels.push("No drop-outs logged");
+            data.push(1);
+        }
+
+        dropoutChart = new Chart(ctxDropout, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+// CSV Export Helper
+function exportToCSV(filename, headers, rows) {
+    const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(",")].concat(rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportRequirementsCSV() {
+    const headers = ["Requirement ID", "Title", "Client", "Country", "Location", "Priority", "Status", "Headcount", "Filled"];
+    const rows = requirements.map(r => [r.id, r.title, r.client, r.country, r.location, r.priority, r.status, r.headcount, r.filled]);
+    exportToCSV("requirements_report.csv", headers, rows);
+}
+
+function exportCandidatesCSV() {
+    const headers = ["Candidate ID", "Name", "Email", "Requirement ID", "Current Stage", "Source", "Last Updated"];
+    const rows = candidates.map(c => [c.id, c.name, c.email, c.reqId, c.stage, c.source, c.lastUpdated]);
+    exportToCSV("candidates_report.csv", headers, rows);
+}
+
+// JSON Import & Merge Logic (Section 26)
+function importData(overwrite) {
+    const fileInput = document.getElementById('importFile');
+    if(!fileInput.files.length) {
+        alert("Please select a file to import.");
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.requirements || !data.candidates) {
+                throw new Error("Invalid backup format. Must contain requirements and candidates.");
+            }
+            
+            if (overwrite) {
+                requirements = data.requirements;
+                candidates = data.candidates;
+                worklogs = data.worklogs || [];
+            } else {
+                data.requirements.forEach(req => {
+                    if (!requirements.some(r => r.id === req.id)) requirements.push(req);
+                });
+                data.candidates.forEach(can => {
+                    if (!candidates.some(c => c.id === can.id)) candidates.push(can);
+                });
+                if(data.worklogs) {
+                    data.worklogs.forEach(log => {
+                        worklogs.push(log);
+                    });
+                }
+            }
+            saveData();
+            alert("Data restored and saved successfully!");
+        } catch(err) {
+            alert("Error parsing backup: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Configurable Settings (Section 22)
+function saveSettings() {
+    appSettings.inactivity = parseInt(document.getElementById('cfg_inactivity').value || 3);
+    appSettings.sla = parseInt(document.getElementById('cfg_sla').value || 7);
+    appSettings.minMargin = parseFloat(document.getElementById('cfg_margin_threshold').value || 15);
+    saveData();
+    alert("Settings saved!");
+}
+
+// Utilities
+function loadSampleData() {
+    if (requirements.length > 0) {
+        if(!confirm("Existing data found. Overwrite?")) return;
+    }
+    requirements = [
+        { id: "US-2026-0001", title: "SAP CPI Lead", client: "TechCorp", endClient: "Walmart", country: "US", location: "Charlotte, NC", workMode: "Onsite", headcount: 2, status: "Active", workStatus: "Sourcing Started", dateOpened: "2026-06-01", priority: "Critical", type: "W2", billRate: 85, payRate: 65, margin: 20, filled: 1, recruiter: "Recruiter A" },
+        { id: "IN-2026-0001", title: "Python Engineer", client: "Innovate Ltd", country: "IN", location: "Bangalore", workMode: "Hybrid", headcount: 5, status: "Pending", workStatus: "Assigned but Not Started", dateOpened: "2026-07-10", priority: "High", type: "Permanent", budget: 18, noticePeriod: "30 days", filled: 0, recruiter: "Recruiter B" }
+    ];
+    candidates = [
+        { id: "CAN-2026-0001", name: "John Doe", email: "john@example.com", phone: "+1-202-555-0199", reqId: "US-2026-0001", stage: "Joined", source: "LinkedIn", visa: "US Citizen", notice: "Immediate", country: "US", lastUpdated: "2026-07-05", history: [{stage:'Joined', date:'2026-07-05', comment:'Joined company'}] },
+        { id: "CAN-2026-0002", name: "Jane Smith", email: "jane@example.com", phone: "+91-98765-43210", reqId: "IN-2026-0001", stage: "Interview Scheduled", interviewDate: "2026-07-20T10:00", interviewRound: "Technical", interviewTimezone: "IST", interviewMode: "Video", source: "Naukri", visa: "Immediate", notice: "Immediate", country: "IN", lastUpdated: "2026-07-16", history: [{stage:'Interview Scheduled', date:'2026-07-16', comment:'L1 scheduled'}] },
+        { id: "CAN-2026-0003", name: "Bob Ross", email: "bob@example.com", phone: "+1-303-555-0144", reqId: "US-2026-0001", stage: "Screened", source: "Dice", visa: "Green Card", notice: "2 weeks", country: "US", lastUpdated: "2026-07-15", history: [{stage:'Screened', date:'2026-07-15', comment:'Internal screening passed'}] }
+    ];
+    worklogs = [
+        { date: "2026-07-16", reqId: "US-2026-0001", recruiter: "Recruiter A", activity: "Candidate Screening", sourced: 5, screened: 3, submitted: 2, challenges: "None" },
+        { date: "2026-07-17", reqId: "IN-2026-0001", recruiter: "Recruiter B", activity: "LinkedIn Search", sourced: 12, screened: 5, submitted: 0, challenges: "High Notice Period" }
+    ];
+    saveData();
+    switchView('dashboard');
+}
+
+function clearData() {
+    if(confirm("Are you sure? This deletes ALL data from this browser.")) {
+        localStorage.removeItem(STORE_KEYS.reqs);
+        localStorage.removeItem(STORE_KEYS.candidates);
+        localStorage.removeItem(STORE_KEYS.worklogs);
+        localStorage.removeItem(STORE_KEYS.settings);
+        localStorage.removeItem(STORE_KEYS.role);
+        requirements = [];
+        candidates = [];
+        worklogs = [];
+        currentRole = "Management";
+        appSettings = { inactivity: 3, sla: 7 };
+        updateAllViews();
+    }
+}
+
+function showLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.style.display = 'flex';
+}
+function hideLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.style.display = 'none';
+}
+
+// Global Search Logic
+function handleGlobalSearch(query) {
+    const resultsDiv = document.getElementById('globalSearchResults');
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    query = query.toLowerCase();
+    let resultsHTML = '<div style="padding: 10px;">';
+    
+    // Search Reqs
+    const matchingReqs = requirements.filter(r => r.id.toLowerCase().includes(query) || r.title.toLowerCase().includes(query) || r.client.toLowerCase().includes(query));
+    if (matchingReqs.length > 0) {
+        resultsHTML += '<strong style="color:var(--primary)">Requisitions</strong><br>';
+        matchingReqs.forEach(r => {
+            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openReqDetailsModal('${r.id}'); document.getElementById('globalSearchResults').style.display='none';">${r.id} - ${r.title} (${r.client})</div>`;
+        });
+    }
+
+    // Search Candidates
+    const matchingCands = candidates.filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query));
+    if (matchingCands.length > 0) {
+        resultsHTML += '<br><strong style="color:var(--primary)">Candidates</strong><br>';
+        matchingCands.forEach(c => {
+            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openCandidateDetailsModal('${c.id}'); document.getElementById('globalSearchResults').style.display='none';">${c.name} - ${c.email} (${c.stage})</div>`;
+        });
+    }
+
+    if (matchingReqs.length === 0 && matchingCands.length === 0) {
+        resultsHTML += '<div style="color: var(--text-light)">No results found.</div>';
+    }
+
+    resultsHTML += '</div>';
+    resultsDiv.innerHTML = resultsHTML;
+    resultsDiv.style.display = 'block';
+}
+
+// Bulk Actions
+function toggleAllCheckboxes(source) {
+    const checkboxes = document.querySelectorAll('.cand-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+function applyBulkAction() {
+    const stage = document.getElementById('bulkActionStage').value;
+    if (!stage) {
+        alert("Please select a stage to update to.");
+        return;
+    }
+    
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one candidate.");
+        return;
+    }
+    
+    const count = checkboxes.length;
+    if(confirm(`Are you sure you want to move ${count} candidate(s) to ${stage}?`)) {
+        checkboxes.forEach(cb => {
+            const can = candidates.find(c => c.id === cb.value);
+            if (can) {
+                if(!can.history) can.history = [];
+                can.history.unshift({ date: new Date().toLocaleDateString(), stage: stage, comment: 'Bulk Updated' });
+                can.stage = stage;
+                can.lastUpdated = new Date().toLocaleDateString();
+            }
+        });
+        saveData();
+        alert(`Successfully updated ${count} candidate(s).`);
+    }
+}
+
+// Intercept Add Candidate modal open to override button behavior
+const oldOpenModal = openModal;
+let openingCandidate = false;
+openModal = function(id) {
+    if (id === 'candidateModal' && !openingCandidate) {
+        openingCandidate = true;
+        openCandidateModal();
+        openingCandidate = false;
+    } else {
+        oldOpenModal(id);
+    }
+};
+
+// Start
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('http://localhost:3000/api/sync');
+        const data = await res.json();
+        if (data.requisitions) requirements = data.requisitions;
+        if (data.candidates) candidates = data.candidates;
+        if (data.worklogs) worklogs = data.worklogs;
+    } catch (e) {
+        console.error('Failed to load from API, keeping localStorage defaults', e);
+    }
+
+    renderHeaderRoleSwitcher();
+    if (document.getElementById('cfg_inactivity')) {
+        document.getElementById('cfg_inactivity').value = appSettings.inactivity;
+        document.getElementById('cfg_sla').value = appSettings.sla;
+        document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+    }
+    updateAllViews();
+});
+
+function cloneReq(reqId) {
+    const r = requirements.find(req => req.id === reqId);
+    if (!r) return;
+    
+    closeModal('reqDetailsModal');
+    
+    document.getElementById('title').value = r.title + ' (Clone)';
+    document.getElementById('client').value = r.client;
+    document.getElementById('endClient').value = r.endClient || '';
+    document.getElementById('location').value = r.location;
+    document.getElementById('workMode').value = r.workMode || 'Hybrid';
+    document.getElementById('type').value = r.type;
+    document.getElementById('status').value = 'New';
+    document.getElementById('priority').value = r.priority || 'Medium';
+    document.getElementById('headcount').value = r.headcount || 1;
+    document.getElementById('billRate').value = r.billRate || '';
+    document.getElementById('payRate').value = r.payRate || '';
+    document.getElementById('margin').value = r.margin || '';
+    document.getElementById('budget').value = r.budget || '';
+    document.getElementById('noticePeriod').value = r.noticePeriod || '';
+    document.getElementById('country').value = r.country || 'US';
+    document.getElementById('desc').value = r.desc || '';
+    document.getElementById('exp').value = r.exp || '';
+    
+    editingReqId = null;
+    openModal('reqModal');
+    toggleReqFields();
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!-- Candidates View -->
+<div id="candidates" class="view">
+    
+    <!-- Candidate Sub-folders (Sub-tabs) -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
+        <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
+        <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+    </div>
+
+    <div style="margin-bottom: 20px; display: flex; gap: 15px;">
+        <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+        <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="All">All Stages</option>
+            <option value="Sourced">Sourced</option>
+            <option value="Screened">Screened</option>
+            <option value="Submitted to Client">Submitted to Client</option>
+            <option value="Interview Scheduled">Interview Scheduled</option>
+            <option value="Offer Released">Offer Released</option>
+            <option value="Joined">Joined</option>
+        </select>
+        <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate ID</th>
+                    <th>Name & Email</th>
+                    <th>Req ID</th>
+                    <th>Source</th>
+                    <th>Current Stage</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="candidate-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,32 @@
+<!-- Requirements View -->
+<div id="requirements" class="view">
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 15px;">
+            <input type="text" id="searchReq" placeholder="Search requirements..." onkeyup="filterRequirements()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+            <select id="filterCountry" onchange="filterRequirements()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <option value="All">All Countries</option>
+                <option value="US">US Requirements</option>
+                <option value="IN">India Requirements</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Title & Client</th>
+                    <th>Location</th>
+                    <th>Priority</th>
+                    <th>Headcount / Filled</th>
+                    <th>Age</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="req-table">
+            </tbody>
+        </table>
+    </div>
+</div>
