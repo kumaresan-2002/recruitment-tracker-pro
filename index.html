@@ -448,6 +448,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
         <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
         <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">📊 Analytics Hub</div>
+        <div class="nav-item" onclick="switchView('emailtemplates')" data-role-visible="Management,Account Manager,Recruiter">📧 Email Templates</div>
         <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
         <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
         <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
@@ -2069,6 +2070,101 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
+<!-- Email Templates View -->
+<div id="emailtemplates" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">📧 Email Templates</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Customizable templates for candidate communication. Click any card to edit & preview.</p>
+        </div>
+        <button class="btn" onclick="openSendEmailModal(null, null)">✉️ Compose Custom Email</button>
+    </div>
+
+    <!-- Template Library Cards -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); margin-bottom:28px;" id="template-card-grid">
+        <!-- Populated via JS -->
+    </div>
+
+    <!-- Template Editor -->
+    <div class="card" id="template-editor-panel" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:1rem; text-transform:none; letter-spacing:0;" id="template-editor-title">Edit Template</h3>
+            <button onclick="closeTemplateEditor()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--text-light);">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div>
+                <div class="form-group">
+                    <label>Template Name</label>
+                    <input type="text" id="tpl_name" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Subject Line</label>
+                    <input type="text" id="tpl_subject" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Body (use <code>{{candidate_name}}</code>, <code>{{job_title}}</code>, <code>{{company_name}}</code>, <code>{{interview_date}}</code>)</label>
+                    <textarea id="tpl_body" rows="12" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:0.9rem; resize:vertical;" oninput="previewTemplate()"></textarea>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="saveTemplate()">💾 Save Template</button>
+                    <button class="btn btn-outline" onclick="resetTemplateToDefault()">↺ Reset to Default</button>
+                </div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Preview (sample data substitution)</label>
+                    <div id="tpl_preview" style="background:var(--bg-light); border:1px solid var(--border); border-radius:8px; padding:16px; min-height:300px; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; color:var(--text-dark);"></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-outline" onclick="copyTemplateToClipboard()">📋 Copy to Clipboard</button>
+                    <button class="btn btn-outline" onclick="openMailtoLink()">📤 Open in Gmail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Send Email to Candidate -->
+<div id="sendEmailModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2>✉️ Send Email to Candidate</h2>
+            <span class="close-btn" onclick="closeModal('sendEmailModal')">×</span>
+        </div>
+        <form onsubmit="generateCandidateEmail(event)">
+            <input type="hidden" id="email_canId">
+            <div class="form-group full-width">
+                <label>Candidate</label>
+                <select id="email_canSelect" onchange="autoFillCandidateEmail()" style="width:100%;">
+                    <option value="">-- Select Candidate --</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Email Template</label>
+                <select id="email_template" onchange="loadTemplateIntoComposer()" style="width:100%;">
+                    <option value="offer">Offer Letter Email</option>
+                    <option value="rejection">Rejection Email</option>
+                    <option value="interview">Interview Invite</option>
+                    <option value="followup">Follow-up Reminder</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Subject</label>
+                <input type="text" id="email_subject" style="width:100%;">
+            </div>
+            <div class="form-group full-width">
+                <label>Body</label>
+                <textarea id="email_body" rows="10" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:0.9rem;"></textarea>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+                <button type="button" class="btn btn-outline" onclick="copyEmailToClipboard()">📋 Copy</button>
+                <button type="button" class="btn btn-outline" onclick="openEmailInGmail()">📤 Open in Gmail</button>
+                <button type="submit" class="btn">✅ Done</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Data Management View -->
 <div id="datamanagement" class="view">
     <h3 style="margin-bottom: 20px;">Database & Storage Control</h3>
@@ -2438,6 +2534,7 @@ function switchView(viewId) {
         'performance': 'Recruiter Activity & Performance',
         'clientview': 'Client Accounts View',
         'reports': '📊 Analytics Hub',
+        'emailtemplates': '📧 Email Templates',
         'datamanagement': 'Data Storage Control',
         'settings': 'System Configurations'
     };
@@ -3477,6 +3574,7 @@ function updateAllViews() {
     renderAuditLog();
     renderCareersPortal();
     renderAnalytics();
+    renderEmailTemplates();
 }
 
 // ============================================
@@ -5008,6 +5106,119 @@ function updateDashboard() {
     });
 
     renderCharts();
+}
+
+// ============================================
+// PHASE 51: EMAIL TEMPLATES ENGINE
+// ============================================
+const DEFAULT_TEMPLATES = {
+    offer: {
+        id: 'offer', name: 'Offer Letter Email', icon: '🎉', color: 'var(--success)',
+        subject: 'Congratulations! Your Offer for {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nWe are delighted to formally offer you the position of {{job_title}} at {{company_name}}!\n\nAfter reviewing your qualifications and interviews, we are confident you will be an exceptional addition to our team. Please review the attached offer letter for full compensation details and respond by the indicated deadline.\n\nWe look forward to welcoming you aboard!\n\nWarm regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    rejection: {
+        id: 'rejection', name: 'Rejection Email', icon: '📝', color: 'var(--text-light)',
+        subject: 'Update on Your Application for {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nThank you for interviewing for the {{job_title}} position at {{company_name}}.\n\nAfter careful consideration, we have decided to move forward with other candidates. This was a difficult decision as we were impressed by your background.\n\nWe will keep your profile on file for future opportunities. We wish you all the best in your search.\n\nKind regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    interview: {
+        id: 'interview', name: 'Interview Invite', icon: '📅', color: 'var(--primary)',
+        subject: 'Interview Invitation: {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nWe are pleased to invite you to interview for the {{job_title}} position at {{company_name}}.\n\nInterview Details:\n• Date & Time: {{interview_date}}\n• Format: Video Call\n• Duration: ~60 minutes\n\nPlease confirm your availability by replying to this email.\n\nBest regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    followup: {
+        id: 'followup', name: 'Follow-up Reminder', icon: '🔔', color: 'var(--warning)',
+        subject: 'Following Up: {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nI wanted to follow up regarding your application for the {{job_title}} position at {{company_name}}.\n\nWe are still actively reviewing candidates and wanted to confirm your continued interest. Please don't hesitate to reach out with any questions.\n\nWe expect to have an update for you shortly.\n\nBest regards,\nThe Recruiting Team\n{{company_name}}`
+    }
+};
+let editingTemplateId = null;
+function getTemplates() { const s = localStorage.getItem('emailTemplates_v1'); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)); }
+function saveTemplates(t) { localStorage.setItem('emailTemplates_v1', JSON.stringify(t)); }
+function substituteVars(text, vars = {}) {
+    return text.replace(/\{\{candidate_name\}\}/g, vars.candidate_name || 'Alex Johnson')
+               .replace(/\{\{job_title\}\}/g, vars.job_title || 'Senior Engineer')
+               .replace(/\{\{company_name\}\}/g, vars.company_name || 'Acme Corp')
+               .replace(/\{\{interview_date\}\}/g, vars.interview_date || 'Monday, July 21 at 2:00 PM');
+}
+function renderEmailTemplates() {
+    const grid = document.getElementById('template-card-grid');
+    if (!grid) return;
+    const templates = getTemplates();
+    grid.innerHTML = Object.values(templates).map(t => `
+        <div class="card" style="border-top:3px solid ${t.color}; cursor:pointer; transition:all 0.2s;" onclick="openTemplateEditor('${t.id}')"
+             onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:2rem; margin-bottom:10px;">${t.icon}</div>
+            <h3 style="font-size:0.95rem; text-transform:none; letter-spacing:0; color:var(--text-dark);">${t.name}</h3>
+            <p style="font-size:0.8rem; color:var(--text-light); margin-top:6px; line-height:1.5;">${t.subject.substring(0,60)}...</p>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openSendEmailModal('${t.id}', null)" style="font-size:0.75rem; padding:5px 10px;">\u2709 Use</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); openTemplateEditor('${t.id}')" style="font-size:0.75rem; padding:5px 10px;">\u270f Edit</button>
+            </div>
+        </div>`).join('');
+}
+function openTemplateEditor(templateId) {
+    const t = getTemplates()[templateId];
+    if (!t) return;
+    editingTemplateId = templateId;
+    document.getElementById('tpl_name').value = t.name;
+    document.getElementById('tpl_subject').value = t.subject;
+    document.getElementById('tpl_body').value = t.body;
+    document.getElementById('template-editor-title').innerText = `✏ Editing: ${t.name}`;
+    document.getElementById('template-editor-panel').style.display = 'block';
+    document.getElementById('template-editor-panel').scrollIntoView({ behavior: 'smooth' });
+    previewTemplate();
+}
+function closeTemplateEditor() { document.getElementById('template-editor-panel').style.display = 'none'; editingTemplateId = null; }
+function previewTemplate() { document.getElementById('tpl_preview').innerText = substituteVars(document.getElementById('tpl_body').value); }
+function saveTemplate() {
+    if (!editingTemplateId) return;
+    const templates = getTemplates();
+    templates[editingTemplateId].name = document.getElementById('tpl_name').value;
+    templates[editingTemplateId].subject = document.getElementById('tpl_subject').value;
+    templates[editingTemplateId].body = document.getElementById('tpl_body').value;
+    saveTemplates(templates); renderEmailTemplates(); createAlert('Template saved!', 'success');
+}
+function resetTemplateToDefault() {
+    if (!editingTemplateId) return;
+    const templates = getTemplates();
+    templates[editingTemplateId] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES[editingTemplateId]));
+    saveTemplates(templates); openTemplateEditor(editingTemplateId); createAlert('Reset to default.', 'info');
+}
+function copyTemplateToClipboard() {
+    const s = substituteVars(document.getElementById('tpl_subject').value);
+    const b = substituteVars(document.getElementById('tpl_body').value);
+    navigator.clipboard.writeText(`Subject: ${s}\n\n${b}`).then(() => createAlert('Copied to clipboard!', 'success'));
+}
+function openMailtoLink() {
+    window.open(`mailto:?subject=${encodeURIComponent(substituteVars(document.getElementById('tpl_subject').value))}&body=${encodeURIComponent(substituteVars(document.getElementById('tpl_body').value))}`, '_blank');
+}
+function openSendEmailModal(templateId, canId) {
+    const sel = document.getElementById('email_canSelect');
+    sel.innerHTML = '<option value="">-- Select Candidate --</option>' + candidates.map(c => `<option value="${c.id}">${c.name} (${c.stage})</option>`).join('');
+    if (canId) { sel.value = canId; document.getElementById('email_canId').value = canId; }
+    if (templateId) document.getElementById('email_template').value = templateId;
+    loadTemplateIntoComposer(); autoFillCandidateEmail(); openModal('sendEmailModal');
+}
+function autoFillCandidateEmail() { document.getElementById('email_canId').value = document.getElementById('email_canSelect').value; loadTemplateIntoComposer(); }
+function loadTemplateIntoComposer() {
+    const tId = document.getElementById('email_template').value;
+    const canId = document.getElementById('email_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    const req = can ? requirements.find(r => r.id === can.reqId) : null;
+    const vars = { candidate_name: can ? can.name : undefined, job_title: req ? req.title : undefined, company_name: req ? req.client : undefined };
+    const t = getTemplates()[tId];
+    if (!t) return;
+    document.getElementById('email_subject').value = substituteVars(t.subject, vars);
+    document.getElementById('email_body').value = substituteVars(t.body, vars);
+}
+function generateCandidateEmail(e) { e.preventDefault(); createAlert('Email draft ready! Use Copy or Open in Gmail to send.', 'success'); closeModal('sendEmailModal'); }
+function copyEmailToClipboard() { navigator.clipboard.writeText(`Subject: ${document.getElementById('email_subject').value}\n\n${document.getElementById('email_body').value}`).then(() => createAlert('Copied!', 'success')); }
+function openEmailInGmail() {
+    const can = candidates.find(c => c.id === document.getElementById('email_canId').value);
+    const to = (can && can.email) ? can.email : '';
+    window.open(`mailto:${to}?subject=${encodeURIComponent(document.getElementById('email_subject').value)}&body=${encodeURIComponent(document.getElementById('email_body').value)}`, '_blank');
 }
 
 // ============================================
