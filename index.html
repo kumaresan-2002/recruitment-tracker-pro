@@ -447,7 +447,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         <div class="nav-item" onclick="switchView('onboarding')" data-role-visible="Management,Account Manager,Recruiter">🚀 Onboarding Hub <span class="nav-badge" id="nav-onb-count">0</span></div>
         <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
         <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
-        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">Reports & Analytics</div>
+        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">📊 Analytics Hub</div>
         <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
         <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
         <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
@@ -1926,36 +1926,108 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 </div>
 
 <div id="reports" class="view">
-    <h3 style="margin-bottom:20px;">Data Export & Reports</h3>
-    
-    <!-- Turnaround Time Card -->
-    <div class="dashboard-grid" style="margin-bottom: 25px;">
-        <div class="card" style="border-color: var(--primary);">
-            <h3>Average Requirement Turnaround Time (TAT)</h3>
-            <div class="value" id="kpi-avg-tat" style="color: var(--primary);">0 Days</div>
-            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Average days from job creation date to closure/fulfillment date.</p>
+    <!-- Analytics Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">📊 Analytics Hub</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Live recruitment performance metrics & insights</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; background:var(--bg-light); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                <button id="analytics-btn-30" onclick="setAnalyticsPeriod(30)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:var(--primary); color:white;">30 Days</button>
+                <button id="analytics-btn-60" onclick="setAnalyticsPeriod(60)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">60 Days</button>
+                <button id="analytics-btn-90" onclick="setAnalyticsPeriod(90)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">90 Days</button>
+                <button id="analytics-btn-365" onclick="setAnalyticsPeriod(365)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">All Time</button>
+            </div>
+            <button class="btn btn-outline" onclick="exportRequirementsCSV()">⬇ Req CSV</button>
+            <button class="btn btn-outline" onclick="exportCandidatesCSV()">⬇ Candidate CSV</button>
+            <button class="btn" onclick="exportData()">💾 Backup JSON</button>
         </div>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>Full Database Backup</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export all JSON data from LocalStorage.</p>
-            <button class="btn" onclick="exportData()">Download JSON</button>
+    <!-- Top KPI Analytics Cards -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); margin-bottom:24px;">
+        <div class="card" style="border-top:3px solid var(--primary);">
+            <h3>Avg Time-to-Fill</h3>
+            <div class="value" id="analytics-ttf" style="color:var(--primary);">– Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Req open → first placement</p>
         </div>
-        <div class="card">
-            <h3>Requirements Report</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export current requirements pipeline.</p>
-            <button class="btn btn-outline" onclick="exportRequirementsCSV()">Export CSV</button>
+        <div class="card" style="border-top:3px solid var(--success);">
+            <h3>Offer Acceptance Rate</h3>
+            <div class="value" id="analytics-oar" style="color:var(--success);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Offers released vs. joined</p>
         </div>
-        <div class="card">
-            <h3>Candidate Report</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export full candidate and stage history.</p>
-            <button class="btn btn-outline" onclick="exportCandidatesCSV()">Export CSV</button>
+        <div class="card" style="border-top:3px solid var(--warning);">
+            <h3>Pipeline Conversion</h3>
+            <div class="value" id="analytics-conv" style="color:var(--warning);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Sourced → Joined rate</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--purple);">
+            <h3>Active Candidates</h3>
+            <div class="value" id="analytics-active-can" style="color:var(--purple);">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">In pipeline (not closed)</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--info);">
+            <h3>Avg TAT (Reports)</h3>
+            <div class="value" id="kpi-avg-tat" style="color:var(--info);">0 Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Req creation to closure</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--danger);">
+            <h3>Req Fill Rate</h3>
+            <div class="value" id="analytics-fill-rate" style="color:var(--danger);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Filled / Total active reqs</p>
         </div>
     </div>
-    <h3 style="margin-top:30px; margin-bottom:15px;">Advanced Custom Report Builder</h3>
+
+    <!-- Row 1: Funnel + Source Effectiveness -->
+    <div class="charts-grid" style="grid-template-columns:1.5fr 1fr; margin-bottom:24px;">
+        <div class="chart-container" style="height:320px;">
+            <h3 style="margin-bottom:10px;">🔽 Recruitment Funnel Drop-off</h3>
+            <canvas id="analyticsFunnelChart"></canvas>
+        </div>
+        <div class="chart-container" style="height:320px;">
+            <h3 style="margin-bottom:10px;">🎯 Candidate Source Effectiveness</h3>
+            <canvas id="analyticsSourceChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Row 2: Time-to-Fill + Hire Rate Trend -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr; margin-bottom:24px;">
+        <div class="chart-container" style="height:300px;">
+            <h3 style="margin-bottom:10px;">⏱ Time-to-Fill Trend (Monthly Avg Days)</h3>
+            <canvas id="analyticsTimeToFillChart"></canvas>
+        </div>
+        <div class="chart-container" style="height:300px;">
+            <h3 style="margin-bottom:10px;">📈 Monthly Placements Trend</h3>
+            <canvas id="analyticsHireRateChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Row 3: Recruiter Performance Table -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:1rem; text-transform:none; letter-spacing:0; margin-bottom:16px;">🏆 Recruiter Performance Breakdown</h3>
+        <div class="table-container" style="margin-bottom:0; box-shadow:none; border:none;">
+            <table style="min-width:600px;">
+                <thead>
+                    <tr>
+                        <th>Recruiter</th>
+                        <th>Reqs Assigned</th>
+                        <th>Candidates Sourced</th>
+                        <th>Interviews</th>
+                        <th>Placements</th>
+                        <th>Conversion %</th>
+                    </tr>
+                </thead>
+                <tbody id="analytics-recruiter-tbody">
+                    <tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-light);">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Row 4: Custom Report Builder (preserved) -->
     <div class="card">
+        <h3 style="font-size:1rem; text-transform:none; letter-spacing:0; margin-bottom:16px;">🔍 Custom Report Builder</h3>
         <div style="display:flex; gap:15px; margin-bottom:15px; align-items:flex-end; flex-wrap:wrap;">
             <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
                 <label>Start Date</label>
@@ -1969,9 +2041,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 <label>Filter by Recruiter</label>
                 <select id="rep_recruiter">
                     <option value="All">All Recruiters</option>
-                    <option value="Recruiter A">Recruiter A</option>
-                    <option value="Recruiter B">Recruiter B</option>
-                    <option value="Recruiter C">Recruiter C</option>
                 </select>
             </div>
             <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
@@ -1984,20 +2053,12 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <button class="btn" style="height: 38px;" onclick="generateCustomReport()">Generate Report</button>
             <button class="btn btn-outline" style="height: 38px;" onclick="exportCustomReport()">Export CSV</button>
         </div>
-        
-        <div class="table-container">
+        <div class="table-container" style="margin-bottom:0;">
             <table>
                 <thead>
                     <tr>
-                        <th>Req ID</th>
-                        <th>Job Title</th>
-                        <th>Client</th>
-                        <th>Recruiter</th>
-                        <th>Sourced</th>
-                        <th>Screened</th>
-                        <th>Submitted</th>
-                        <th>Interviews</th>
-                        <th>Placements</th>
+                        <th>Req ID</th><th>Job Title</th><th>Client</th><th>Recruiter</th>
+                        <th>Sourced</th><th>Screened</th><th>Submitted</th><th>Interviews</th><th>Placements</th>
                     </tr>
                 </thead>
                 <tbody id="custom-report-table">
@@ -2376,7 +2437,7 @@ function switchView(viewId) {
         'offers': 'Offers & Onboarding Tracker',
         'performance': 'Recruiter Activity & Performance',
         'clientview': 'Client Accounts View',
-        'reports': 'Reports & Analytics',
+        'reports': '📊 Analytics Hub',
         'datamanagement': 'Data Storage Control',
         'settings': 'System Configurations'
     };
@@ -3415,6 +3476,7 @@ function updateAllViews() {
     renderKanban();
     renderAuditLog();
     renderCareersPortal();
+    renderAnalytics();
 }
 
 // ============================================
@@ -4948,8 +5010,26 @@ function updateDashboard() {
     renderCharts();
 }
 
-// Chart.js Setup
+// ============================================
+// Chart.js Setup — Dashboard + Analytics Hub
+// ============================================
 let funnelChart, geoChart, dropoutChart;
+let analyticsFunnelChart, analyticsSourceChart, analyticsTimeToFillChart, analyticsHireRateChart;
+let analyticsPeriodDays = 30;
+
+function setAnalyticsPeriod(days) {
+    analyticsPeriodDays = days;
+    // Update active button styling
+    [30, 60, 90, 365].forEach(d => {
+        const btn = document.getElementById(`analytics-btn-${d}`);
+        if (btn) {
+            btn.style.background = d === days ? 'var(--primary)' : 'transparent';
+            btn.style.color = d === days ? 'white' : 'var(--text-light)';
+        }
+    });
+    renderAnalytics();
+}
+
 function renderCharts() {
     if (typeof Chart === 'undefined') return;
     
@@ -4958,66 +5038,234 @@ function renderCharts() {
         if(funnelChart) funnelChart.destroy();
         const stages = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined'];
         const data = stages.map(st => candidates.filter(c => c.stage.includes(st) || c.stage === 'Joined').length);
-        
         funnelChart = new Chart(ctxFunnel, {
             type: 'bar',
-            data: {
-                labels: stages,
-                datasets: [{ label: 'Candidates', data: data, backgroundColor: 'rgba(37, 99, 235, 0.7)' }]
-            },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+            data: { labels: stages, datasets: [{ label: 'Candidates', data: data, backgroundColor: 'rgba(37, 99, 235, 0.7)', borderRadius: 6 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
-
     const ctxGeo = document.getElementById('geoChart');
     if(ctxGeo) {
         if(geoChart) geoChart.destroy();
         const usCount = requirements.filter(r => r.country === 'US').length;
         const inCount = requirements.filter(r => r.country === 'IN').length;
-        
         geoChart = new Chart(ctxGeo, {
             type: 'doughnut',
-            data: {
-                labels: ['US', 'India'],
-                datasets: [{ data: [usCount, inCount], backgroundColor: ['#3b82f6', '#10b981'] }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels: ['US', 'India'], datasets: [{ data: [usCount, inCount], backgroundColor: ['#3b82f6', '#10b981'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
-
     const ctxDropout = document.getElementById('dropoutChart');
     if(ctxDropout) {
         if(dropoutChart) dropoutChart.destroy();
-        
-        // Count drop-out reasons
         const reasonsMap = {};
         candidates.forEach(c => {
-            if (c.stage === 'Rejected' && c.rejectionReason) {
-                reasonsMap[c.rejectionReason] = (reasonsMap[c.rejectionReason] || 0) + 1;
-            } else if (c.stage === 'Candidate Withdrew' && c.withdrawalReason) {
-                reasonsMap[c.withdrawalReason] = (reasonsMap[c.withdrawalReason] || 0) + 1;
-            }
+            if (c.stage === 'Rejected' && c.rejectionReason) reasonsMap[c.rejectionReason] = (reasonsMap[c.rejectionReason] || 0) + 1;
+            else if (c.stage === 'Candidate Withdrew' && c.withdrawalReason) reasonsMap[c.withdrawalReason] = (reasonsMap[c.withdrawalReason] || 0) + 1;
         });
-        
         const labels = Object.keys(reasonsMap);
         const data = Object.values(reasonsMap);
-        
-        if (labels.length === 0) {
-            labels.push("No drop-outs logged");
-            data.push(1);
-        }
-
+        if (!labels.length) { labels.push('No drop-outs logged'); data.push(1); }
         dropoutChart = new Chart(ctxDropout, {
             type: 'doughnut',
+            data: { labels, datasets: [{ data, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+}
+
+function renderAnalytics() {
+    if (typeof Chart === 'undefined') return;
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - analyticsPeriodDays * 86400000);
+
+    // Filter candidates by period (use lastUpdated or createdDate)
+    const periodCandidates = candidates.filter(c => {
+        const d = new Date(c.lastUpdated || c.createdDate || 0);
+        return d >= cutoff;
+    });
+    const periodReqs = requirements.filter(r => {
+        const d = new Date(r.createdDate || r.dateAdded || 0);
+        return analyticsPeriodDays === 365 || d >= cutoff;
+    });
+
+    // --- KPI Cards ---
+    const joined = periodCandidates.filter(c => c.stage === 'Joined').length;
+    const offered = periodCandidates.filter(c => ['Offer Released','Joined'].includes(c.stage)).length;
+    const sourced = periodCandidates.length;
+    const active = candidates.filter(c => !['Joined','Rejected','Candidate Withdrew'].includes(c.stage)).length;
+    const filledReqs = requirements.filter(r => r.status === 'Closed' || r.filled > 0).length;
+    const totalActiveReqs = requirements.filter(r => ['Active','New'].includes(r.status)).length;
+
+    const oar = offered > 0 ? Math.round((joined / offered) * 100) : 0;
+    const conv = sourced > 0 ? Math.round((joined / sourced) * 100) : 0;
+    const fillRate = (totalActiveReqs + filledReqs) > 0 ? Math.round((filledReqs / (totalActiveReqs + filledReqs)) * 100) : 0;
+
+    // Avg Time to Fill: reqs with filledDate
+    const filledWithDate = requirements.filter(r => r.filledDate && r.createdDate);
+    const avgTTF = filledWithDate.length > 0
+        ? Math.round(filledWithDate.reduce((s, r) => s + (new Date(r.filledDate) - new Date(r.createdDate)) / 86400000, 0) / filledWithDate.length)
+        : '–';
+
+    const elOar = document.getElementById('analytics-oar');
+    const elConv = document.getElementById('analytics-conv');
+    const elActiveCan = document.getElementById('analytics-active-can');
+    const elFillRate = document.getElementById('analytics-fill-rate');
+    const elTtf = document.getElementById('analytics-ttf');
+    if (elOar) elOar.textContent = oar + '%';
+    if (elConv) elConv.textContent = conv + '%';
+    if (elActiveCan) elActiveCan.textContent = active;
+    if (elFillRate) elFillRate.textContent = fillRate + '%';
+    if (elTtf) elTtf.textContent = (avgTTF === '–' ? '–' : avgTTF) + ' Days';
+
+    // --- Funnel Chart ---
+    const ctxF = document.getElementById('analyticsFunnelChart');
+    if (ctxF) {
+        if (analyticsFunnelChart) analyticsFunnelChart.destroy();
+        const fStages = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined'];
+        const fData = fStages.map(st => candidates.filter(c => {
+            const idx = ['Sourced','Screened','Interview Scheduled','Offer Released','Joined'].indexOf(c.stage);
+            const stIdx = fStages.indexOf(st);
+            return idx >= stIdx;
+        }).length);
+        analyticsFunnelChart = new Chart(ctxF, {
+            type: 'bar',
             data: {
-                labels: labels,
+                labels: fStages,
                 datasets: [{
-                    data: data,
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899']
+                    label: 'Candidates',
+                    data: fData,
+                    backgroundColor: ['#6366f1','#3b82f6','#06b6d4','#10b981','#22c55e'],
+                    borderRadius: 8, borderSkipped: false
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false } } }
+            }
         });
+    }
+
+    // --- Source Effectiveness Pie ---
+    const ctxS = document.getElementById('analyticsSourceChart');
+    if (ctxS) {
+        if (analyticsSourceChart) analyticsSourceChart.destroy();
+        const sourceMap = {};
+        candidates.forEach(c => { const s = c.source || 'Unknown'; sourceMap[s] = (sourceMap[s] || 0) + 1; });
+        const sLabels = Object.keys(sourceMap);
+        const sData = Object.values(sourceMap);
+        analyticsSourceChart = new Chart(ctxS, {
+            type: 'doughnut',
+            data: {
+                labels: sLabels.length ? sLabels : ['No Data'],
+                datasets: [{ data: sData.length ? sData : [1], backgroundColor: ['#6366f1','#3b82f6','#06b6d4','#10b981','#f59e0b','#ec4899','#8b5cf6'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+        });
+    }
+
+    // --- Time-to-Fill Monthly Trend ---
+    const ctxT = document.getElementById('analyticsTimeToFillChart');
+    if (ctxT) {
+        if (analyticsTimeToFillChart) analyticsTimeToFillChart.destroy();
+        // Build last 6 month buckets
+        const monthLabels = [];
+        const monthAvgs = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+            monthLabels.push(label);
+            const monthReqs = requirements.filter(r => {
+                if (!r.filledDate || !r.createdDate) return false;
+                const fd = new Date(r.filledDate);
+                return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear();
+            });
+            const avg = monthReqs.length > 0
+                ? Math.round(monthReqs.reduce((s, r) => s + (new Date(r.filledDate) - new Date(r.createdDate)) / 86400000, 0) / monthReqs.length)
+                : 0;
+            monthAvgs.push(avg);
+        }
+        analyticsTimeToFillChart = new Chart(ctxT, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Avg Days to Fill',
+                    data: monthAvgs,
+                    borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)',
+                    tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#6366f1'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // --- Monthly Placements Trend (Hire Rate) ---
+    const ctxH = document.getElementById('analyticsHireRateChart');
+    if (ctxH) {
+        if (analyticsHireRateChart) analyticsHireRateChart.destroy();
+        const monthLabels2 = [];
+        const monthJoined = [];
+        const monthOffered = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            monthLabels2.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
+            const mCans = candidates.filter(c => {
+                const cd = new Date(c.lastUpdated || 0);
+                return cd.getMonth() === d.getMonth() && cd.getFullYear() === d.getFullYear();
+            });
+            monthJoined.push(mCans.filter(c => c.stage === 'Joined').length);
+            monthOffered.push(mCans.filter(c => ['Offer Released','Joined'].includes(c.stage)).length);
+        }
+        analyticsHireRateChart = new Chart(ctxH, {
+            type: 'bar',
+            data: {
+                labels: monthLabels2,
+                datasets: [
+                    { label: 'Offers Released', data: monthOffered, backgroundColor: 'rgba(16,185,129,0.3)', borderColor: '#10b981', borderWidth: 2, borderRadius: 4 },
+                    { label: 'Joined', data: monthJoined, backgroundColor: 'rgba(16,185,129,0.85)', borderColor: '#10b981', borderWidth: 0, borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // --- Recruiter Performance Table ---
+    const tbody = document.getElementById('analytics-recruiter-tbody');
+    if (tbody) {
+        const recruiterMap = {};
+        requirements.forEach(r => {
+            const rec = r.recruiter || r.primaryRecruiter || 'Unassigned';
+            if (!recruiterMap[rec]) recruiterMap[rec] = { reqs: 0, sourced: 0, interviews: 0, placements: 0 };
+            recruiterMap[rec].reqs++;
+            const reqCans = candidates.filter(c => c.reqId === r.id);
+            recruiterMap[rec].sourced += reqCans.length;
+            recruiterMap[rec].interviews += reqCans.filter(c => c.stage.toLowerCase().includes('interview')).length;
+            recruiterMap[rec].placements += reqCans.filter(c => c.stage === 'Joined').length;
+        });
+        const rows = Object.entries(recruiterMap).sort((a, b) => b[1].placements - a[1].placements);
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-light);">No recruiter data yet. Assign recruiters to requirements to see performance.</td></tr>';
+        } else {
+            tbody.innerHTML = rows.map(([name, d]) => {
+                const conv = d.sourced > 0 ? Math.round((d.placements / d.sourced) * 100) : 0;
+                const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : 'var(--danger)';
+                return `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${d.reqs}</td>
+                    <td>${d.sourced}</td>
+                    <td>${d.interviews}</td>
+                    <td><strong style="color:var(--success)">${d.placements}</strong></td>
+                    <td><span style="color:${convColor}; font-weight:700;">${conv}%</span></td>
+                </tr>`;
+            }).join('');
+        }
     }
 }
 
