@@ -67,13 +67,36 @@ const Reminder = sequelize.define('Reminder', {
   data: { type: DataTypes.JSON, allowNull: false }
 });
 
+// Authentication Middleware
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) return res.status(401).json({ error: 'Failed to authenticate token' });
+    req.userId = decoded.id;
+    req.userRole = decoded.role;
+    req.username = decoded.username;
+    next();
+  });
+};
+
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!allowedRoles.includes(req.userRole)) {
+      return res.status(403).json({ error: 'Access denied: insufficient permissions' });
+    }
+    next();
+  };
+};
+
 // Basic API Routes
-app.get('/api/requisitions', async (req, res) => {
+app.get('/api/requisitions', verifyToken, async (req, res) => {
   const reqs = await Requisition.findAll();
   res.json(reqs.map(r => r.data));
 });
 
-app.post('/api/requisitions', async (req, res) => {
+app.post('/api/requisitions', verifyToken, async (req, res) => {
   try {
     const newReq = await Requisition.create({ reqId: req.body.id, data: req.body });
     res.json(newReq.data);
@@ -82,7 +105,7 @@ app.post('/api/requisitions', async (req, res) => {
   }
 });
 
-app.put('/api/requisitions/:id', async (req, res) => {
+app.put('/api/requisitions/:id', verifyToken, async (req, res) => {
   try {
     await Requisition.update({ data: req.body }, { where: { reqId: req.params.id } });
     res.json({ success: true });
@@ -91,7 +114,7 @@ app.put('/api/requisitions/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/requisitions/:id', async (req, res) => {
+app.delete('/api/requisitions/:id', verifyToken, requireRole(['Admin', 'Management']), async (req, res) => {
   try {
     await Requisition.destroy({ where: { reqId: req.params.id } });
     res.json({ success: true });
@@ -100,12 +123,12 @@ app.delete('/api/requisitions/:id', async (req, res) => {
   }
 });
 
-app.get('/api/candidates', async (req, res) => {
+app.get('/api/candidates', verifyToken, async (req, res) => {
   const candidates = await Candidate.findAll();
   res.json(candidates.map(c => c.data));
 });
 
-app.post('/api/candidates', async (req, res) => {
+app.post('/api/candidates', verifyToken, async (req, res) => {
   try {
     const newCand = await Candidate.create({ canId: req.body.id, reqId: req.body.reqId, data: req.body });
     res.json(newCand.data);
@@ -114,7 +137,7 @@ app.post('/api/candidates', async (req, res) => {
   }
 });
 
-app.put('/api/candidates/:id', async (req, res) => {
+app.put('/api/candidates/:id', verifyToken, async (req, res) => {
   try {
     await Candidate.update({ data: req.body, reqId: req.body.reqId }, { where: { canId: req.params.id } });
     res.json({ success: true });
@@ -123,7 +146,7 @@ app.put('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/candidates/:id', async (req, res) => {
+app.delete('/api/candidates/:id', verifyToken, requireRole(['Admin', 'Management']), async (req, res) => {
   try {
     await Candidate.destroy({ where: { canId: req.params.id } });
     res.json({ success: true });
@@ -132,12 +155,12 @@ app.delete('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.get('/api/worklogs', async (req, res) => {
+app.get('/api/worklogs', verifyToken, async (req, res) => {
   const logs = await Worklog.findAll();
   res.json(logs.map(l => l.data));
 });
 
-app.post('/api/worklogs', async (req, res) => {
+app.post('/api/worklogs', verifyToken, async (req, res) => {
   try {
     // Generate a unique ID for worklogs if they don't have one
     const logId = req.body.id || 'WL-' + Date.now();
@@ -149,7 +172,7 @@ app.post('/api/worklogs', async (req, res) => {
   }
 });
 
-app.delete('/api/worklogs/:id', async (req, res) => {
+app.delete('/api/worklogs/:id', verifyToken, requireRole(['Admin', 'Management']), async (req, res) => {
   try {
     await Worklog.destroy({ where: { logId: req.params.id } });
     res.json({ success: true });
@@ -158,12 +181,12 @@ app.delete('/api/worklogs/:id', async (req, res) => {
   }
 });
 
-app.get('/api/reminders', async (req, res) => {
+app.get('/api/reminders', verifyToken, async (req, res) => {
   const rems = await Reminder.findAll();
   res.json(rems.map(r => r.data));
 });
 
-app.post('/api/reminders', async (req, res) => {
+app.post('/api/reminders', verifyToken, async (req, res) => {
   try {
     const remId = req.body.id || 'REM-' + Date.now();
     req.body.id = remId;
@@ -174,7 +197,7 @@ app.post('/api/reminders', async (req, res) => {
   }
 });
 
-app.delete('/api/reminders/:id', async (req, res) => {
+app.delete('/api/reminders/:id', verifyToken, async (req, res) => {
   try {
     await Reminder.destroy({ where: { remId: req.params.id } });
     res.json({ success: true });
@@ -206,19 +229,6 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, role: user.role, username: user.username });
 });
 
-// Authentication Middleware
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-  const token = authHeader.split(' ')[1];
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Failed to authenticate token' });
-    req.userId = decoded.id;
-    req.userRole = decoded.role;
-    req.username = decoded.username;
-    next();
-  });
-};
 
 app.get('/api/sync', verifyToken, async (req, res) => {
   const reqs = await Requisition.findAll();
@@ -308,3 +318,4 @@ sequelize.sync({ alter: true }).then(async () => {
 }).catch(err => {
   console.error('Failed to sync database:', err);
 });
+

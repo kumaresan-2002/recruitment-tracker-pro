@@ -18,4 +18,14 @@
         </div>
         <button class="btn" onclick="saveSettings()" style="margin-top: 15px;">Save Configurations</button>
     </div>
+    
+    <div class="card" style="max-width: 600px; margin-top: 20px;" data-role-hide="Recruiter,Account Manager">
+        <h4 style="margin-bottom: 10px; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">🛡️</span> Secure Data Backup
+        </h4>
+        <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 15px;">
+            Export a full JSON backup of the current database (Requisitions, Candidates, Worklogs, and Reminders). Store this file securely.
+        </p>
+        <button class="btn" onclick="exportDataBackup()" style="background: var(--primary);">📥 Download Full Database Backup</button>
+    </div>
 </div>

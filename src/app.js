@@ -1453,7 +1453,7 @@ function renderRequirements() {
                     <div class="actions-item" onclick="openWorklogModal('${req.id}')" ${currentRole === 'Account Manager' ? 'style="display:none;"' : ''}>Log Activity</div>
                     <div class="actions-item" onclick="duplicateRequirement('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Duplicate</div>
                     <div class="actions-item" onclick="openClosureModal('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger)">Close Job</div>
-                    <div class="actions-item" onclick="deleteRequirement('${req.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger); font-weight:600;">Delete</div>
+                    <div class="actions-item" onclick="deleteRequirement('${req.id}')" ${['Admin', 'Management'].includes(currentRole) ? '' : 'style="display:none;"'} style="color:var(--danger); font-weight:600;">Delete</div>
                 </div>
             </td>
         `;
@@ -1552,7 +1552,7 @@ function renderCandidates() {
                     <div class="actions-item" onclick="openCandidateDetailsModal('${can.id}')">View Profile</div>
                     <div class="actions-item" onclick="openStageModal('${can.id}')">Update Stage</div>
                     <div class="actions-item" onclick="editCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Edit Info</div>
-                    <div class="actions-item" onclick="deleteCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''} style="color:var(--danger)">Delete</div>
+                    <div class="actions-item" onclick="deleteCandidate('${can.id}')" ${['Admin', 'Management'].includes(currentRole) ? '' : 'style="display:none;"'} style="color:var(--danger)">Delete</div>
                 </div>
             </td>
         `;
@@ -4234,6 +4234,46 @@ setInterval(() => {
         saveData(true); // pass true for silent sync
     }
 }, 60000);
+
+// Secure Data Export
+function exportDataBackup() {
+    if (!['Admin', 'Management'].includes(currentRole)) {
+        createAlert('Access Denied: Only Admins can export data.', 'danger');
+        return;
+    }
+    const data = {
+        requisitions,
+        candidates,
+        worklogs,
+        reminders,
+        exportDate: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RecruitmentTracker_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    createAlert('Secure Data Backup Downloaded', 'success');
+}
+
+// Session Timeout (15 minutes idle)
+let idleTime = 0;
+document.addEventListener('mousemove', () => idleTime = 0);
+document.addEventListener('keypress', () => idleTime = 0);
+document.addEventListener('click', () => idleTime = 0);
+
+setInterval(() => {
+    if (localStorage.getItem('token')) {
+        idleTime++;
+        if (idleTime >= 15) { // 15 minutes
+            createAlert('Session expired due to inactivity. Logging out.', 'warning');
+            logout();
+        }
+    }
+}, 60000); // Check every minute
 
 // Boot the application
 document.addEventListener('DOMContentLoaded', initApp);
