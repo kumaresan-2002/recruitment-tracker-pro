@@ -911,16 +911,6 @@ function deleteCandidate(canId) {
         document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
         toast.style.display = 'flex';
         
-        updateAllViews();
-    }
-}
-
-
-        // Show Undo Toast
-        const toast = document.getElementById('undoToast');
-        document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
-        toast.style.display = 'flex';
-        
         document.getElementById('undoBtn').onclick = () => {
             if (lastDeletedCandidate) {
                 candidates.push(lastDeletedCandidate);
@@ -928,6 +918,7 @@ function deleteCandidate(canId) {
                 toast.style.display = 'none';
                 clearTimeout(undoTimeout);
                 lastDeletedCandidate = null;
+                updateAllViews();
             }
         };
 
@@ -936,6 +927,8 @@ function deleteCandidate(canId) {
             toast.style.display = 'none';
             lastDeletedCandidate = null;
         }, 8000); // 8 seconds to undo
+        
+        updateAllViews();
     }
 }
 
@@ -3356,10 +3349,10 @@ function executeEnrollment(canId) {
     
     // Simulate sending Step 1
     can.history = can.history || [];
-    can.history.push({ date: new Date().toLocaleDateString(), stage: can.stage, comment: \`Campaign Step 1 Sent\`, user: 'System' });
+    can.history.push({ date: new Date().toLocaleDateString(), stage: can.stage, comment: `Campaign Step 1 Sent`, user: 'System' });
     saveData();
     closeModal('tempEnrollModal');
-    createAlert(\`Enrolled! Step 1 email dispatched to \${can.name}.\`, 'success');
+    createAlert(`Enrolled! Step 1 email dispatched to ${can.name}.`, 'success');
 }
 
 function simulateCampaignDay() {
@@ -3376,7 +3369,7 @@ function simulateCampaignDay() {
                 const can = candidates.find(c => c.id === en.canId);
                 if (can) {
                     can.history = can.history || [];
-                    can.history.push({ date: now.toLocaleDateString(), stage: can.stage, comment: \`Campaign Step \${en.currentStep} Sent\`, user: 'System' });
+                    can.history.push({ date: now.toLocaleDateString(), stage: can.stage, comment: `Campaign Step ${en.currentStep} Sent`, user: 'System' });
                 }
                 triggered++;
             }
@@ -3386,7 +3379,7 @@ function simulateCampaignDay() {
     if (triggered > 0) {
         saveData();
         renderCampaigns();
-        createAlert(\`Simulated 1 day forward. \${triggered} sequence emails triggered!\`, 'success');
+        createAlert(`Simulated 1 day forward. ${triggered} sequence emails triggered!`, 'success');
     } else {
         createAlert('No active enrollments ready for the next step.', 'info');
     }
