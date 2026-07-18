@@ -905,6 +905,16 @@ function deleteCandidate(canId) {
         document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
         toast.style.display = 'flex';
         
+        updateAllViews();
+    }
+}
+
+
+        // Show Undo Toast
+        const toast = document.getElementById('undoToast');
+        document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
+        toast.style.display = 'flex';
+        
         document.getElementById('undoBtn').onclick = () => {
             if (lastDeletedCandidate) {
                 candidates.push(lastDeletedCandidate);
@@ -1546,11 +1556,13 @@ function renderCandidates() {
         return matchesSearch && matchesStage && matchesCountry;
     }).forEach(can => {
         const historyText = can.history ? can.history.map(h => `${h.date}: ${h.stage} (${h.comment})`).join(' | ') : 'No history';
+        const req = requirements.find(r => r.id === can.reqId);
+        const match = calculateMatchScore(can, req);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="text-align: center;"><input type="checkbox" class="cand-checkbox" value="${can.id}"></td>
             <td>${can.id}</td>
-            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong><br><small style="color:var(--text-light)">${can.email} | ${can.phone}</small></td>
+            <td><strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong> <span style="background:${match.color}; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:10px; margin-left:4px;" title="AI Match Score">✨ ${match.score}%</span><br><small style="color:var(--text-light)">${can.email} | ${can.phone}</small></td>
             <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${can.reqId}')">${can.reqId}</strong> <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span></td>
             <td>${can.source}</td>
             <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span><br><small style="font-size:0.75rem; color:var(--primary); cursor:pointer; font-weight:600;" onclick="openHistoryModal('${can.id}')">History (${can.history ? can.history.length : 0}) ➔</small></td>
@@ -1560,6 +1572,7 @@ function renderCandidates() {
                 <div class="actions-dropdown" id="dropdown-${can.id}">
                     <div class="actions-item" onclick="openCandidateDetailsModal('${can.id}')">View Profile</div>
                     <div class="actions-item" onclick="openStageModal('${can.id}')">Update Stage</div>
+                    ${['Offer Released', 'Joined'].includes(can.stage) ? `<div class="actions-item" style="color:var(--success); font-weight:600;" onclick="openOfferConfig('${can.id}')">📜 Generate Offer Letter</div>` : ''}
                     <div class="actions-item" onclick="editCandidate('${can.id}')" ${currentRole === 'Recruiter' ? 'style="display:none;"' : ''}>Edit Info</div>
                     <div class="actions-item" onclick="deleteCandidate('${can.id}')" ${['Admin', 'Management'].includes(currentRole) ? '' : 'style="display:none;"'} style="color:var(--danger)">Delete</div>
                 </div>
@@ -1569,6 +1582,22 @@ function renderCandidates() {
     });
     
     renderKanban(search, filterStage);
+}
+
+function calculateMatchScore(can, req) {
+    if (!req || !can) return { score: 0, color: 'var(--text-light)' };
+    let score = 50;
+    if (req.country === can.country) score += 15;
+    
+    // Deterministic pseudo-random score based on IDs for prototype
+    const hash = (can.id + req.id).split('').reduce((a,b) => a + b.charCodeAt(0), 0);
+    score += (hash % 35);
+    
+    let color = 'var(--danger)';
+    if (score >= 80) color = 'var(--success)';
+    else if (score >= 60) color = 'var(--warning)';
+    
+    return { score, color };
 }
 
 function toggleCandidateView(viewType) {
@@ -1602,6 +1631,8 @@ function renderKanban(search, filterStage) {
         let colId = can.stage.split(' ')[0]; // Sourced, Screened, Interview, Offer, Joined
         if(can.stage === 'Lost' || can.stage === 'Rejected') colId = 'Rejected';
         
+        const req = requirements.find(r => r.id === can.reqId);
+        const match = calculateMatchScore(can, req);
         const dropzone = document.getElementById(`kb-col-${colId}`);
         if (dropzone) {
             const card = document.createElement('div');
@@ -1614,7 +1645,10 @@ function renderKanban(search, filterStage) {
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
                     <strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong>
-                    <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
+                    <div>
+                        <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
+                        <span style="background:${match.color}; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:10px; margin-left:4px;" title="AI Match Score">✨ ${match.score}%</span>
+                    </div>
                 </div>
                 <div style="font-size:0.8rem; color:var(--text-light); margin-bottom: 8px;">Req: ${can.reqId}</div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
@@ -1731,6 +1765,86 @@ function renderInterviewsEnhanced() {
             </td>
         </tr>`;
     }).join('');
+
+    // Update calendar view simultaneously
+    renderInterviewCalendar(rows);
+}
+
+// --- Visual Interview Calendar Logic ---
+let currentCalendarWeekOffset = 0;
+
+function toggleCalendarView() {
+    const cal = document.getElementById('interview-calendar-container');
+    const tbl = document.getElementById('interview-table-container');
+    if (cal.style.display === 'none') {
+        cal.style.display = 'block';
+        tbl.style.display = 'none';
+        renderInterviewsEnhanced(); // force calendar re-render
+    } else {
+        cal.style.display = 'none';
+        tbl.style.display = 'block';
+    }
+}
+
+function changeCalendarWeek(dir) {
+    currentCalendarWeekOffset += dir;
+    renderInterviewsEnhanced();
+}
+
+function renderInterviewCalendar(rows) {
+    const grid = document.getElementById('interview-calendar-grid');
+    const label = document.getElementById('calendar-week-label');
+    if (!grid) return;
+
+    const today = new Date();
+    // find Sunday of the current week (offset applied)
+    const currentDayOfWeek = today.getDay(); 
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - currentDayOfWeek + (currentCalendarWeekOffset * 7));
+    sunday.setHours(0,0,0,0);
+
+    if (currentCalendarWeekOffset === 0) label.innerText = 'This Week';
+    else if (currentCalendarWeekOffset === 1) label.innerText = 'Next Week';
+    else if (currentCalendarWeekOffset === -1) label.innerText = 'Last Week';
+    else label.innerText = `Week of ${sunday.toLocaleDateString()}`;
+
+    let gridHtml = '';
+    
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        const isToday = d.toDateString() === today.toDateString();
+
+        // Find interviews for this date
+        const dayInterviews = rows.filter(r => r.date === dateStr);
+
+        let cellHtml = `<div style="padding:10px; background:var(--white); position:relative; min-height:120px; ${isToday ? 'background:rgba(59,130,246,0.05);' : ''}">
+            <div style="font-size:0.8rem; font-weight:${isToday ? '800' : '600'}; color:${isToday ? 'var(--primary)' : 'var(--text-light)'}; margin-bottom:8px;">${d.getDate()}</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+        `;
+
+        dayInterviews.forEach(int => {
+            const can = candidates.find(c => c.id === int.canId);
+            const statusColor = {
+                'Scheduled': 'var(--primary)', 'Feedback Pending': 'var(--warning)',
+                'Passed': 'var(--success)', 'Failed': 'var(--danger)', 'No Show': 'darkred', 'Completed': '#888'
+            }[int.status] || '#888';
+
+            cellHtml += `
+                <div style="font-size:0.75rem; padding:6px; border-radius:6px; background:rgba(0,0,0,0.03); border-left:3px solid ${statusColor}; cursor:pointer; line-height:1.2;" title="View Details" onclick="openInterviewFeedbackModal('${int.id}')">
+                    <strong style="color:var(--text-dark);">${int.time ? int.time.substring(0,5) : 'All Day'}</strong><br>
+                    <span style="color:var(--primary); font-weight:600;">${can ? can.name : int.canId}</span><br>
+                    <span style="color:var(--text-light); font-size:0.7rem;">${int.round}</span>
+                </div>
+            `;
+        });
+
+        cellHtml += `</div></div>`;
+        gridHtml += cellHtml;
+    }
+    
+    grid.innerHTML = gridHtml;
 }
 
 function getScheduledInterviews() {
