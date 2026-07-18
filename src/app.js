@@ -36,8 +36,8 @@ function initTheme() {
 }
 // openCandidateDetails is an alias used in some views
 function openCandidateDetails(id) { openCandidateDetailsModal(id); }
-// Call initTheme on script load (safe — no DOM needed for body attribute)
-document.addEventListener('DOMContentLoaded', () => initTheme());
+// Boot the application
+document.addEventListener('DOMContentLoaded', initApp);
 
 // Aging filter state variables
 let reqAgeFilterMin = null;
@@ -3873,8 +3873,8 @@ async function initApp() {
             throw new Error('Server error');
         }
         const data = await res.json();
-        if (data.requisitions) requirements = data.requisitions.map(r => ({ ...r, ...JSON.parse(r.extraData || '{}') }));
-        if (data.candidates) candidates = data.candidates.map(c => ({ ...c, history: c.history ? JSON.parse(c.history) : [] }));
+        if (data.requisitions) requirements = data.requisitions;
+        if (data.candidates) candidates = data.candidates;
         if (data.worklogs) worklogs = data.worklogs;
         if (data.reminders) reminders = data.reminders;
         
@@ -4275,5 +4275,4 @@ setInterval(() => {
     }
 }, 60000); // Check every minute
 
-// Boot the application
-document.addEventListener('DOMContentLoaded', initApp);
+// Boot the application
