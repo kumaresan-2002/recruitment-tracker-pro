@@ -30,27 +30,36 @@ function toggleTheme() {
 function initTheme() {
     if (isDarkMode) {
         document.body.setAttribute('data-theme', 'dark');
-        document.getElementById('themeToggleBtn').innerText = '☀️';
+        const btn = document.getElementById('themeToggleBtn');
+        if (btn) btn.textContent = '☀️';
     }
 }
-initTheme();
+// openCandidateDetails is an alias used in some views
+function openCandidateDetails(id) { openCandidateDetailsModal(id); }
+// Call initTheme on script load (safe — no DOM needed for body attribute)
+document.addEventListener('DOMContentLoaded', () => initTheme());
 
 // Aging filter state variables
 let reqAgeFilterMin = null;
 let reqAgeFilterMax = null;
 
 // Save to LocalStorage & Backend API
-async function saveData() {
+async function saveData(silent = false) {
     localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
     localStorage.setItem(STORE_KEYS.reqs, JSON.stringify(requirements));
     localStorage.setItem(STORE_KEYS.candidates, JSON.stringify(candidates));
     localStorage.setItem(STORE_KEYS.worklogs, JSON.stringify(worklogs));
     localStorage.setItem(STORE_KEYS.reminders, JSON.stringify(reminders));
     
-    showLoading();
+    if (!silent) showLoading();
+    const ind = document.getElementById('sync-indicator');
+    if (ind) {
+        ind.style.background = 'var(--warning, #f59e0b)';
+        ind.title = 'Syncing...';
+    }
     try {
         const token = localStorage.getItem('token');
-        await fetch('http://localhost:3000/api/sync', {
+        const res = await fetch('http://localhost:3000/api/sync', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -58,10 +67,19 @@ async function saveData() {
             },
             body: JSON.stringify({ requisitions: requirements, candidates, worklogs, reminders })
         });
+        if (!res.ok) throw new Error('API Sync Failed');
+        if (ind) {
+            ind.style.background = 'var(--success, #10b981)';
+            ind.title = 'Synced with server';
+        }
     } catch (e) {
         console.error('Failed to sync with API', e);
+        if (ind) {
+            ind.style.background = 'var(--danger, #ef4444)';
+            ind.title = 'Offline / Sync Failed';
+        }
     }
-    hideLoading();
+    if (!silent) hideLoading();
     updateAllViews();
 }
 
@@ -1139,6 +1157,21 @@ function updateAllViews() {
     renderCareersPortal();
     renderAnalytics();
     renderEmailTemplates();
+    _updateNavBadges();
+}
+
+function _updateNavBadges() {
+    const safe = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+    safe('nav-req-count', requirements.length);
+    safe('nav-us-count', requirements.filter(r => r.country === 'US').length);
+    safe('nav-in-count', requirements.filter(r => r.country === 'IN').length);
+    safe('nav-can-count', candidates.length);
+    safe('nav-int-count', candidates.filter(c => c.stage && c.stage.includes('Interview')).length);
+    safe('nav-off-count', candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').length);
+    safe('nav-hm-count', candidates.filter(c => c.stage === 'Interview Scheduled').length);
+    safe('nav-ag-count', requirements.filter(r => r.status === 'Active' || r.status === 'New').length);
+    safe('nav-pool-count', candidates.filter(c => c.inTalentPool).length);
+    safe('nav-onb-count', candidates.filter(c => c.stage === 'Joined' && !c.onboardingComplete).length);
 }
 
 // ============================================
@@ -1362,19 +1395,8 @@ function drop(e, stage) {
         });
         can.stage = stage;
         can.lastUpdated = new Date().toISOString().split('T')[0];
-        
         saveData();
-        updateAllViews();
     }
-    
-    // Update nav badges
-    document.getElementById('nav-req-count').innerText = requirements.length;
-    document.getElementById('nav-us-count').innerText = requirements.filter(r => r.country === 'US').length;
-    document.getElementById('nav-in-count').innerText = requirements.filter(r => r.country === 'IN').length;
-    document.getElementById('nav-can-count').innerText = candidates.length;
-    document.getElementById('nav-int-count').innerText = candidates.filter(c => c.stage.includes('Interview')).length;
-    document.getElementById('nav-hm-count').innerText = candidates.filter(c => c.stage === 'Interview Scheduled').length;
-    document.getElementById('nav-off-count').innerText = candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').length;
 }
 
 function getBadgeClass(status) {
@@ -2450,7 +2472,10 @@ function renderHeaderRoleSwitcher() {
                         </div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px; cursor:help;" title="Sync Status">
+                    <span id="sync-indicator" style="width:10px; height:10px; border-radius:50%; background:var(--success, #10b981); display:inline-block; box-shadow:0 0 5px rgba(0,0,0,0.2);"></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; margin-left: 10px; border-left: 1px solid var(--border); padding-left: 15px;">
                     <div style="background:var(--primary); color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                         ${username.charAt(0).toUpperCase()}
                     </div>
@@ -3504,44 +3529,6 @@ function hideLoading() {
     if (el) el.style.display = 'none';
 }
 
-// Global Search Logic
-function handleGlobalSearch(query) {
-    const resultsDiv = document.getElementById('globalSearchResults');
-    if (!query || query.length < 2) {
-        resultsDiv.style.display = 'none';
-        return;
-    }
-    
-    query = query.toLowerCase();
-    let resultsHTML = '<div style="padding: 10px;">';
-    
-    // Search Reqs
-    const matchingReqs = requirements.filter(r => r.id.toLowerCase().includes(query) || r.title.toLowerCase().includes(query) || r.client.toLowerCase().includes(query));
-    if (matchingReqs.length > 0) {
-        resultsHTML += '<strong style="color:var(--primary)">Requisitions</strong><br>';
-        matchingReqs.forEach(r => {
-            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openReqDetailsModal('${r.id}'); document.getElementById('globalSearchResults').style.display='none';">${r.id} - ${r.title} (${r.client})</div>`;
-        });
-    }
-
-    // Search Candidates
-    const matchingCands = candidates.filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query));
-    if (matchingCands.length > 0) {
-        resultsHTML += '<br><strong style="color:var(--primary)">Candidates</strong><br>';
-        matchingCands.forEach(c => {
-            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openCandidateDetailsModal('${c.id}'); document.getElementById('globalSearchResults').style.display='none';">${c.name} - ${c.email} (${c.stage})</div>`;
-        });
-    }
-
-    if (matchingReqs.length === 0 && matchingCands.length === 0) {
-        resultsHTML += '<div style="color: var(--text-light)">No results found.</div>';
-    }
-
-    resultsHTML += '</div>';
-    resultsDiv.innerHTML = resultsHTML;
-    resultsDiv.style.display = 'block';
-}
-
 // Bulk Actions
 function toggleAllCheckboxes(source) {
     const checkboxes = document.querySelectorAll('.cand-checkbox');
@@ -4219,6 +4206,34 @@ function signOffer(e) {
         createAlert(`Amazing! ${can.name} has officially accepted the offer and Joined!`, 'success');
     }, 500);
 }
+// UX Polish: Toast Notifications
+function createAlert(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    const bg = type === 'success' ? 'var(--success)' : type === 'danger' ? 'var(--danger)' : 'var(--primary)';
+    toast.style.cssText = `background:${bg}; color:white; padding:12px 20px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); font-size:0.9rem; transform:translateX(100%); transition:transform 0.3s ease;`;
+    toast.innerText = message;
+    
+    container.appendChild(toast);
+    
+    // Slide in
+    setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Auto-sync every 60 seconds
+setInterval(() => {
+    if (localStorage.getItem('token')) {
+        saveData(true); // pass true for silent sync
+    }
+}, 60000);
 
 // Boot the application
 document.addEventListener('DOMContentLoaded', initApp);

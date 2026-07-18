@@ -37,30 +37,22 @@ const sequelize = new Sequelize({
   storage: path.join(__dirname, 'database.sqlite')
 });
 
-// Define Models
+// Define Models with JSON data storage to support flexible frontend schemas
 const Requisition = sequelize.define('Requisition', {
   reqId: { type: DataTypes.STRING, unique: true, allowNull: false },
-  title: { type: DataTypes.STRING, allowNull: false },
-  status: { type: DataTypes.STRING, defaultValue: 'Open' },
-  location: { type: DataTypes.STRING },
-  department: { type: DataTypes.STRING }
+  data: { type: DataTypes.JSON, allowNull: false }
 });
 
 const Candidate = sequelize.define('Candidate', {
-  name: { type: DataTypes.STRING, allowNull: false },
-  email: { type: DataTypes.STRING },
-  status: { type: DataTypes.STRING, defaultValue: 'New' },
-  reqId: { type: DataTypes.STRING }
+  canId: { type: DataTypes.STRING, unique: true, allowNull: false },
+  reqId: { type: DataTypes.STRING },
+  data: { type: DataTypes.JSON, allowNull: false }
 });
 
 const Worklog = sequelize.define('Worklog', {
-  date: { type: DataTypes.DATEONLY, allowNull: false },
+  logId: { type: DataTypes.STRING, unique: true },
   reqId: { type: DataTypes.STRING },
-  recruiter: { type: DataTypes.STRING },
-  desc: { type: DataTypes.STRING },
-  sourced: { type: DataTypes.INTEGER, defaultValue: 0 },
-  screened: { type: DataTypes.INTEGER, defaultValue: 0 },
-  submitted: { type: DataTypes.INTEGER, defaultValue: 0 }
+  data: { type: DataTypes.JSON, allowNull: false }
 });
 
 const User = sequelize.define('User', {
@@ -70,22 +62,39 @@ const User = sequelize.define('User', {
 });
 
 const Reminder = sequelize.define('Reminder', {
-  date: { type: DataTypes.DATEONLY, allowNull: false },
-  text: { type: DataTypes.STRING, allowNull: false },
+  remId: { type: DataTypes.STRING, unique: true, allowNull: false },
   user: { type: DataTypes.STRING, allowNull: false },
-  targetId: { type: DataTypes.STRING }
+  data: { type: DataTypes.JSON, allowNull: false }
 });
 
 // Basic API Routes
 app.get('/api/requisitions', async (req, res) => {
   const reqs = await Requisition.findAll();
-  res.json(reqs);
+  res.json(reqs.map(r => r.data));
 });
 
 app.post('/api/requisitions', async (req, res) => {
   try {
-    const newReq = await Requisition.create(req.body);
-    res.json(newReq);
+    const newReq = await Requisition.create({ reqId: req.body.id, data: req.body });
+    res.json(newReq.data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/requisitions/:id', async (req, res) => {
+  try {
+    await Requisition.update({ data: req.body }, { where: { reqId: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/requisitions/:id', async (req, res) => {
+  try {
+    await Requisition.destroy({ where: { reqId: req.params.id } });
+    res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -93,13 +102,31 @@ app.post('/api/requisitions', async (req, res) => {
 
 app.get('/api/candidates', async (req, res) => {
   const candidates = await Candidate.findAll();
-  res.json(candidates);
+  res.json(candidates.map(c => c.data));
 });
 
 app.post('/api/candidates', async (req, res) => {
   try {
-    const newCand = await Candidate.create(req.body);
-    res.json(newCand);
+    const newCand = await Candidate.create({ canId: req.body.id, reqId: req.body.reqId, data: req.body });
+    res.json(newCand.data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/candidates/:id', async (req, res) => {
+  try {
+    await Candidate.update({ data: req.body, reqId: req.body.reqId }, { where: { canId: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/candidates/:id', async (req, res) => {
+  try {
+    await Candidate.destroy({ where: { canId: req.params.id } });
+    res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -107,13 +134,50 @@ app.post('/api/candidates', async (req, res) => {
 
 app.get('/api/worklogs', async (req, res) => {
   const logs = await Worklog.findAll();
-  res.json(logs);
+  res.json(logs.map(l => l.data));
 });
 
 app.post('/api/worklogs', async (req, res) => {
   try {
-    const log = await Worklog.create(req.body);
-    res.json(log);
+    // Generate a unique ID for worklogs if they don't have one
+    const logId = req.body.id || 'WL-' + Date.now();
+    req.body.id = logId;
+    const log = await Worklog.create({ logId: logId, reqId: req.body.reqId, data: req.body });
+    res.json(log.data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/worklogs/:id', async (req, res) => {
+  try {
+    await Worklog.destroy({ where: { logId: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/reminders', async (req, res) => {
+  const rems = await Reminder.findAll();
+  res.json(rems.map(r => r.data));
+});
+
+app.post('/api/reminders', async (req, res) => {
+  try {
+    const remId = req.body.id || 'REM-' + Date.now();
+    req.body.id = remId;
+    const r = await Reminder.create({ remId: remId, user: req.body.user || 'system', data: req.body });
+    res.json(r.data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/reminders/:id', async (req, res) => {
+  try {
+    await Reminder.destroy({ where: { remId: req.params.id } });
+    res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -156,13 +220,17 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// Bulk Sync API (for smooth transition from localStorage)
 app.get('/api/sync', verifyToken, async (req, res) => {
   const reqs = await Requisition.findAll();
   const cands = await Candidate.findAll();
   const logs = await Worklog.findAll();
   const rems = await Reminder.findAll();
-  res.json({ requisitions: reqs, candidates: cands, worklogs: logs, reminders: rems });
+  res.json({ 
+    requisitions: reqs.map(r => r.data), 
+    candidates: cands.map(c => c.data), 
+    worklogs: logs.map(l => l.data), 
+    reminders: rems.map(r => r.data) 
+  });
 });
 
 app.post('/api/sync', verifyToken, async (req, res) => {
@@ -171,19 +239,27 @@ app.post('/api/sync', verifyToken, async (req, res) => {
     
     if (requisitions) {
       await Requisition.destroy({ where: {} });
-      await Requisition.bulkCreate(requisitions);
+      await Requisition.bulkCreate(requisitions.map(r => ({ reqId: r.id, data: r })));
     }
     if (candidates) {
       await Candidate.destroy({ where: {} });
-      await Candidate.bulkCreate(candidates);
+      await Candidate.bulkCreate(candidates.map(c => ({ canId: c.id, reqId: c.reqId, data: c })));
     }
     if (worklogs) {
       await Worklog.destroy({ where: {} });
-      await Worklog.bulkCreate(worklogs);
+      await Worklog.bulkCreate(worklogs.map(l => {
+         const lid = l.id || 'WL-' + Math.random().toString(36).substr(2, 9);
+         l.id = lid;
+         return { logId: lid, reqId: l.reqId, data: l };
+      }));
     }
     if (reminders) {
       await Reminder.destroy({ where: {} });
-      await Reminder.bulkCreate(reminders);
+      await Reminder.bulkCreate(reminders.map(r => {
+         const rid = r.id || 'REM-' + Math.random().toString(36).substr(2, 9);
+         r.id = rid;
+         return { remId: rid, user: r.user || 'system', data: r };
+      }));
     }
     
     res.json({ success: true });
