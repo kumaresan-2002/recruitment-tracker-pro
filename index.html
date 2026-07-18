@@ -440,6 +440,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
         <div class="nav-item" onclick="switchView('kanban')" data-role-visible="Management,Account Manager,Recruiter">📊 Visual Pipeline (Kanban)</div>
         <div class="nav-item" onclick="switchView('auditlog')" data-role-visible="Management,Admin">📜 Global Audit Log</div>
+        <div class="nav-item" onclick="switchView('careersPortal')" data-role-visible="Management,Admin,Account Manager">🌐 Careers Portal</div>
         <div class="nav-item" onclick="switchView('talentpool')" data-role-visible="Management,Account Manager,Recruiter">🏊 Talent Pool <span class="nav-badge" id="nav-pool-count">0</span></div>
         <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
         <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers <span class="nav-badge" id="nav-off-count">0</span></div>
@@ -995,6 +996,49 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 <!-- Modal: Bulk Stage Change -->
+<!-- Modal: Careers Portal - Apply Now -->
+<div id="applyModal" class="modal">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; border-radius: 8px 8px 0 0;">
+            <h2 style="color: white;">Apply for <span id="apply_job_title">Position</span></h2>
+            <span class="close-btn" onclick="closeModal('applyModal')" style="color: white;">&times;</span>
+        </div>
+        <form id="applyForm" onsubmit="submitApplication(event)" style="padding: 20px;">
+            <input type="hidden" id="apply_req_id">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="apply_firstname" required placeholder="John">
+                </div>
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="apply_lastname" required placeholder="Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email Address *</label>
+                    <input type="email" id="apply_email" required placeholder="john.doe@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="text" id="apply_phone" required placeholder="123-456-7890">
+                </div>
+                <div class="form-group full-width">
+                    <label>Years of Experience</label>
+                    <input type="number" id="apply_exp" min="0" max="40" placeholder="e.g. 5">
+                </div>
+                <div class="form-group full-width">
+                    <label>Paste Resume / Cover Letter</label>
+                    <textarea id="apply_resume" rows="5" placeholder="Paste your resume text or a short cover letter here..."></textarea>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('applyModal')">Cancel</button>
+                <button type="submit" class="btn">🚀 Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="bulkStageModal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
         <div class="modal-header">
@@ -1689,6 +1733,20 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 <!-- Candidates View -->
 <!-- Visual Pipeline (Kanban) View -->
 <!-- Global Audit Log View -->
+<!-- Careers Portal View -->
+<div id="careersPortal" class="view" style="padding-top: 10px;">
+    <div style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin-bottom: 30px;">
+        <h2 style="margin: 0 0 10px; font-size: 2rem;">🌐 We're Hiring!</h2>
+        <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">Explore open positions and apply directly. We'll be in touch shortly.</p>
+    </div>
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="careerSearch" placeholder="🔍 Search by title, location or type..." onkeyup="renderCareersPortal()" style="padding: 10px 15px; border: 1px solid var(--border); border-radius: 8px; width: 350px; font-size: 0.95rem;">
+    </div>
+    <div id="careers-job-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
 <div id="auditlog" class="view" style="padding-top: 10px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h3 style="margin:0;">📜 Global Audit Log</h3>
@@ -3356,6 +3414,104 @@ function updateAllViews() {
     calculateReportsTAT();
     renderKanban();
     renderAuditLog();
+    renderCareersPortal();
+}
+
+// ============================================
+// CAREERS PORTAL
+// ============================================
+function renderCareersPortal() {
+    const grid = document.getElementById('careers-job-grid');
+    if (!grid) return;
+
+    const search = (document.getElementById('careerSearch')?.value || '').toLowerCase();
+
+    const openReqs = requirements.filter(r => {
+        const isOpen = r.status === 'Active' || r.status === 'New';
+        const matchesSearch = !search ||
+            r.title.toLowerCase().includes(search) ||
+            r.location.toLowerCase().includes(search) ||
+            r.type.toLowerCase().includes(search);
+        return isOpen && matchesSearch;
+    });
+
+    if (openReqs.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-light);"><div style="font-size:3rem;">🔍</div><p>No open positions match your search. Check back soon!</p></div>';
+        return;
+    }
+
+    const typeColors = { 'Contract': 'var(--info)', 'Full-Time': 'var(--success)', 'FTE': 'var(--success)', 'Part-Time': 'var(--warning)' };
+
+    grid.innerHTML = openReqs.map(req => {
+        const color = typeColors[req.type] || 'var(--primary)';
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        return `
+        <div style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin:0 0 5px; color:var(--primary); font-size:1.1rem;">${req.title}</h3>
+                    <div style="font-size:0.85rem; color:var(--text-light);">${req.client}</div>
+                </div>
+                <span style="background:${color}20; color:${color}; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap;">${req.type}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-dark);">
+                <div>📍 ${req.location}</div>
+                <div>💰 ${req.budget ? '₹' + req.budget + ' LPA' : 'Competitive'}</div>
+                <div>🗓️ Posted ${age} day${age !== 1 ? 's' : ''} ago</div>
+                ${req.skills ? '<div>🛠️ ' + req.skills + '</div>' : ''}
+            </div>
+            <button class="btn" style="width:100%;" onclick="openApplyModal('${req.id}', '${req.title.replace(/'/g, '')}')">🚀 Apply Now</button>
+        </div>`;
+    }).join('');
+}
+
+function openApplyModal(reqId, title) {
+    document.getElementById('apply_req_id').value = reqId;
+    document.getElementById('apply_job_title').textContent = title;
+    document.getElementById('applyForm').reset();
+    document.getElementById('apply_req_id').value = reqId;
+    openModal('applyModal');
+}
+
+function submitApplication(e) {
+    e.preventDefault();
+    const reqId = document.getElementById('apply_req_id').value;
+    const firstName = document.getElementById('apply_firstname').value.trim();
+    const lastName = document.getElementById('apply_lastname').value.trim();
+    const email = document.getElementById('apply_email').value.trim();
+    const phone = document.getElementById('apply_phone').value.trim();
+    const exp = document.getElementById('apply_exp').value || '0';
+    const resumeText = document.getElementById('apply_resume').value.trim();
+
+    // Generate candidate ID
+    const newId = 'CAN-' + String(candidates.length + 1).padStart(4, '0');
+
+    const newCandidate = {
+        id: newId,
+        name: firstName + ' ' + lastName,
+        email: email,
+        phone: phone,
+        reqId: reqId,
+        stage: 'Sourced',
+        source: 'Careers Portal',
+        experience: parseInt(exp),
+        country: 'US',
+        lastUpdated: new Date().toLocaleDateString(),
+        history: [{ date: new Date().toLocaleDateString(), stage: 'Sourced', comment: 'Applied via Careers Portal' }],
+        notes: resumeText ? 'Resume/Cover Letter:\n' + resumeText : ''
+    };
+
+    candidates.push(newCandidate);
+    saveData();
+    updateAllViews();
+    closeModal('applyModal');
+
+    // Show success toast
+    const toast = document.getElementById('undoToast');
+    const msg = document.getElementById('undoMessage');
+    msg.textContent = 'Application submitted successfully! ' + firstName + ' has been added to the pipeline.';
+    toast.style.display = 'flex';
+    setTimeout(() => toast.style.display = 'none', 4000);
 }
 
 function renderAuditLog() {
