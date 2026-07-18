@@ -4,30 +4,64 @@ const STORE_KEYS = {
     candidates: 'recruitmentTracker_candidates_v1',
     worklogs: 'recruitmentTracker_worklogs_v1',
     settings: 'recruitmentTracker_settings_v1',
-    role: 'recruitmentTracker_role_v1'
+    role: 'recruitmentTracker_role_v1',
+    reminders: 'recruitmentTracker_reminders_v1'
 };
 
 // Initialize State
 let requirements = JSON.parse(localStorage.getItem(STORE_KEYS.reqs)) || [];
 let candidates = JSON.parse(localStorage.getItem(STORE_KEYS.candidates)) || [];
 let worklogs = JSON.parse(localStorage.getItem(STORE_KEYS.worklogs)) || [];
+let reminders = JSON.parse(localStorage.getItem(STORE_KEYS.reminders)) || [];
 let appSettings = JSON.parse(localStorage.getItem(STORE_KEYS.settings)) || { inactivity: 3, sla: 7, minMargin: 15 };
 let currentRole = localStorage.getItem(STORE_KEYS.role) || "Management";
 let editingReqId = null;
 let currentCandidateTab = "All";
 let editingCandidateId = null;
 
+// Theme Engine
+let isDarkMode = localStorage.getItem('theme') === 'dark';
+function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.body.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    document.getElementById('themeToggleBtn').innerText = isDarkMode ? '☀️' : '🌙';
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+}
+function initTheme() {
+    if (isDarkMode) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('themeToggleBtn').innerText = '☀️';
+    }
+}
+initTheme();
+
 // Aging filter state variables
 let reqAgeFilterMin = null;
 let reqAgeFilterMax = null;
 
-// Save to LocalStorage
-function saveData() {
+// Save to LocalStorage & Backend API
+async function saveData() {
+    localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
     localStorage.setItem(STORE_KEYS.reqs, JSON.stringify(requirements));
     localStorage.setItem(STORE_KEYS.candidates, JSON.stringify(candidates));
     localStorage.setItem(STORE_KEYS.worklogs, JSON.stringify(worklogs));
-    localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
-    localStorage.setItem(STORE_KEYS.role, currentRole);
+    localStorage.setItem(STORE_KEYS.reminders, JSON.stringify(reminders));
+    
+    showLoading();
+    try {
+        const token = localStorage.getItem('token');
+        await fetch('http://localhost:3000/api/sync', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ requisitions: requirements, candidates, worklogs, reminders })
+        });
+    } catch (e) {
+        console.error('Failed to sync with API', e);
+    }
+    hideLoading();
     updateAllViews();
 }
 
@@ -62,7 +96,8 @@ function switchView(viewId) {
         'offers': 'Offers & Onboarding Tracker',
         'performance': 'Recruiter Activity & Performance',
         'clientview': 'Client Accounts View',
-        'reports': 'Reports & Analytics',
+        'reports': '📊 Analytics Hub',
+        'emailtemplates': '📧 Email Templates',
         'datamanagement': 'Data Storage Control',
         'settings': 'System Configurations'
     };
@@ -136,6 +171,7 @@ function toggleStageFields() {
     const stage = document.getElementById('s_newStage').value;
     document.querySelectorAll('.stage-submit').forEach(el => el.style.display = stage === 'Submitted to Client' ? 'block' : 'none');
     document.querySelectorAll('.stage-interview').forEach(el => el.style.display = stage === 'Interview Scheduled' ? 'block' : 'none');
+    document.querySelectorAll('.stage-scorecard').forEach(el => el.style.display = stage === 'Interview Completed' ? 'block' : 'none');
     document.querySelectorAll('.stage-offer').forEach(el => el.style.display = stage === 'Offer Released' ? 'block' : 'none');
     document.querySelectorAll('.stage-joined').forEach(el => el.style.display = stage === 'Joined' ? 'block' : 'none');
     document.querySelectorAll('.stage-reject').forEach(el => el.style.display = stage === 'Rejected' ? 'block' : 'none');
@@ -409,6 +445,10 @@ function openReqDetailsModal(reqId) {
         `;
         
         document.getElementById('req-details-content').innerHTML = `
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px; gap: 10px;">
+                <button class="btn btn-sm btn-outline" onclick="setReminder('${r.id}', 'Req')">⏰ Set Reminder</button>
+                <button class="btn btn-sm btn-outline" onclick="cloneReq('${r.id}')">📋 Clone Requirement</button>
+            </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
                 <div>
                     <p><strong>Requirement ID:</strong> ${r.id}</p>
@@ -446,42 +486,122 @@ function openCandidateDetailsModal(canId) {
     const can = candidates.find(c => c.id === canId);
     if(can) {
         document.getElementById('candidate-details-content').innerHTML = `
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-                <div>
-                    <p><strong>Candidate ID:</strong> ${can.id}</p>
-                    <p><strong>Full Name:</strong> ${can.name}</p>
-                    <p><strong>Email Address:</strong> ${can.email}</p>
-                    <p><strong>Phone Contact:</strong> ${can.phone}</p>
+            <div style="display: flex; width: 100%; height: 100%;">
+                <!-- Left Panel: Built-in Resume Viewer -->
+                <div style="flex: 7; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-light);">
+                    ${can.resumeUrl ? `<iframe src="http://localhost:3000${can.resumeUrl}" style="width:100%; height:100%; border:none;"></iframe>` : `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-light); flex-direction:column; gap:15px;"><div style="font-size:4rem; opacity:0.5;">📄</div><div style="font-size: 1.1rem;">No Resume Uploaded</div></div>`}
                 </div>
-                <div>
-                    <p><strong>Target Country:</strong> <span class="badge active">${can.country || 'US'}</span></p>
-                    <p><strong>Current Pipeline Stage:</strong> <span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></p>
-                    <p><strong>Visa / Work Auth:</strong> ${can.visa || 'N/A'}</p>
-                    <p><strong>Notice Period:</strong> ${can.notice || 'Immediate'}</p>
-                </div>
-            </div>
-            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
-                <p><strong>Submitted to Requisition:</strong> <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="closeModal('candidateDetailsModal'); openReqDetailsModal('${can.reqId}')">${can.reqId} ➔</span></p>
-                <p><strong>Candidate Source:</strong> ${can.source || 'Referral'}</p>
-                <p><strong>Profile Last Updated:</strong> ${can.lastUpdated}</p>
-            </div>
-            <div style="border-top:1.5px solid var(--border); padding-top:15px;">
-                <h4 style="margin-bottom:8px; color:var(--primary);">Transition & Audit Journey</h4>
-                <div class="timeline" style="max-height: 250px; overflow-y: auto;">
-                    ${(can.history || []).map(h => `
-                        <div class="timeline-event" style="margin-bottom:12px;">
-                            <div class="timeline-marker" style="width:12px; height:12px; left:15px;"></div>
-                            <div class="timeline-content" style="padding:8px;">
-                                <div class="timeline-title" style="font-size:0.8rem;">${h.stage}</div>
-                                <div style="font-size:0.7rem; color:var(--text-light);">${h.date}</div>
-                                <div style="font-size:0.75rem; color:var(--text-dark);">${h.comment}</div>
+                
+                <!-- Right Panel: Action & Details Hub -->
+                <div style="flex: 3; min-width: 400px; max-width: 550px; overflow-y: auto; padding: 25px; background: white; font-size: 0.9rem; line-height: 1.6;">
+                    
+                    <div style="display:flex; justify-content:flex-end; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-sm" onclick="matchCandidate('${can.id}')" style="background:var(--primary); color:white; border:none;">🔍 AI Match</button>
+                        <button class="btn btn-sm" onclick="draftEmail('${can.id}')" style="background:var(--info); color:white; border:none;">📧 Draft Email</button>
+                        <button class="btn btn-sm" onclick="openReminderModal('${can.id}')" style="background:var(--warning); color:#000; border:none;">⏰ Set Follow-up</button>
+                        ${['Interview Scheduled', 'Interview Completed'].includes(can.stage) ? `<button class="btn btn-sm" onclick="generateICS('${can.id}')" style="background:var(--purple); color:white; border:none;">📅 Add to Calendar</button>` : ''}
+                        ${['Offer Released', 'Joined'].includes(can.stage) ? `<button class="btn btn-sm" onclick="openOfferConfig('${can.id}')" style="background:var(--success); color:white; border:none;">📜 Generate Offer</button>` : ''}
+                    </div>
+                    <div id="ai-match-results-${can.id}" style="display:none; margin-bottom: 20px;"></div>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                        <div>
+                            <p><strong>Candidate ID:</strong> ${can.id}</p>
+                            <p><strong>Full Name:</strong> ${can.name}</p>
+                            <p><strong>Email Address:</strong> ${can.email}</p>
+                            <p><strong>Phone Contact:</strong> ${can.phone}</p>
+                        </div>
+                        <div>
+                            <p><strong>Target Country:</strong> <span class="badge active">${can.country || 'US'}</span></p>
+                            <p><strong>Current Pipeline Stage:</strong> <span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></p>
+                            <p><strong>Visa / Work Auth:</strong> ${can.visa || 'N/A'}</p>
+                            <p><strong>Notice Period:</strong> ${can.notice || 'Immediate'}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+                        <p><strong>Submitted to Requisition:</strong> <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="closeModal('candidateDetailsModal'); openReqDetailsModal('${can.reqId}')">${can.reqId} ➔</span></p>
+                        <p><strong>Candidate Source:</strong> ${can.source || 'Referral'}</p>
+                        <p><strong>Profile Last Updated:</strong> ${can.lastUpdated}</p>
+                    </div>
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Transition & Audit Journey</h4>
+                        <div class="timeline" style="max-height: 250px; overflow-y: auto;">
+                            ${(can.history || []).map(h => `
+                                <div class="timeline-event" style="margin-bottom:12px;">
+                                    <div class="timeline-marker" style="width:12px; height:12px; left:15px;"></div>
+                                    <div class="timeline-content" style="padding:8px;">
+                                        <div class="timeline-title" style="font-size:0.8rem;">${h.stage}</div>
+                                        <div style="font-size:0.7rem; color:var(--text-light);">${h.date}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-dark);">${h.comment}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    ${(can.scoreTech || can.scoreComm || can.scoreCult) ? `
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Interview Scorecard</h4>
+                        <div style="display:flex; gap: 30px;">
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Technical Skills</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreTech || 0)}${'☆'.repeat(5 - (can.scoreTech || 0))}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Communication</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreComm || 0)}${'☆'.repeat(5 - (can.scoreComm || 0))}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Cultural Fit</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreCult || 0)}${'☆'.repeat(5 - (can.scoreCult || 0))}</div>
                             </div>
                         </div>
-                    `).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Comments & Notes</h4>
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <textarea id="new-comment-${can.id}" rows="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid var(--border);" placeholder="Add a timestamped note..."></textarea>
+                            <button class="btn btn-sm" style="align-self:flex-end;" onclick="addCandidateComment('${can.id}')">Add Comment</button>
+                        </div>
+                        <div class="comments-list" style="margin-top:15px; max-height:200px; overflow-y:auto; font-size:0.85rem;">
+                            ${(can.comments || []).slice().reverse().map(c => `
+                                <div style="background:var(--bg-light); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                        <strong style="color:var(--primary);">${c.user || 'User'}</strong>
+                                        <span style="color:var(--text-light); font-size:0.75rem;">${c.timestamp}</span>
+                                    </div>
+                                    <div>${c.text}</div>
+                                </div>
+                            `).join('') || '<div style="color:var(--text-light); font-style:italic;">No comments yet.</div>'}
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         `;
         openModal('candidateDetailsModal');
+    }
+}
+
+function addCandidateComment(canId) {
+    const textInput = document.getElementById(`new-comment-${canId}`);
+    const text = textInput.value.trim();
+    if (!text) return;
+
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        if (!can.comments) can.comments = [];
+        can.comments.push({
+            timestamp: new Date().toLocaleString(),
+            user: currentRole,
+            text: text
+        });
+        saveData();
+        openCandidateDetailsModal(canId); // Refresh modal
     }
 }
 
@@ -611,12 +731,83 @@ function openCandidateModal() {
     const reqSelect = document.getElementById('c_reqId');
     reqSelect.innerHTML = '<option value="">Select Requirement...</option>' + 
         requirements.map(r => `<option value="${r.id}">${r.id} - ${r.title} (${r.client})</option>`).join('');
+    initSkillTagInput();
     openModal('candidateModal');
 }
 
-function handleCandidateSubmit(e) {
+function autoFillCandidate() {
+    const text = document.getElementById('c_quick_import').value;
+    if(!text) return;
+    
+    // Extract Email
+    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if(emailMatch) {
+        document.getElementById('c_email').value = emailMatch[0];
+    }
+    
+    // Extract Phone (handles formats like 123-456-7890, (123) 456-7890, +1 123 456 7890)
+    const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+    if(phoneMatch) {
+        document.getElementById('c_phone').value = phoneMatch[0];
+    }
+    
+    // Try to guess Name from first line if it looks like a name (not an email or phone)
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if(lines.length > 0) {
+        const potentialName = lines[0];
+        if(!potentialName.match(/@/) && !potentialName.match(/\d{3}/)) {
+            const parts = potentialName.split(' ');
+            if(parts.length >= 2) {
+                document.getElementById('c_firstname').value = parts[0];
+                document.getElementById('c_lastname').value = parts.slice(1).join(' ');
+            } else {
+                document.getElementById('c_firstname').value = potentialName;
+            }
+        }
+    }
+    
+    // Flash green to indicate success
+    const box = document.getElementById('c_quick_import');
+    box.style.borderColor = 'var(--success)';
+    setTimeout(() => box.style.borderColor = 'var(--border)', 1000);
+}
+
+function handleResumeUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        document.getElementById('c_quick_import').value = text;
+        autoFillCandidate();
+        createAlert('Resume parsed successfully!', 'success');
+    };
+    reader.readAsText(file);
+}
+
+async function handleCandidateSubmit(e) {
     e.preventDefault();
     const country = document.getElementById('c_country').value;
+    
+    let resumeUrl = null;
+    const fileInput = document.getElementById('c_resume');
+    if (fileInput && fileInput.files.length > 0) {
+        showLoading();
+        const formData = new FormData();
+        formData.append('resume', fileInput.files[0]);
+        try {
+            const res = await fetch('http://localhost:3000/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.url) resumeUrl = data.url;
+        } catch (err) {
+            console.error('File upload failed', err);
+        }
+        hideLoading();
+    }
     
     const canData = {
         name: `${document.getElementById('c_firstname').value} ${document.getElementById('c_lastname').value}`,
@@ -627,8 +818,11 @@ function handleCandidateSubmit(e) {
         visa: document.getElementById('c_visa').value,
         notice: document.getElementById('c_notice').value,
         country: country,
+        skills: document.getElementById('c_skills').value,
         lastUpdated: new Date().toISOString().split('T')[0]
     };
+    
+    if (resumeUrl) canData.resumeUrl = resumeUrl;
 
     if (editingCandidateId) {
         const can = candidates.find(c => c.id === editingCandidateId);
@@ -679,10 +873,35 @@ function editCandidate(canId) {
     }
 }
 
+let lastDeletedCandidate = null;
+let undoTimeout = null;
+
 function deleteCandidate(canId) {
-    if(confirm(`Are you absolutely sure you want to delete candidate ${canId}? This is permanent.`)) {
+    if(confirm(`Are you absolutely sure you want to delete candidate ${canId}?`)) {
+        lastDeletedCandidate = candidates.find(c => c.id === canId);
         candidates = candidates.filter(c => c.id !== canId);
         saveData();
+        
+        // Show Undo Toast
+        const toast = document.getElementById('undoToast');
+        document.getElementById('undoMessage').innerText = `${lastDeletedCandidate.name} deleted.`;
+        toast.style.display = 'flex';
+        
+        document.getElementById('undoBtn').onclick = () => {
+            if (lastDeletedCandidate) {
+                candidates.push(lastDeletedCandidate);
+                saveData();
+                toast.style.display = 'none';
+                clearTimeout(undoTimeout);
+                lastDeletedCandidate = null;
+            }
+        };
+
+        if (undoTimeout) clearTimeout(undoTimeout);
+        undoTimeout = setTimeout(() => {
+            toast.style.display = 'none';
+            lastDeletedCandidate = null;
+        }, 8000); // 8 seconds to undo
     }
 }
 
@@ -746,6 +965,14 @@ function handleStageUpdate(e) {
             can.interviewTimezone = document.getElementById('s_timezone').value;
             can.interviewMode = document.getElementById('s_interviewMode').value;
             extraComment = `Round: ${can.interviewRound} on ${new Date(can.interviewDate).toLocaleString()} ${can.interviewTimezone}`;
+            
+            // Auto-generate Calendar Invite
+            downloadICS(can, can.interviewDate, can.interviewTimezone, can.interviewRound, can.interviewMode);
+        } else if (newStage === 'Interview Completed') {
+            can.scoreTech = parseInt(document.getElementById('s_scoreTech').value);
+            can.scoreComm = parseInt(document.getElementById('s_scoreComm').value);
+            can.scoreCult = parseInt(document.getElementById('s_scoreCult').value);
+            extraComment = `Scorecard: Tech (${can.scoreTech}/5), Comm (${can.scoreComm}/5), Cult (${can.scoreCult}/5)`;
         } else if (newStage === 'Offer Released') {
             can.offerDate = document.getElementById('s_offerDate').value;
             can.offeredComp = document.getElementById('s_offeredComp').value;
@@ -779,6 +1006,38 @@ function handleStageUpdate(e) {
     saveData();
     closeModal('stageModal');
     e.target.reset();
+}
+
+function downloadICS(can, dateString, timezone, round, mode) {
+    if(!dateString) return;
+    
+    const startDate = new Date(dateString);
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+    
+    const formatDate = (date) => {
+        return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+    
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Recruitment Tracker//EN',
+        'BEGIN:VEVENT',
+        `DTSTART:${formatDate(startDate)}`,
+        `DTEND:${formatDate(endDate)}`,
+        `SUMMARY:Interview with ${can.name} - ${round}`,
+        `DESCRIPTION:Candidate: ${can.name}\\nRole: ${can.reqId}\\nMode: ${mode}\\nTimezone: ${timezone}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\\r\\n');
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Interview_${can.name.replace(/\\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Work Log Handlers
@@ -830,18 +1089,30 @@ function changeRole(role) {
 function applyRolePermissions() {
     document.querySelectorAll('.nav-item').forEach(nav => {
         const allowedRoles = nav.getAttribute('data-role-visible').split(',');
-        nav.style.display = allowedRoles.includes(currentRole) ? 'flex' : 'none';
+        nav.style.display = (currentRole === 'Admin' || allowedRoles.includes(currentRole)) ? 'flex' : 'none';
     });
 
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav && activeNav.style.display === 'none') {
-        const dbNav = document.querySelector('.nav-item[onclick*="dashboard"]');
-        if (dbNav) dbNav.click();
+        if (currentRole === 'Client') {
+            const clientNav = document.querySelector('.nav-item[onclick*="clientportal"]');
+            if (clientNav) clientNav.click();
+        } else if (currentRole === 'Hiring Manager') {
+            const hmNav = document.querySelector('.nav-item[onclick*="hiringmanager"]');
+            if (hmNav) hmNav.click();
+        } else if (currentRole === 'Agency Vendor') {
+            const agNav = document.querySelector('.nav-item[onclick*="agencyportal"]');
+            if (agNav) agNav.click();
+        } else {
+            const dbNav = document.querySelector('.nav-item[onclick*="dashboard"]');
+            if (dbNav) dbNav.click();
+        }
     }
 
     document.querySelectorAll('[data-role-hide]').forEach(el => {
         const hiddenRoles = el.getAttribute('data-role-hide').split(',');
-        el.style.display = hiddenRoles.includes(currentRole) ? 'none' : 'block';
+        el.style.display = (currentRole === 'Admin' || !hiddenRoles.includes(currentRole)) ? 'block' : 'none';
+        if (currentRole === 'Admin') el.style.display = 'block'; // Admin overrides hide
     });
 }
 
@@ -854,10 +1125,247 @@ function updateAllViews() {
     renderCandidates();
     renderInterviews();
     renderOffers();
+    renderOnboardingHub();
     renderPerformance();
     renderClients();
+    renderClientPortal();
+    renderHiringManagerPortal();
+    renderAgencyPortal();
+    renderTalentPool();
     updateDashboard();
     calculateReportsTAT();
+    renderKanban();
+    renderAuditLog();
+    renderCareersPortal();
+    renderAnalytics();
+    renderEmailTemplates();
+}
+
+// ============================================
+// CAREERS PORTAL
+// ============================================
+function renderCareersPortal() {
+    const grid = document.getElementById('careers-job-grid');
+    if (!grid) return;
+
+    const search = (document.getElementById('careerSearch')?.value || '').toLowerCase();
+
+    const openReqs = requirements.filter(r => {
+        const isOpen = r.status === 'Active' || r.status === 'New';
+        const matchesSearch = !search ||
+            r.title.toLowerCase().includes(search) ||
+            r.location.toLowerCase().includes(search) ||
+            r.type.toLowerCase().includes(search);
+        return isOpen && matchesSearch;
+    });
+
+    if (openReqs.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-light);"><div style="font-size:3rem;">🔍</div><p>No open positions match your search. Check back soon!</p></div>';
+        return;
+    }
+
+    const typeColors = { 'Contract': 'var(--info)', 'Full-Time': 'var(--success)', 'FTE': 'var(--success)', 'Part-Time': 'var(--warning)' };
+
+    grid.innerHTML = openReqs.map(req => {
+        const color = typeColors[req.type] || 'var(--primary)';
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        return `
+        <div style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin:0 0 5px; color:var(--primary); font-size:1.1rem;">${req.title}</h3>
+                    <div style="font-size:0.85rem; color:var(--text-light);">${req.client}</div>
+                </div>
+                <span style="background:${color}20; color:${color}; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap;">${req.type}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-dark);">
+                <div>📍 ${req.location}</div>
+                <div>💰 ${req.budget ? '₹' + req.budget + ' LPA' : 'Competitive'}</div>
+                <div>🗓️ Posted ${age} day${age !== 1 ? 's' : ''} ago</div>
+                ${req.skills ? '<div>🛠️ ' + req.skills + '</div>' : ''}
+            </div>
+            <button class="btn" style="width:100%;" onclick="openApplyModal('${req.id}', '${req.title.replace(/'/g, '')}')">🚀 Apply Now</button>
+        </div>`;
+    }).join('');
+}
+
+function openApplyModal(reqId, title) {
+    document.getElementById('apply_req_id').value = reqId;
+    document.getElementById('apply_job_title').textContent = title;
+    document.getElementById('applyForm').reset();
+    document.getElementById('apply_req_id').value = reqId;
+    openModal('applyModal');
+}
+
+function submitApplication(e) {
+    e.preventDefault();
+    const reqId = document.getElementById('apply_req_id').value;
+    const firstName = document.getElementById('apply_firstname').value.trim();
+    const lastName = document.getElementById('apply_lastname').value.trim();
+    const email = document.getElementById('apply_email').value.trim();
+    const phone = document.getElementById('apply_phone').value.trim();
+    const exp = document.getElementById('apply_exp').value || '0';
+    const resumeText = document.getElementById('apply_resume').value.trim();
+
+    // Generate candidate ID
+    const newId = 'CAN-' + String(candidates.length + 1).padStart(4, '0');
+
+    const newCandidate = {
+        id: newId,
+        name: firstName + ' ' + lastName,
+        email: email,
+        phone: phone,
+        reqId: reqId,
+        stage: 'Sourced',
+        source: 'Careers Portal',
+        experience: parseInt(exp),
+        country: 'US',
+        lastUpdated: new Date().toLocaleDateString(),
+        history: [{ date: new Date().toLocaleDateString(), stage: 'Sourced', comment: 'Applied via Careers Portal' }],
+        notes: resumeText ? 'Resume/Cover Letter:\n' + resumeText : ''
+    };
+
+    candidates.push(newCandidate);
+    saveData();
+    updateAllViews();
+    closeModal('applyModal');
+
+    // Show success toast
+    const toast = document.getElementById('undoToast');
+    const msg = document.getElementById('undoMessage');
+    msg.textContent = 'Application submitted successfully! ' + firstName + ' has been added to the pipeline.';
+    toast.style.display = 'flex';
+    setTimeout(() => toast.style.display = 'none', 4000);
+}
+
+function renderAuditLog() {
+    const tl = document.getElementById('auditlog-timeline');
+    if (!tl) return;
+    
+    // 1. Aggregate all candidate history
+    let allHistory = [];
+    candidates.forEach(can => {
+        if (can.history && Array.isArray(can.history)) {
+            can.history.forEach(entry => {
+                allHistory.push({
+                    ...entry,
+                    canId: can.id,
+                    canName: can.name,
+                    reqId: can.reqId,
+                    // Convert YYYY-MM-DD or MM/DD/YYYY to Date object for sorting
+                    timestamp: new Date(entry.date).getTime() || 0
+                });
+            });
+        }
+    });
+    
+    // 2. Sort chronologically (newest first)
+    allHistory.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // 3. Render
+    if (allHistory.length === 0) {
+        tl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding:20px;">No system activity found yet.</div>';
+        return;
+    }
+    
+    let html = '';
+    allHistory.forEach(entry => {
+        let icon = '📝';
+        if (entry.stage === 'Joined') icon = '🎉';
+        else if (entry.stage === 'Rejected') icon = '❌';
+        else if (entry.stage.includes('Interview')) icon = '📅';
+        else if (entry.stage === 'Offer Released') icon = '📜';
+        
+        html += `
+            <div style="display:flex; gap:15px; padding-bottom:20px; border-bottom:1px solid var(--border); align-items:flex-start;">
+                <div style="font-size:1.5rem; background:var(--bg-light); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">${icon}</div>
+                <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="color:var(--text-dark);">${entry.canName} <span style="color:var(--text-light); font-weight:normal;">(${entry.canId})</span></strong>
+                        <span style="font-size:0.8rem; color:var(--text-light);">${entry.date}</span>
+                    </div>
+                    <div style="margin-bottom:5px; font-size:0.95rem;">
+                        Changed stage to <span class="badge ${getBadgeClass(entry.stage)}">${entry.stage}</span> for Req <strong>${entry.reqId}</strong>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-light); font-style:italic;">"${entry.comment}"</div>
+                </div>
+                <button class="btn btn-sm btn-outline" style="align-self:center;" onclick="openCandidateDetails('${entry.canId}')">View Profile</button>
+            </div>
+        `;
+    });
+    
+    tl.innerHTML = html;
+}
+
+function renderKanban() {
+    const board = document.getElementById('kanban-board-container');
+    if (!board) return;
+    
+    const stages = ['Sourced', 'Screened', 'Submitted', 'Interview Scheduled', 'Offer Released', 'Joined'];
+    let html = '';
+    
+    stages.forEach(stage => {
+        const stageCandidates = candidates.filter(c => c.stage === stage);
+        html += `
+            <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, '${stage}')" ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')">
+                <div class="kanban-column-header">
+                    ${stage} <span style="background:var(--primary); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem;">${stageCandidates.length}</span>
+                </div>
+                <div class="kanban-column-body">
+                    ${stageCandidates.map(can => {
+                        const req = requirements.find(r => r.id === can.reqId);
+                        const reqTitle = req ? req.title : can.reqId;
+                        return `
+                            <div class="kanban-card" draggable="true" ondragstart="dragStart(event, '${can.id}')">
+                                <div style="font-weight:600; margin-bottom:5px;">${can.name}</div>
+                                <div style="font-size:0.85rem; color:var(--text-light); margin-bottom:10px;">${reqTitle}</div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:0.75rem; color:var(--text-light);">${can.lastUpdated}</span>
+                                    <div>
+                                        <button class="btn btn-sm" style="padding:2px 5px;" onclick="openCandidateDetails('${can.id}')">👁️</button>
+                                        <button class="btn btn-sm btn-outline" style="padding:2px 5px;" onclick="draftEmail('${can.id}')">📧</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    board.innerHTML = html;
+}
+
+function dragStart(e, canId) {
+    e.dataTransfer.setData('canId', canId);
+}
+
+function allowDrop(e) {
+    e.preventDefault();
+}
+
+function drop(e, stage) {
+    e.preventDefault();
+    const column = e.target.closest('.kanban-column');
+    if (column) column.classList.remove('drag-over');
+    
+    const canId = e.dataTransfer.getData('canId');
+    const can = candidates.find(c => c.id === canId);
+    
+    if (can && can.stage !== stage) {
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: stage,
+            date: new Date().toISOString().split('T')[0],
+            comment: `Moved to ${stage} via Kanban Board`
+        });
+        can.stage = stage;
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        saveData();
+        updateAllViews();
+    }
     
     // Update nav badges
     document.getElementById('nav-req-count').innerText = requirements.length;
@@ -865,6 +1373,7 @@ function updateAllViews() {
     document.getElementById('nav-in-count').innerText = requirements.filter(r => r.country === 'IN').length;
     document.getElementById('nav-can-count').innerText = candidates.length;
     document.getElementById('nav-int-count').innerText = candidates.filter(c => c.stage.includes('Interview')).length;
+    document.getElementById('nav-hm-count').innerText = candidates.filter(c => c.stage === 'Interview Scheduled').length;
     document.getElementById('nav-off-count').innerText = candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').length;
 }
 
@@ -982,7 +1491,7 @@ function renderINRequirements() {
             <td>${req.title}<br><small style="color:var(--text-light)">${req.client}</small></td>
             <td>${req.location}</td>
             <td>${req.type}</td>
-            <td>${req.budget} LPA ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
+            <td>₹ ${req.budget} LPA ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
             <td>
                 <span class="badge ${getBadgeClass(req.status)}">${req.status}</span>
                 ${getReqInactivityDays(req.id, req.dateOpened) > appSettings.inactivity && ['Active', 'New'].includes(req.status) ? '<span class="badge" style="background:var(--warning-light); color:var(--warning); font-size:0.65rem; padding:2px 6px;">Inactive</span>' : ''}
@@ -1008,6 +1517,7 @@ function renderCandidates() {
         const historyText = can.history ? can.history.map(h => `${h.date}: ${h.stage} (${h.comment})`).join(' | ') : 'No history';
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td style="text-align: center;"><input type="checkbox" class="cand-checkbox" value="${can.id}"></td>
             <td>${can.id}</td>
             <td><strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong><br><small style="color:var(--text-light)">${can.email} | ${can.phone}</small></td>
             <td><strong style="color:var(--primary); cursor:pointer;" onclick="openReqDetailsModal('${can.reqId}')">${can.reqId}</strong> <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span></td>
@@ -1026,24 +1536,291 @@ function renderCandidates() {
         `;
         tbody.appendChild(tr);
     });
+    
+    renderKanban(search, filterStage);
 }
 
-function renderInterviews() {
-    const tbody = document.getElementById('interview-table');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    candidates.filter(c => c.stage.includes('Interview')).forEach(can => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${can.name}</strong></td>
-            <td>${can.reqId}</td>
-            <td>${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'Not Set'} ${can.interviewTimezone || ''}</td>
-            <td>${can.interviewRound || '-'} (${can.interviewMode || '-'})</td>
-            <td><span class="badge interview">${can.stage}</span></td>
-        `;
-        tbody.appendChild(tr);
+function toggleCandidateView(viewType) {
+    document.getElementById('btn-view-list').classList.toggle('btn-outline', viewType !== 'list');
+    document.getElementById('btn-view-kanban').classList.toggle('btn-outline', viewType !== 'kanban');
+    
+    document.getElementById('candidate-list-view').style.display = viewType === 'list' ? 'block' : 'none';
+    document.getElementById('candidate-kanban-view').style.display = viewType === 'kanban' ? 'block' : 'none';
+}
+
+function renderKanban(search, filterStage) {
+    const columns = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined', 'Rejected'];
+    
+    // Clear all dropzones and counts
+    columns.forEach(stage => {
+        const dropzone = document.getElementById(`kb-col-${stage.split(' ')[0]}`); // Mapped to Sourced, Screened, Interview, Offer, Joined, Rejected
+        if(dropzone) dropzone.innerHTML = '';
+        
+        const countBadge = document.getElementById(`kb-count-${stage.split(' ')[0]}`);
+        if(countBadge) countBadge.innerText = '0';
+    });
+    
+    const filteredCans = candidates.filter(can => {
+        const matchesSearch = can.name.toLowerCase().includes(search) || can.email.toLowerCase().includes(search);
+        const matchesStage = filterStage === 'All' || can.stage === filterStage;
+        const matchesCountry = currentCandidateTab === 'All' || (can.country || 'US') === currentCandidateTab;
+        return matchesSearch && matchesStage && matchesCountry;
+    });
+
+    filteredCans.forEach(can => {
+        let colId = can.stage.split(' ')[0]; // Sourced, Screened, Interview, Offer, Joined
+        if(can.stage === 'Lost' || can.stage === 'Rejected') colId = 'Rejected';
+        
+        const dropzone = document.getElementById(`kb-col-${colId}`);
+        if (dropzone) {
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.style = 'background: white; border: 1px solid var(--border); border-radius: 6px; padding: 12px; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
+            card.draggable = true;
+            card.id = `kb-card-${can.id}`;
+            card.ondragstart = (e) => dragstartKanban(e, can.id);
+            
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+                    <strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong>
+                    <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-light); margin-bottom: 8px;">Req: ${can.reqId}</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                    <span style="color:var(--text-light)">${can.lastUpdated}</span>
+                    ${can.skills ? '<span style="color:var(--info);">🤖 AI Parsed</span>' : ''}
+                </div>
+            `;
+            dropzone.appendChild(card);
+            
+            // Update count
+            const countBadge = document.getElementById(`kb-count-${colId}`);
+            if(countBadge) countBadge.innerText = parseInt(countBadge.innerText) + 1;
+        }
     });
 }
+
+function dragstartKanban(e, canId) {
+    e.dataTransfer.setData("text/plain", canId);
+}
+
+function allowDropKanban(e) {
+    e.preventDefault();
+}
+
+function dropKanban(e) {
+    e.preventDefault();
+    const canId = e.dataTransfer.getData("text/plain");
+    const dropzone = e.target.closest('.kanban-dropzone');
+    
+    if (dropzone && canId) {
+        let newStage = '';
+        const zoneId = dropzone.id.replace('kb-col-', ''); // Sourced, Screened, Interview, Offer, Joined, Rejected
+        
+        if(zoneId === 'Interview') newStage = 'Interview Scheduled';
+        else if(zoneId === 'Offer') newStage = 'Offer Released';
+        else if(zoneId === 'Rejected') newStage = 'Rejected';
+        else newStage = zoneId; // Sourced, Screened, Joined
+        
+        const candIndex = candidates.findIndex(c => c.id === canId);
+        if (candIndex !== -1 && candidates[candIndex].stage !== newStage) {
+            candidates[candIndex].stage = newStage;
+            candidates[candIndex].lastUpdated = new Date().toISOString().split('T')[0];
+            
+            if(!candidates[candIndex].history) candidates[candIndex].history = [];
+            candidates[candIndex].history.unshift({
+                stage: newStage,
+                date: new Date().toISOString().split('T')[0],
+                comment: 'Moved via Kanban board'
+            });
+            
+            saveData();
+            updateAllViews();
+        }
+    }
+}
+
+function renderInterviews() { renderInterviewsEnhanced(); }
+
+function renderInterviewsEnhanced() {
+    const tbody = document.getElementById('interview-table');
+    if (!tbody) return;
+
+    // Data sources: scheduled interviews (stored separately) + legacy candidate interview stage data
+    const scheduled = getScheduledInterviews();
+    
+    // KPI Counts
+    const kpiSched = document.getElementById('int-kpi-scheduled');
+    const kpiPend = document.getElementById('int-kpi-pending');
+    const kpiPass = document.getElementById('int-kpi-passed');
+    const kpiFail = document.getElementById('int-kpi-failed');
+    if (kpiSched) kpiSched.textContent = scheduled.filter(i => i.status === 'Scheduled').length;
+    if (kpiPend) kpiPend.textContent = scheduled.filter(i => i.status === 'Feedback Pending').length;
+    if (kpiPass) kpiPass.textContent = scheduled.filter(i => i.status === 'Passed').length;
+    if (kpiFail) kpiFail.textContent = scheduled.filter(i => ['Failed','No Show'].includes(i.status)).length;
+
+    // Filters
+    const statusFilter = (document.getElementById('int-filter-status') || {}).value || 'All';
+    const roundFilter = (document.getElementById('int-filter-round') || {}).value || 'All';
+    const search = ((document.getElementById('int-search') || {}).value || '').toLowerCase();
+
+    let rows = scheduled;
+    if (statusFilter !== 'All') rows = rows.filter(i => i.status === statusFilter);
+    if (roundFilter !== 'All') rows = rows.filter(i => i.round === roundFilter);
+    if (search) rows = rows.filter(i => {
+        const can = candidates.find(c => c.id === i.canId);
+        const req = requirements.find(r => r.id === i.reqId);
+        return (can && can.name.toLowerCase().includes(search)) || (req && req.title.toLowerCase().includes(search));
+    });
+
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-light);">No interviews found. Click "+ Schedule Interview" to add one.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.sort((a, b) => new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time)).map(int => {
+        const can = candidates.find(c => c.id === int.canId);
+        const req = requirements.find(r => r.id === int.reqId);
+        const statusColor = {
+            'Scheduled': 'var(--primary)', 'Feedback Pending': 'var(--warning)',
+            'Passed': 'var(--success)', 'Failed': 'var(--danger)', 'No Show': 'darkred', 'Completed': 'var(--text-light)'
+        }[int.status] || 'var(--text-light)';
+        const isPast = new Date(int.date + 'T' + (int.time || '00:00')) < new Date();
+        return `<tr>
+            <td><strong>${can ? can.name : int.canId}</strong>${isPast && int.status === 'Scheduled' ? ' <span style="color:var(--warning); font-size:0.7rem;">⚠ Overdue</span>' : ''}</td>
+            <td>${req ? req.title : int.reqId}<br><small style="color:var(--text-light);">${req ? req.client : ''}</small></td>
+            <td>${int.date} ${int.time ? int.time.substring(0,5) : ''}</td>
+            <td>${int.round}</td>
+            <td>${int.type}</td>
+            <td>${int.interviewer}</td>
+            <td><span style="font-weight:600; color:${statusColor};">${int.status}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:4px 8px;" onclick="openInterviewFeedbackModal('${int.id}')">📋 Feedback</button>
+                <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:4px 8px; margin-left:4px;" onclick="deleteScheduledInterview('${int.id}')">🗑</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function getScheduledInterviews() {
+    return JSON.parse(localStorage.getItem('scheduledInterviews_v1') || '[]');
+}
+function saveScheduledInterviews(data) {
+    localStorage.setItem('scheduledInterviews_v1', JSON.stringify(data));
+}
+
+function openScheduleInterviewModal() {
+    // Populate dropdowns
+    const canSel = document.getElementById('sint_canId');
+    canSel.innerHTML = '<option value="">-- Select --</option>' + candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const reqSel = document.getElementById('sint_reqId');
+    reqSel.innerHTML = '<option value="">-- Select --</option>' + requirements.map(r => `<option value="${r.id}">${r.title} (${r.client})</option>`).join('');
+    document.getElementById('sint_id').value = '';
+    document.getElementById('sint_conflict_warning').style.display = 'none';
+    openModal('scheduleInterviewModal');
+}
+
+function checkInterviewConflict() {
+    const interviewer = (document.getElementById('sint_interviewer') || {}).value || '';
+    const date = (document.getElementById('sint_date') || {}).value || '';
+    const time = (document.getElementById('sint_time') || {}).value || '';
+    if (!interviewer || !date || !time) return;
+    const scheduled = getScheduledInterviews();
+    const conflict = scheduled.some(i => i.interviewer.toLowerCase() === interviewer.toLowerCase() && i.date === date && i.time === time && i.status === 'Scheduled');
+    document.getElementById('sint_conflict_warning').style.display = conflict ? 'block' : 'none';
+}
+
+function saveScheduledInterview(e) {
+    e.preventDefault();
+    const data = getScheduledInterviews();
+    const id = document.getElementById('sint_id').value || 'INT-' + Date.now();
+    const existIdx = data.findIndex(i => i.id === id);
+    const entry = {
+        id, canId: document.getElementById('sint_canId').value, reqId: document.getElementById('sint_reqId').value,
+        date: document.getElementById('sint_date').value, time: document.getElementById('sint_time').value,
+        round: document.getElementById('sint_round').value, type: document.getElementById('sint_type').value,
+        interviewer: document.getElementById('sint_interviewer').value,
+        duration: document.getElementById('sint_duration').value,
+        notes: document.getElementById('sint_notes').value, status: 'Scheduled',
+        createdAt: new Date().toISOString()
+    };
+    if (existIdx >= 0) data[existIdx] = { ...data[existIdx], ...entry }; else data.push(entry);
+    saveScheduledInterviews(data);
+    // Update candidate stage
+    const can = candidates.find(c => c.id === entry.canId);
+    if (can && !can.stage.includes('Interview')) {
+        can.stage = 'Interview Scheduled'; can.lastUpdated = entry.date;
+        can.history = can.history || [];
+        can.history.unshift({ stage: 'Interview Scheduled', date: entry.date, comment: `${entry.round} ${entry.type} with ${entry.interviewer}` });
+        saveData();
+    }
+    closeModal('scheduleInterviewModal');
+    updateAllViews();
+    createAlert(`Interview scheduled for ${can ? can.name : entry.canId}!`, 'success');
+}
+
+function openInterviewFeedbackModal(intId) {
+    const scheduled = getScheduledInterviews();
+    const int = scheduled.find(i => i.id === intId);
+    if (!int) return;
+    const can = candidates.find(c => c.id === int.canId);
+    const req = requirements.find(r => r.id === int.reqId);
+    document.getElementById('ifb_intId').value = intId;
+    document.getElementById('ifb_title').innerText = `${can ? can.name : ''} — ${int.round} (${req ? req.title : ''})`;
+    document.getElementById('ifb_tech').value = int.feedback?.tech || 3;
+    document.getElementById('ifb_comm').value = int.feedback?.comm || 3;
+    document.getElementById('ifb_culture').value = int.feedback?.culture || 3;
+    document.getElementById('ifb_overall').value = int.feedback?.overall || 3;
+    document.getElementById('ifb_recommendation').value = int.feedback?.recommendation || 'Yes';
+    document.getElementById('ifb_outcome').value = int.feedback?.outcome || 'Passed';
+    document.getElementById('ifb_notes').value = int.feedback?.notes || '';
+    checkAutoAdvance();
+    openModal('interviewFeedbackModal');
+}
+
+function checkAutoAdvance() {
+    const outcome = document.getElementById('ifb_outcome').value;
+    document.getElementById('ifb_autoadvance_msg').style.display = outcome === 'Passed' ? 'block' : 'none';
+}
+
+function saveInterviewFeedback(e) {
+    e.preventDefault();
+    const intId = document.getElementById('ifb_intId').value;
+    const scheduled = getScheduledInterviews();
+    const idx = scheduled.findIndex(i => i.id === intId);
+    if (idx < 0) return;
+    const outcome = document.getElementById('ifb_outcome').value;
+    scheduled[idx].feedback = {
+        tech: +document.getElementById('ifb_tech').value, comm: +document.getElementById('ifb_comm').value,
+        culture: +document.getElementById('ifb_culture').value, overall: +document.getElementById('ifb_overall').value,
+        recommendation: document.getElementById('ifb_recommendation').value,
+        outcome, notes: document.getElementById('ifb_notes').value
+    };
+    scheduled[idx].status = outcome;
+    // Auto-advance candidate stage
+    if (outcome === 'Passed') {
+        const can = candidates.find(c => c.id === scheduled[idx].canId);
+        if (can) {
+            can.stage = 'Offer Released'; can.lastUpdated = new Date().toISOString().split('T')[0];
+            can.history = can.history || [];
+            can.history.unshift({ stage: 'Interview Passed', date: can.lastUpdated, comment: `Recommendation: ${scheduled[idx].feedback.recommendation}` });
+            saveData();
+        }
+    }
+    saveScheduledInterviews(scheduled);
+    closeModal('interviewFeedbackModal');
+    updateAllViews();
+    createAlert('Interview feedback saved!', 'success');
+}
+
+function deleteScheduledInterview(intId) {
+    if (!confirm('Delete this interview?')) return;
+    const data = getScheduledInterviews().filter(i => i.id !== intId);
+    saveScheduledInterviews(data);
+    renderInterviewsEnhanced();
+    createAlert('Interview removed.', 'info');
+}
+
 
 function renderOffers() {
     const tbody = document.getElementById('offers-onboarding-table');
@@ -1099,6 +1876,128 @@ function renderOffers() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Phase 39: Onboarding Hub Logic
+function renderOnboardingHub() {
+    const grid = document.getElementById('onboarding-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Get all Joined candidates
+    const joinedCans = candidates.filter(c => c.stage === 'Joined');
+    
+    document.getElementById('nav-onb-count').innerText = joinedCans.length;
+    
+    if (joinedCans.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-light); background: white; border-radius: 8px; border: 1px solid var(--border);">No candidates are currently in the onboarding phase.</div>';
+        return;
+    }
+    
+    joinedCans.forEach(can => {
+        // Default onboarding state if not present
+        if (!can.onboarding) {
+            can.onboarding = { bg: false, it: false, pay: false, ori: false };
+        }
+        
+        // Calculate progress
+        const tasks = [can.onboarding.bg, can.onboarding.it, can.onboarding.pay, can.onboarding.ori];
+        const completed = tasks.filter(t => t).length;
+        const progressPercent = Math.round((completed / 4) * 100);
+        
+        let progressColor = 'var(--warning)';
+        if (progressPercent === 100) progressColor = 'var(--success)';
+        else if (progressPercent === 0) progressColor = 'var(--danger)';
+        
+        const card = document.createElement('div');
+        card.style = "background: white; border-radius: 8px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative;";
+        
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin-bottom:4px; font-size:1.1rem; color:var(--text-dark);">${can.name}</h3>
+                    <div style="font-size:0.8rem; color:var(--text-light);">${can.reqId} | Start: ${can.expectedJoining || 'TBD'}</div>
+                </div>
+                ${progressPercent === 100 ? `<div style="background:var(--success-light); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold;">Fully Onboarded</div>` : `<button class="btn btn-sm btn-outline" onclick="openOnboardingModal('${can.id}')">Update</button>`}
+            </div>
+            
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; font-size:0.8rem; font-weight:600;">
+                <span>Onboarding Progress</span>
+                <span style="color:${progressColor};">${progressPercent}%</span>
+            </div>
+            <div style="width:100%; height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:15px;">
+                <div style="height:100%; width:${progressPercent}%; background:${progressColor}; transition:width 0.3s ease;"></div>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.bg ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Background Check</span>
+                    <span>${can.onboarding.bg ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.it ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>IT Equipment</span>
+                    <span>${can.onboarding.it ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.pay ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Payroll Forms</span>
+                    <span>${can.onboarding.pay ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.ori ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Orientation</span>
+                    <span>${can.onboarding.ori ? '✅' : '⏳'}</span>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openOnboardingModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('onb_canId').value = can.id;
+    document.getElementById('onb_canName').innerText = can.name;
+    
+    const onb = can.onboarding || { bg: false, it: false, pay: false, ori: false };
+    document.getElementById('onb_bg').checked = onb.bg;
+    document.getElementById('onb_it').checked = onb.it;
+    document.getElementById('onb_pay').checked = onb.pay;
+    document.getElementById('onb_ori').checked = onb.ori;
+    
+    openModal('onboardingModal');
+}
+
+function saveOnboarding(e) {
+    e.preventDefault();
+    const canId = document.getElementById('onb_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        can.onboarding = {
+            bg: document.getElementById('onb_bg').checked,
+            it: document.getElementById('onb_it').checked,
+            pay: document.getElementById('onb_pay').checked,
+            ori: document.getElementById('onb_ori').checked
+        };
+        
+        // Add history log if complete
+        const tasks = [can.onboarding.bg, can.onboarding.it, can.onboarding.pay, can.onboarding.ori];
+        const completed = tasks.filter(t => t).length;
+        if (completed === 4) {
+            can.history = can.history || [];
+            can.history.push({
+                stage: "Onboarding Completed",
+                date: new Date().toLocaleDateString(),
+                comment: "All onboarding tasks have been cleared."
+            });
+            createAlert(`Candidate ${can.name} is now fully onboarded!`, 'success');
+        } else {
+            createAlert(`Onboarding progress updated for ${can.name}.`, 'info');
+        }
+        
+        updateAllViews();
+        closeModal('onboardingModal');
+    }
 }
 
 function renderPerformance() {
@@ -1198,6 +2097,276 @@ function renderPerformance() {
     document.getElementById('kpi-ratio-off-join').innerText = `${offJoinRatio}%`;
 }
 
+function renderClientPortal() {
+    const tbody = document.getElementById('client-portal-table');
+    if (!tbody) return;
+    
+    // The client can only see data for their exact company name (stored in username)
+    const clientName = localStorage.getItem('username');
+    
+    // Filter reqs for this client
+    const clientReqs = requirements.filter(r => r.client === clientName);
+    const reqIds = clientReqs.map(r => r.id);
+    
+    // Filter candidates submitted to those reqs
+    const clientCans = candidates.filter(c => reqIds.includes(c.reqId));
+    
+    document.getElementById('client-kpi-reqs').innerText = clientReqs.filter(r => r.status === 'Active' || r.status === 'New').length;
+    document.getElementById('client-kpi-subs').innerText = clientCans.length;
+    document.getElementById('client-kpi-ints').innerText = clientCans.filter(c => c.stage.includes('Interview')).length;
+    document.getElementById('client-kpi-filled').innerText = clientCans.filter(c => c.stage === 'Joined').length;
+    
+    tbody.innerHTML = '';
+    clientCans.forEach(can => {
+        const req = clientReqs.find(r => r.id === can.reqId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${req ? req.id : can.reqId}</strong><br><small style="color:var(--text-light)">${req ? req.title : ''}</small></td>
+            <td><strong>${can.name}</strong></td>
+            <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></td>
+            <td>${can.lastUpdated}</td>
+            <td>${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderHiringManagerPortal() {
+    const tbody = document.getElementById('hm-portal-table');
+    if (!tbody) return;
+    
+    // In a real app, we'd filter by the HM's name/reqs. Here we show all interviews.
+    const interviewCans = candidates.filter(c => c.stage === 'Interview Scheduled');
+    document.getElementById('hm-pending-count').innerText = interviewCans.length;
+    
+    tbody.innerHTML = '';
+    
+    if(interviewCans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-light);">No pending interviews.</td></tr>';
+        return;
+    }
+    
+    interviewCans.forEach(can => {
+        const req = requirements.find(r => r.id === can.reqId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${can.name}</strong><br><small style="color:var(--text-light);">${can.email}</small></td>
+            <td><strong>${req ? req.id : can.reqId}</strong><br><small style="color:var(--text-light);">${req ? req.title : ''}</small></td>
+            <td>${can.interviewRound || 'Interview'} on ${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'TBD'}<br><small>${can.interviewMode || ''}</small></td>
+            <td>${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+            <td><button class="btn btn-sm" style="background: var(--success); color: white; border: none;" onclick="openHMFeedbackModal('${can.id}')">✏️ Submit Feedback</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openHMFeedbackModal(canId) {
+    document.getElementById('hm_canId').value = canId;
+    openModal('hmFeedbackModal');
+}
+
+function submitHMFeedback(e) {
+    e.preventDefault();
+    const canId = document.getElementById('hm_canId').value;
+    const canIndex = candidates.findIndex(c => c.id === canId);
+    
+    if(canIndex !== -1) {
+        const can = candidates[canIndex];
+        can.scoreTech = parseInt(document.getElementById('hm_scoreTech').value);
+        can.scoreComm = parseInt(document.getElementById('hm_scoreComm').value);
+        can.scoreCult = parseInt(document.getElementById('hm_scoreCult').value);
+        const comments = document.getElementById('hm_comments').value;
+        
+        can.stage = 'Interview Completed';
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        if(!can.history) can.history = [];
+        can.history.unshift({
+            stage: 'Interview Completed',
+            date: new Date().toISOString().split('T')[0],
+            comment: `HM Scorecard: Tech (${can.scoreTech}/5), Comm (${can.scoreComm}/5), Cult (${can.scoreCult}/5). Notes: ${comments}`
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('hmFeedbackModal');
+        e.target.reset();
+        alert('Feedback submitted successfully!');
+    }
+}
+
+// Phase 40: Agency Vendor Portal Logic
+function renderAgencyPortal() {
+    const tbody = document.getElementById('ag-portal-table');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const activeReqs = requirements.filter(r => r.status === 'Active' || r.status === 'New');
+    document.getElementById('ag-portal-count').innerText = activeReqs.length;
+    document.getElementById('nav-ag-count').innerText = activeReqs.length;
+    
+    if (activeReqs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No active requirements available for submittals at this time.</td></tr>';
+        return;
+    }
+    
+    activeReqs.forEach(req => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${req.id}</strong></td>
+            <td><strong style="color:var(--primary);">${req.title}</strong></td>
+            <td>${req.location} (${req.workMode || 'Hybrid'})</td>
+            <td>${req.type}</td>
+            <td>${req.exp || '-'}</td>
+            <td>
+                <button class="btn btn-sm" onclick="openAgencySubmitModal('${req.id}', '${req.title.replace(/'/g, "\\'")}')" style="background:var(--success); color:white; border:none;">🚀 Submit Candidate</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openAgencySubmitModal(reqId, reqTitle) {
+    document.getElementById('ag_reqId').value = reqId;
+    document.getElementById('ag_reqTitle').innerText = reqTitle + ' (' + reqId + ')';
+    document.getElementById('ag_canName').value = '';
+    document.getElementById('ag_canEmail').value = '';
+    document.getElementById('ag_canPhone').value = '';
+    document.getElementById('ag_canVisa').value = 'US Citizen';
+    document.getElementById('ag_canResume').value = '';
+    
+    openModal('agencySubmitModal');
+}
+
+function submitAgencyCandidate(e) {
+    e.preventDefault();
+    
+    const reqId = document.getElementById('ag_reqId').value;
+    const name = document.getElementById('ag_canName').value;
+    const email = document.getElementById('ag_canEmail').value;
+    const phone = document.getElementById('ag_canPhone').value;
+    const visa = document.getElementById('ag_canVisa').value;
+    const vendorName = localStorage.getItem('username') || 'Unknown Agency';
+    
+    // Simulate Resume upload (just attach a fake path for now since it's client side)
+    const fileInput = document.getElementById('ag_canResume');
+    const resumeUrl = fileInput.files.length > 0 ? '/uploads/mock-resume.pdf' : '';
+    
+    const newCan = {
+        id: 'CAN' + Math.floor(Math.random() * 10000),
+        name: name,
+        reqId: reqId,
+        stage: 'Submitted',
+        source: 'Agency: ' + vendorName,
+        email: email,
+        phone: phone,
+        visa: visa,
+        country: 'US',
+        notice: 'Immediate',
+        score: 0,
+        resumeUrl: resumeUrl,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        history: [{
+            stage: 'Submitted',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Candidate submitted by vendor: ${vendorName}`
+        }]
+    };
+    
+    candidates.push(newCan);
+    saveData();
+    updateAllViews();
+    closeModal('agencySubmitModal');
+    
+    alert('Candidate successfully submitted to Req ' + reqId);
+}
+
+// Phase 41: Talent Pool Logic
+function renderTalentPool() {
+    const grid = document.getElementById('talentpool-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Get all Talent Pool candidates
+    const poolCans = candidates.filter(c => c.stage === 'Talent Pool');
+    
+    document.getElementById('nav-pool-count').innerText = poolCans.length;
+    document.getElementById('kb-count-TalentPool').innerText = poolCans.length;
+    
+    if (poolCans.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-light); background: white; border-radius: 8px; border: 1px solid var(--border);">No candidates are currently on the bench.</div>';
+        return;
+    }
+    
+    poolCans.forEach(can => {
+        const card = document.createElement('div');
+        card.style = "background: white; border-radius: 8px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative;";
+        
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin-bottom:4px; font-size:1.1rem; color:var(--text-dark); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</h3>
+                    <div style="font-size:0.8rem; color:var(--text-light);">${can.location || 'Any'} | Added: ${can.lastUpdated || 'Unknown'}</div>
+                </div>
+                <div style="background:#f3e5f5; color:#9c27b0; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold;">Bench</div>
+            </div>
+            
+            <div style="font-size:0.85rem; color:var(--text-dark); margin-bottom:15px;">
+                <strong>Original Req:</strong> ${can.reqId} <br>
+                <strong>Source:</strong> ${can.source || 'Direct'}
+            </div>
+            
+            <button class="btn btn-sm btn-outline" style="width:100%; border-color:#9c27b0; color:#9c27b0;" onclick="openReassignModal('${can.id}')">Re-assign to Req</button>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openReassignModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('ra_canId').value = can.id;
+    document.getElementById('ra_canName').innerText = can.name;
+    
+    const reqSelect = document.getElementById('ra_reqId');
+    reqSelect.innerHTML = '<option value="">-- Select Active Req --</option>';
+    
+    requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+        const option = document.createElement('option');
+        option.value = req.id;
+        option.textContent = `${req.id} - ${req.title} (${req.client})`;
+        reqSelect.appendChild(option);
+    });
+    
+    openModal('reassignModal');
+}
+
+function reassignCandidate(e) {
+    e.preventDefault();
+    const canId = document.getElementById('ra_canId').value;
+    const reqId = document.getElementById('ra_reqId').value;
+    
+    const can = candidates.find(c => c.id === canId);
+    if (can && reqId) {
+        can.reqId = reqId;
+        can.stage = 'Submitted';
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: 'Re-assigned',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Pulled from Talent Pool and re-assigned to ${reqId}`
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('reassignModal');
+        createAlert(`Candidate ${can.name} successfully re-assigned to ${reqId}!`, 'success');
+    }
+}
+
 function renderClients() {
     const tbody = document.getElementById('client-summary-table');
     if(!tbody) return;
@@ -1254,21 +2423,126 @@ function renderHeaderRoleSwitcher() {
     const header = document.querySelector('.header');
     if (header && !document.getElementById('header-role-selector')) {
         const switcherDiv = document.createElement('div');
+        switcherDiv.id = 'header-role-selector';
         switcherDiv.style.display = 'flex';
         switcherDiv.style.alignItems = 'center';
-        switcherDiv.style.gap = '10px';
+        switcherDiv.style.gap = '15px';
+        
+        const username = localStorage.getItem('username') || 'User';
+        const role = localStorage.getItem('role') || currentRole;
+        
         switcherDiv.innerHTML = `
-            <span class="menu-toggle" onclick="toggleSidebar()">&#9776;</span>
-            <small style="color:var(--text-light); font-weight:bold;">View As:</small>
-            <select id="header-role-selector" onchange="changeRole(this.value)" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
-                <option value="Management" ${currentRole === 'Management' ? 'selected' : ''}>Management</option>
-                <option value="Account Manager" ${currentRole === 'Account Manager' ? 'selected' : ''}>Account Manager</option>
-                <option value="Recruiter" ${currentRole === 'Recruiter' ? 'selected' : ''}>Recruiter</option>
-            </select>
+            <span class="menu-toggle" onclick="toggleSidebar()" style="font-size: 1.5rem; cursor: pointer;">&#9776;</span>
+            <div style="flex:1; position:relative; min-width: 300px; max-width: 500px; margin-left: 20px;">
+                <input type="search" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="Search candidates, skills, or jobs..." style="width:100%; padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.85rem; outline: none; background: var(--bg-light);">
+                <div id="search-dropdown" style="display:none; position:absolute; top: 38px; left:0; width:100%; background:white; border:1px solid var(--border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:2000; max-height:400px; overflow-y:auto; padding: 10px;"></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:15px; margin-left: auto;">
+                <div style="position:relative; cursor:pointer; padding: 5px;" onclick="toggleNotifications()">
+                    <span style="font-size: 1.2rem;">🔔</span>
+                    <span id="notif-badge" style="position:absolute; top:0; right:0; background:var(--danger); color:white; font-size:0.6rem; font-weight:bold; padding:2px 5px; border-radius:10px; display:none;">0</span>
+                    <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:35px; width:320px; background:white; border:1px solid var(--border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:400px; overflow-y:auto; cursor:default;" onclick="event.stopPropagation()">
+                        <div style="padding:12px; border-bottom:1px solid var(--border); font-weight:bold; font-size:0.9rem; background: var(--bg-light); border-radius: 6px 6px 0 0; color:var(--text-dark);">
+                            Notification Center
+                        </div>
+                        <div id="notif-list" style="padding:10px; font-size:0.85rem; display:flex; flex-direction:column; gap:8px;">
+                            <div style="text-align:center; color:var(--text-light); padding: 10px;">No new alerts.</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background:var(--primary); color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                        ${username.charAt(0).toUpperCase()}
+                    </div>
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-weight:600; font-size:0.9rem;">${username}</span>
+                        <span style="font-size:0.75rem; color:var(--text-light);">${role}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline" style="margin-left: 10px; border-color: var(--danger); color: var(--danger);" onclick="logout()">Logout</button>
+                </div>
+            </div>
         `;
-        header.insertBefore(switcherDiv, header.firstChild);
+        header.appendChild(switcherDiv);
     }
 }
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    window.location.reload();
+}
+
+// Global Omni-Search Logic
+function handleGlobalSearch(query) {
+    const dropdown = document.getElementById('search-dropdown');
+    if (!query || query.trim().length < 2) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    const q = query.toLowerCase().trim();
+    let html = '';
+    
+    // Search Candidates
+    const matchingCans = candidates.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.email.toLowerCase().includes(q) || 
+        (c.skills && c.skills.toLowerCase().includes(q))
+    ).slice(0, 5); // Max 5 results
+    
+    if (matchingCans.length > 0) {
+        html += '<div style="font-size: 0.75rem; font-weight: bold; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px;">Candidates</div>';
+        matchingCans.forEach(c => {
+            html += `<div style="padding: 8px; cursor: pointer; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('search-dropdown').style.display='none'; openCandidateDetailsModal('${c.id}')">
+                <div style="font-weight: 600; color: var(--primary);">${c.name}</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">${c.email} | Stage: ${c.stage}</div>
+            </div>`;
+        });
+    }
+    
+    // Search Requirements
+    const matchingReqs = requirements.filter(r => 
+        r.title.toLowerCase().includes(q) || 
+        r.client.toLowerCase().includes(q) || 
+        r.id.toLowerCase().includes(q)
+    ).slice(0, 5);
+    
+    if (matchingReqs.length > 0) {
+        html += '<div style="font-size: 0.75rem; font-weight: bold; color: var(--text-light); text-transform: uppercase; margin-top: 10px; margin-bottom: 5px;">Requirements</div>';
+        matchingReqs.forEach(r => {
+            html += `<div style="padding: 8px; cursor: pointer; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('search-dropdown').style.display='none'; openReqDetailsModal('${r.id}')">
+                <div style="font-weight: 600; color: var(--info);">${r.title}</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">${r.client} | ${r.id}</div>
+            </div>`;
+        });
+    }
+    
+    if (html === '') {
+        html = '<div style="padding: 10px; color: var(--text-light); text-align: center; font-size: 0.85rem;">No matches found.</div>';
+    }
+    
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    const searchDropdown = document.getElementById('search-dropdown');
+    const globalSearch = document.getElementById('global-search');
+    if (searchDropdown && searchDropdown.style.display === 'block') {
+        if (!searchDropdown.contains(e.target) && e.target !== globalSearch) {
+            searchDropdown.style.display = 'none';
+        }
+    }
+    
+    const notifDropdown = document.getElementById('notif-dropdown');
+    if (notifDropdown && notifDropdown.style.display === 'block') {
+        if (!notifDropdown.contains(e.target) && !e.target.closest('[onclick="toggleNotifications()"]')) {
+            notifDropdown.style.display = 'none';
+        }
+    }
+});
 
 function getReqInactivityDays(reqId, dateOpened) {
     let latestActivity = new Date(dateOpened);
@@ -1317,13 +2591,142 @@ function calculateReportsTAT() {
     
     const avg = Math.round(totalDays / closedReqs.length);
     kpiAvgTat.innerText = `${avg} Days`;
+    
+    // Populate Client dropdown for Custom Reports
+    const clientSelect = document.getElementById('rep_client');
+    if (clientSelect) {
+        const currentClient = clientSelect.value;
+        const clients = [...new Set(requirements.map(r => r.client))].sort();
+        clientSelect.innerHTML = '<option value="All">All Clients</option>' + clients.map(c => `<option value="${c}">${c}</option>`).join('');
+        if (clients.includes(currentClient)) clientSelect.value = currentClient;
+    }
+}
+
+function generateCustomReport() {
+    const startDate = document.getElementById('rep_start_date').value;
+    const endDate = document.getElementById('rep_end_date').value;
+    const recruiter = document.getElementById('rep_recruiter').value;
+    const client = document.getElementById('rep_client').value;
+    
+    const tbody = document.getElementById('custom-report-table');
+    if (!tbody) return;
+    
+    let filteredReqs = requirements;
+    if (client !== 'All') {
+        filteredReqs = filteredReqs.filter(r => r.client === client);
+    }
+    
+    // Create report mapping
+    let reportData = [];
+    
+    filteredReqs.forEach(req => {
+        let reqLogs = worklogs.filter(w => w.reqId === req.id);
+        if (recruiter !== 'All') reqLogs = reqLogs.filter(w => w.recruiter === recruiter);
+        if (startDate) reqLogs = reqLogs.filter(w => new Date(w.date) >= new Date(startDate));
+        if (endDate) reqLogs = reqLogs.filter(w => new Date(w.date) <= new Date(endDate));
+        
+        let sourced = 0, screened = 0, submitted = 0;
+        reqLogs.forEach(l => {
+            sourced += l.sourced;
+            screened += l.screened;
+            submitted += l.submitted;
+        });
+        
+        let reqCans = candidates.filter(c => c.reqId === req.id);
+        // If filtering by date, we only count candidates whose last updated falls in range? 
+        // For simplicity, we just look at the current state of candidates submitted to this req
+        let interviews = reqCans.filter(c => c.stage.includes('Interview')).length;
+        let placements = reqCans.filter(c => c.stage === 'Joined').length;
+        
+        // Only include if there is activity or it's a direct recruiter match
+        if (sourced > 0 || screened > 0 || submitted > 0 || interviews > 0 || placements > 0) {
+            reportData.push({
+                reqId: req.id,
+                title: req.title,
+                client: req.client,
+                recruiter: recruiter !== 'All' ? recruiter : 'Multiple',
+                sourced, screened, submitted, interviews, placements
+            });
+        }
+    });
+    
+    tbody.innerHTML = '';
+    if (reportData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-light); padding:20px;">No data matches your filters.</td></tr>';
+        return;
+    }
+    
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${row.reqId}</strong></td>
+            <td>${row.title}</td>
+            <td>${row.client}</td>
+            <td>${row.recruiter}</td>
+            <td>${row.sourced}</td>
+            <td>${row.screened}</td>
+            <td>${row.submitted}</td>
+            <td>${row.interviews}</td>
+            <td><strong style="color:var(--success)">${row.placements}</strong></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Store globally for export
+    window.currentCustomReportData = reportData;
+}
+
+function exportCustomReport() {
+    if (!window.currentCustomReportData || window.currentCustomReportData.length === 0) {
+        alert("Please generate a report first with data to export.");
+        return;
+    }
+    const headers = ["Req ID", "Job Title", "Client", "Recruiter", "Sourced", "Screened", "Submitted", "Interviews", "Placements"];
+    const rows = window.currentCustomReportData.map(r => [
+        r.reqId, r.title, r.client, r.recruiter, r.sourced, r.screened, r.submitted, r.interviews, r.placements
+    ]);
+    exportToCSV("Custom_Report.csv", headers, rows);
 }
 
 function updateDashboard() {
     document.getElementById('kpi-total-req').innerText = requirements.length;
-    document.getElementById('kpi-active-req').innerText = requirements.filter(r => r.status === 'Active' || r.status === 'New').length;
-    document.getElementById('kpi-stalled-req').innerText = requirements.filter(r => r.status === 'Pending' || r.status === 'Stalled').length;
+    document.getElementById('kpi-active-req').innerText = requirements.filter(r => ['Active', 'New'].includes(r.status)).length;
+    document.getElementById('kpi-stalled-req').innerText = requirements.filter(r => r.status === 'Pending' || r.status === 'Hold').length;
     document.getElementById('kpi-joined').innerText = candidates.filter(c => c.stage === 'Joined').length;
+    
+    // Reminders
+    const remindersList = document.getElementById('reminders-list');
+    if (remindersList) {
+        const myReminders = reminders.filter(r => (r.user === currentRole || r.user === localStorage.getItem('username')) && !r.completed);
+        
+        myReminders.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (myReminders.length === 0) {
+            remindersList.innerHTML = '<div style="font-size:0.9rem; padding: 10px;">No upcoming reminders. You are all caught up! 🎉</div>';
+        } else {
+            const today = new Date().toISOString().split('T')[0];
+            
+            remindersList.innerHTML = myReminders.map(rem => {
+                const isOverdue = rem.date < today;
+                const isToday = rem.date === today;
+                const styleStr = (isOverdue || isToday) 
+                    ? "background: #ffebee; border-left: 4px solid var(--danger);" 
+                    : "background: rgba(255,255,255,0.8); border-left: 4px solid var(--primary);";
+                    
+                const badgeStr = isOverdue ? '<span style="color:var(--danger); font-weight:bold; font-size:0.75rem;">OVERDUE</span> ' : (isToday ? '<span style="color:#d84315; font-weight:bold; font-size:0.75rem;">TODAY</span> ' : '');
+                
+                return `
+                <div style="${styleStr} padding: 10px; margin-bottom: 8px; border-radius: 4px; display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <div style="font-size:0.8rem; color:var(--text-light); margin-bottom:4px;">${badgeStr}${rem.date} | Candidate: ${rem.targetName}</div>
+                        <div style="font-size:0.95rem; font-weight:500;">${rem.text}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" style="padding:4px 8px; border-color:var(--success); color:var(--success);" onclick="markReminderDone('${rem.id}')">✅ Done</button>
+                </div>
+                `;
+            }).join('');
+        }
+    }
     
     let a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0;
     const bottleneckReasons = {};
@@ -1434,8 +2837,270 @@ function updateDashboard() {
     renderCharts();
 }
 
-// Chart.js Setup
+// ============================================
+// PHASE 53: SKILLS TAGGING & SMART MATCHING
+// ============================================
+const DEFAULT_SKILLS_TAXONOMY = [
+    'JavaScript','TypeScript','React','Vue.js','Angular','Node.js','Python','Java','C#','.NET',
+    'SQL','PostgreSQL','MySQL','MongoDB','Redis','GraphQL','REST API','Docker','Kubernetes',
+    'AWS','Azure','GCP','CI/CD','Git','Agile','Scrum','Product Management','Data Analysis',
+    'Machine Learning','Deep Learning','TensorFlow','PyTorch','Tableau','Power BI','Excel',
+    'Salesforce','SAP','ServiceNow','JIRA','Confluence','DevOps','Linux','Terraform',
+    'Cyber Security','Network Engineering','Cloud Architecture','UI/UX Design','Figma',
+    'Recruitment','HR','Talent Acquisition','Business Development','Account Management',
+    'Project Management','PMP','Six Sigma','Lean','Quality Assurance','Selenium','Cypress'
+];
+
+function getSkillsTaxonomy() {
+    const saved = localStorage.getItem('skillsTaxonomy_v1');
+    return saved ? JSON.parse(saved) : [...DEFAULT_SKILLS_TAXONOMY];
+}
+
+function saveSkillsTaxonomy(t) { localStorage.setItem('skillsTaxonomy_v1', JSON.stringify(t)); }
+
+// Current tags being edited in the candidate form
+let currentCandidateSkillTags = [];
+
+function initSkillTagInput() {
+    currentCandidateSkillTags = [];
+    const tagsContainer = document.getElementById('c_skills_tags');
+    if (tagsContainer) tagsContainer.innerHTML = '';
+    const hiddenInput = document.getElementById('c_skills');
+    if (hiddenInput) hiddenInput.value = '';
+    const input = document.getElementById('c_skills_input');
+    if (input) input.value = '';
+}
+
+function loadSkillTagsFromString(skillsStr) {
+    currentCandidateSkillTags = [];
+    if (!skillsStr) return;
+    const skills = skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+    skills.forEach(s => addSkillTag(s));
+}
+
+function handleSkillInput(event) {
+    if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        const val = event.target.value.trim().replace(/,$/, '');
+        if (val) addSkillTag(val);
+        event.target.value = '';
+        document.getElementById('skill_suggestions').style.display = 'none';
+    } else if (event.key === 'Backspace' && !event.target.value) {
+        removeLastSkillTag();
+    }
+}
+
+function addSkillTag(skill) {
+    skill = skill.trim();
+    if (!skill || currentCandidateSkillTags.includes(skill)) return;
+    currentCandidateSkillTags.push(skill);
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function removeSkillTag(skill) {
+    currentCandidateSkillTags = currentCandidateSkillTags.filter(s => s !== skill);
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function removeLastSkillTag() {
+    if (!currentCandidateSkillTags.length) return;
+    currentCandidateSkillTags.pop();
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function renderSkillTags() {
+    const container = document.getElementById('c_skills_tags');
+    if (!container) return;
+    container.innerHTML = currentCandidateSkillTags.map(skill => `
+        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--primary); color:white; padding:3px 10px; border-radius:9999px; font-size:0.75rem; font-weight:600;">
+            ${skill}
+            <span onclick="removeSkillTag('${skill}')" style="cursor:pointer; font-size:0.85rem; margin-left:2px;">&times;</span>
+        </span>`).join('');
+}
+
+function updateHiddenSkillsInput() {
+    const hidden = document.getElementById('c_skills');
+    if (hidden) hidden.value = currentCandidateSkillTags.join(', ');
+}
+
+function showSkillSuggestions(query) {
+    const sugg = document.getElementById('skill_suggestions');
+    if (!sugg || query.length < 1) { if (sugg) sugg.style.display = 'none'; return; }
+    const taxonomy = getSkillsTaxonomy();
+    const matches = taxonomy.filter(s => s.toLowerCase().includes(query.toLowerCase()) && !currentCandidateSkillTags.includes(s)).slice(0, 8);
+    if (!matches.length) { sugg.style.display = 'none'; return; }
+    sugg.innerHTML = matches.map(m => `<div onclick="addSkillTag('${m}'); document.getElementById('c_skills_input').value=''; document.getElementById('skill_suggestions').style.display='none';" style="padding:8px 12px; cursor:pointer; font-size:0.85rem;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background=''">${m}</div>`).join('');
+    sugg.style.display = 'block';
+}
+
+// Smart Match Score: compare candidate skills vs requirement skills
+function calcMatchScore(canSkills, reqSkills) {
+    if (!reqSkills || !reqSkills.length) return 0;
+    if (!canSkills || !canSkills.length) return 0;
+    const canSet = canSkills.map(s => s.toLowerCase().trim());
+    const matches = reqSkills.filter(rs => canSet.some(cs => cs.includes(rs.toLowerCase().trim()) || rs.toLowerCase().trim().includes(cs)));
+    return Math.min(100, Math.round((matches.length / reqSkills.length) * 100));
+}
+
+function getSkillsArray(skillsStr) {
+    if (!skillsStr) return [];
+    return skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Best Matches: given a req, find top 5 matching candidates
+function getBestMatchesForReq(reqId) {
+    const req = requirements.find(r => r.id === reqId);
+    if (!req) return [];
+    const reqSkills = getSkillsArray(req.skills || req.mandatorySkills || req.r_skills || '');
+    return candidates
+        .map(c => ({ can: c, score: calcMatchScore(getSkillsArray(c.skills || c.c_skills || ''), reqSkills) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+}
+
+// Inject match score badge into candidate cards / tables
+function getMatchScoreBadge(score) {
+    const color = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--danger)';
+    return `<span style="background:${color}; color:white; padding:2px 8px; border-radius:9999px; font-size:0.7rem; font-weight:700; margin-left:6px;">${score}% Match</span>`;
+}
+
+// ============================================
+// PHASE 51: EMAIL TEMPLATES ENGINE
+// ============================================
+const DEFAULT_TEMPLATES = {
+    offer: {
+        id: 'offer', name: 'Offer Letter Email', icon: '🎉', color: 'var(--success)',
+        subject: 'Congratulations! Your Offer for {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nWe are delighted to formally offer you the position of {{job_title}} at {{company_name}}!\n\nAfter reviewing your qualifications and interviews, we are confident you will be an exceptional addition to our team. Please review the attached offer letter for full compensation details and respond by the indicated deadline.\n\nWe look forward to welcoming you aboard!\n\nWarm regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    rejection: {
+        id: 'rejection', name: 'Rejection Email', icon: '📝', color: 'var(--text-light)',
+        subject: 'Update on Your Application for {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nThank you for interviewing for the {{job_title}} position at {{company_name}}.\n\nAfter careful consideration, we have decided to move forward with other candidates. This was a difficult decision as we were impressed by your background.\n\nWe will keep your profile on file for future opportunities. We wish you all the best in your search.\n\nKind regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    interview: {
+        id: 'interview', name: 'Interview Invite', icon: '📅', color: 'var(--primary)',
+        subject: 'Interview Invitation: {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nWe are pleased to invite you to interview for the {{job_title}} position at {{company_name}}.\n\nInterview Details:\n• Date & Time: {{interview_date}}\n• Format: Video Call\n• Duration: ~60 minutes\n\nPlease confirm your availability by replying to this email.\n\nBest regards,\nThe Recruiting Team\n{{company_name}}`
+    },
+    followup: {
+        id: 'followup', name: 'Follow-up Reminder', icon: '🔔', color: 'var(--warning)',
+        subject: 'Following Up: {{job_title}} at {{company_name}}',
+        body: `Dear {{candidate_name}},\n\nI wanted to follow up regarding your application for the {{job_title}} position at {{company_name}}.\n\nWe are still actively reviewing candidates and wanted to confirm your continued interest. Please don't hesitate to reach out with any questions.\n\nWe expect to have an update for you shortly.\n\nBest regards,\nThe Recruiting Team\n{{company_name}}`
+    }
+};
+let editingTemplateId = null;
+function getTemplates() { const s = localStorage.getItem('emailTemplates_v1'); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)); }
+function saveTemplates(t) { localStorage.setItem('emailTemplates_v1', JSON.stringify(t)); }
+function substituteVars(text, vars = {}) {
+    return text.replace(/\{\{candidate_name\}\}/g, vars.candidate_name || 'Alex Johnson')
+               .replace(/\{\{job_title\}\}/g, vars.job_title || 'Senior Engineer')
+               .replace(/\{\{company_name\}\}/g, vars.company_name || 'Acme Corp')
+               .replace(/\{\{interview_date\}\}/g, vars.interview_date || 'Monday, July 21 at 2:00 PM');
+}
+function renderEmailTemplates() {
+    const grid = document.getElementById('template-card-grid');
+    if (!grid) return;
+    const templates = getTemplates();
+    grid.innerHTML = Object.values(templates).map(t => `
+        <div class="card" style="border-top:3px solid ${t.color}; cursor:pointer; transition:all 0.2s;" onclick="openTemplateEditor('${t.id}')"
+             onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:2rem; margin-bottom:10px;">${t.icon}</div>
+            <h3 style="font-size:0.95rem; text-transform:none; letter-spacing:0; color:var(--text-dark);">${t.name}</h3>
+            <p style="font-size:0.8rem; color:var(--text-light); margin-top:6px; line-height:1.5;">${t.subject.substring(0,60)}...</p>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openSendEmailModal('${t.id}', null)" style="font-size:0.75rem; padding:5px 10px;">\u2709 Use</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); openTemplateEditor('${t.id}')" style="font-size:0.75rem; padding:5px 10px;">\u270f Edit</button>
+            </div>
+        </div>`).join('');
+}
+function openTemplateEditor(templateId) {
+    const t = getTemplates()[templateId];
+    if (!t) return;
+    editingTemplateId = templateId;
+    document.getElementById('tpl_name').value = t.name;
+    document.getElementById('tpl_subject').value = t.subject;
+    document.getElementById('tpl_body').value = t.body;
+    document.getElementById('template-editor-title').innerText = `✏ Editing: ${t.name}`;
+    document.getElementById('template-editor-panel').style.display = 'block';
+    document.getElementById('template-editor-panel').scrollIntoView({ behavior: 'smooth' });
+    previewTemplate();
+}
+function closeTemplateEditor() { document.getElementById('template-editor-panel').style.display = 'none'; editingTemplateId = null; }
+function previewTemplate() { document.getElementById('tpl_preview').innerText = substituteVars(document.getElementById('tpl_body').value); }
+function saveTemplate() {
+    if (!editingTemplateId) return;
+    const templates = getTemplates();
+    templates[editingTemplateId].name = document.getElementById('tpl_name').value;
+    templates[editingTemplateId].subject = document.getElementById('tpl_subject').value;
+    templates[editingTemplateId].body = document.getElementById('tpl_body').value;
+    saveTemplates(templates); renderEmailTemplates(); createAlert('Template saved!', 'success');
+}
+function resetTemplateToDefault() {
+    if (!editingTemplateId) return;
+    const templates = getTemplates();
+    templates[editingTemplateId] = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES[editingTemplateId]));
+    saveTemplates(templates); openTemplateEditor(editingTemplateId); createAlert('Reset to default.', 'info');
+}
+function copyTemplateToClipboard() {
+    const s = substituteVars(document.getElementById('tpl_subject').value);
+    const b = substituteVars(document.getElementById('tpl_body').value);
+    navigator.clipboard.writeText(`Subject: ${s}\n\n${b}`).then(() => createAlert('Copied to clipboard!', 'success'));
+}
+function openMailtoLink() {
+    window.open(`mailto:?subject=${encodeURIComponent(substituteVars(document.getElementById('tpl_subject').value))}&body=${encodeURIComponent(substituteVars(document.getElementById('tpl_body').value))}`, '_blank');
+}
+function openSendEmailModal(templateId, canId) {
+    const sel = document.getElementById('email_canSelect');
+    sel.innerHTML = '<option value="">-- Select Candidate --</option>' + candidates.map(c => `<option value="${c.id}">${c.name} (${c.stage})</option>`).join('');
+    if (canId) { sel.value = canId; document.getElementById('email_canId').value = canId; }
+    if (templateId) document.getElementById('email_template').value = templateId;
+    loadTemplateIntoComposer(); autoFillCandidateEmail(); openModal('sendEmailModal');
+}
+function autoFillCandidateEmail() { document.getElementById('email_canId').value = document.getElementById('email_canSelect').value; loadTemplateIntoComposer(); }
+function loadTemplateIntoComposer() {
+    const tId = document.getElementById('email_template').value;
+    const canId = document.getElementById('email_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    const req = can ? requirements.find(r => r.id === can.reqId) : null;
+    const vars = { candidate_name: can ? can.name : undefined, job_title: req ? req.title : undefined, company_name: req ? req.client : undefined };
+    const t = getTemplates()[tId];
+    if (!t) return;
+    document.getElementById('email_subject').value = substituteVars(t.subject, vars);
+    document.getElementById('email_body').value = substituteVars(t.body, vars);
+}
+function generateCandidateEmail(e) { e.preventDefault(); createAlert('Email draft ready! Use Copy or Open in Gmail to send.', 'success'); closeModal('sendEmailModal'); }
+function copyEmailToClipboard() { navigator.clipboard.writeText(`Subject: ${document.getElementById('email_subject').value}\n\n${document.getElementById('email_body').value}`).then(() => createAlert('Copied!', 'success')); }
+function openEmailInGmail() {
+    const can = candidates.find(c => c.id === document.getElementById('email_canId').value);
+    const to = (can && can.email) ? can.email : '';
+    window.open(`mailto:${to}?subject=${encodeURIComponent(document.getElementById('email_subject').value)}&body=${encodeURIComponent(document.getElementById('email_body').value)}`, '_blank');
+}
+
+// ============================================
+// Chart.js Setup — Dashboard + Analytics Hub
+// ============================================
 let funnelChart, geoChart, dropoutChart;
+let analyticsFunnelChart, analyticsSourceChart, analyticsTimeToFillChart, analyticsHireRateChart;
+let analyticsPeriodDays = 30;
+
+function setAnalyticsPeriod(days) {
+    analyticsPeriodDays = days;
+    // Update active button styling
+    [30, 60, 90, 365].forEach(d => {
+        const btn = document.getElementById(`analytics-btn-${d}`);
+        if (btn) {
+            btn.style.background = d === days ? 'var(--primary)' : 'transparent';
+            btn.style.color = d === days ? 'white' : 'var(--text-light)';
+        }
+    });
+    renderAnalytics();
+}
+
 function renderCharts() {
     if (typeof Chart === 'undefined') return;
     
@@ -1444,70 +3109,278 @@ function renderCharts() {
         if(funnelChart) funnelChart.destroy();
         const stages = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined'];
         const data = stages.map(st => candidates.filter(c => c.stage.includes(st) || c.stage === 'Joined').length);
-        
         funnelChart = new Chart(ctxFunnel, {
             type: 'bar',
-            data: {
-                labels: stages,
-                datasets: [{ label: 'Candidates', data: data, backgroundColor: 'rgba(37, 99, 235, 0.7)' }]
-            },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+            data: { labels: stages, datasets: [{ label: 'Candidates', data: data, backgroundColor: 'rgba(37, 99, 235, 0.7)', borderRadius: 6 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
-
     const ctxGeo = document.getElementById('geoChart');
     if(ctxGeo) {
         if(geoChart) geoChart.destroy();
         const usCount = requirements.filter(r => r.country === 'US').length;
         const inCount = requirements.filter(r => r.country === 'IN').length;
-        
         geoChart = new Chart(ctxGeo, {
             type: 'doughnut',
-            data: {
-                labels: ['US', 'India'],
-                datasets: [{ data: [usCount, inCount], backgroundColor: ['#3b82f6', '#10b981'] }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels: ['US', 'India'], datasets: [{ data: [usCount, inCount], backgroundColor: ['#3b82f6', '#10b981'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
-
     const ctxDropout = document.getElementById('dropoutChart');
     if(ctxDropout) {
         if(dropoutChart) dropoutChart.destroy();
-        
-        // Count drop-out reasons
         const reasonsMap = {};
         candidates.forEach(c => {
-            if (c.stage === 'Rejected' && c.rejectionReason) {
-                reasonsMap[c.rejectionReason] = (reasonsMap[c.rejectionReason] || 0) + 1;
-            } else if (c.stage === 'Candidate Withdrew' && c.withdrawalReason) {
-                reasonsMap[c.withdrawalReason] = (reasonsMap[c.withdrawalReason] || 0) + 1;
-            }
+            if (c.stage === 'Rejected' && c.rejectionReason) reasonsMap[c.rejectionReason] = (reasonsMap[c.rejectionReason] || 0) + 1;
+            else if (c.stage === 'Candidate Withdrew' && c.withdrawalReason) reasonsMap[c.withdrawalReason] = (reasonsMap[c.withdrawalReason] || 0) + 1;
         });
-        
         const labels = Object.keys(reasonsMap);
         const data = Object.values(reasonsMap);
-        
-        if (labels.length === 0) {
-            labels.push("No drop-outs logged");
-            data.push(1);
-        }
-
+        if (!labels.length) { labels.push('No drop-outs logged'); data.push(1); }
         dropoutChart = new Chart(ctxDropout, {
             type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899']
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels, datasets: [{ data, backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
 }
 
+function renderAnalytics() {
+    if (typeof Chart === 'undefined') return;
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - analyticsPeriodDays * 86400000);
+
+    // Filter candidates by period (use lastUpdated or createdDate)
+    const periodCandidates = candidates.filter(c => {
+        const d = new Date(c.lastUpdated || c.createdDate || 0);
+        return d >= cutoff;
+    });
+    const periodReqs = requirements.filter(r => {
+        const d = new Date(r.createdDate || r.dateAdded || 0);
+        return analyticsPeriodDays === 365 || d >= cutoff;
+    });
+
+    // --- KPI Cards ---
+    const joined = periodCandidates.filter(c => c.stage === 'Joined').length;
+    const offered = periodCandidates.filter(c => ['Offer Released','Joined'].includes(c.stage)).length;
+    const sourced = periodCandidates.length;
+    const active = candidates.filter(c => !['Joined','Rejected','Candidate Withdrew'].includes(c.stage)).length;
+    const filledReqs = requirements.filter(r => r.status === 'Closed' || r.filled > 0).length;
+    const totalActiveReqs = requirements.filter(r => ['Active','New'].includes(r.status)).length;
+
+    const oar = offered > 0 ? Math.round((joined / offered) * 100) : 0;
+    const conv = sourced > 0 ? Math.round((joined / sourced) * 100) : 0;
+    const fillRate = (totalActiveReqs + filledReqs) > 0 ? Math.round((filledReqs / (totalActiveReqs + filledReqs)) * 100) : 0;
+
+    // Avg Time to Fill: reqs with filledDate
+    const filledWithDate = requirements.filter(r => r.filledDate && r.createdDate);
+    const avgTTF = filledWithDate.length > 0
+        ? Math.round(filledWithDate.reduce((s, r) => s + (new Date(r.filledDate) - new Date(r.createdDate)) / 86400000, 0) / filledWithDate.length)
+        : '–';
+
+    const elOar = document.getElementById('analytics-oar');
+    const elConv = document.getElementById('analytics-conv');
+    const elActiveCan = document.getElementById('analytics-active-can');
+    const elFillRate = document.getElementById('analytics-fill-rate');
+    const elTtf = document.getElementById('analytics-ttf');
+    if (elOar) elOar.textContent = oar + '%';
+    if (elConv) elConv.textContent = conv + '%';
+    if (elActiveCan) elActiveCan.textContent = active;
+    if (elFillRate) elFillRate.textContent = fillRate + '%';
+    if (elTtf) elTtf.textContent = (avgTTF === '–' ? '–' : avgTTF) + ' Days';
+
+    // --- Funnel Chart ---
+    const ctxF = document.getElementById('analyticsFunnelChart');
+    if (ctxF) {
+        if (analyticsFunnelChart) analyticsFunnelChart.destroy();
+        const fStages = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined'];
+        const fData = fStages.map(st => candidates.filter(c => {
+            const idx = ['Sourced','Screened','Interview Scheduled','Offer Released','Joined'].indexOf(c.stage);
+            const stIdx = fStages.indexOf(st);
+            return idx >= stIdx;
+        }).length);
+        analyticsFunnelChart = new Chart(ctxF, {
+            type: 'bar',
+            data: {
+                labels: fStages,
+                datasets: [{
+                    label: 'Candidates',
+                    data: fData,
+                    backgroundColor: ['#6366f1','#3b82f6','#06b6d4','#10b981','#22c55e'],
+                    borderRadius: 8, borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // --- Source Effectiveness Pie ---
+    const ctxS = document.getElementById('analyticsSourceChart');
+    if (ctxS) {
+        if (analyticsSourceChart) analyticsSourceChart.destroy();
+        const sourceMap = {};
+        candidates.forEach(c => { const s = c.source || 'Unknown'; sourceMap[s] = (sourceMap[s] || 0) + 1; });
+        const sLabels = Object.keys(sourceMap);
+        const sData = Object.values(sourceMap);
+        analyticsSourceChart = new Chart(ctxS, {
+            type: 'doughnut',
+            data: {
+                labels: sLabels.length ? sLabels : ['No Data'],
+                datasets: [{ data: sData.length ? sData : [1], backgroundColor: ['#6366f1','#3b82f6','#06b6d4','#10b981','#f59e0b','#ec4899','#8b5cf6'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+        });
+    }
+
+    // --- Time-to-Fill Monthly Trend ---
+    const ctxT = document.getElementById('analyticsTimeToFillChart');
+    if (ctxT) {
+        if (analyticsTimeToFillChart) analyticsTimeToFillChart.destroy();
+        // Build last 6 month buckets
+        const monthLabels = [];
+        const monthAvgs = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+            monthLabels.push(label);
+            const monthReqs = requirements.filter(r => {
+                if (!r.filledDate || !r.createdDate) return false;
+                const fd = new Date(r.filledDate);
+                return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear();
+            });
+            const avg = monthReqs.length > 0
+                ? Math.round(monthReqs.reduce((s, r) => s + (new Date(r.filledDate) - new Date(r.createdDate)) / 86400000, 0) / monthReqs.length)
+                : 0;
+            monthAvgs.push(avg);
+        }
+        analyticsTimeToFillChart = new Chart(ctxT, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Avg Days to Fill',
+                    data: monthAvgs,
+                    borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)',
+                    tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#6366f1'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // --- Monthly Placements Trend (Hire Rate) ---
+    const ctxH = document.getElementById('analyticsHireRateChart');
+    if (ctxH) {
+        if (analyticsHireRateChart) analyticsHireRateChart.destroy();
+        const monthLabels2 = [];
+        const monthJoined = [];
+        const monthOffered = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            monthLabels2.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
+            const mCans = candidates.filter(c => {
+                const cd = new Date(c.lastUpdated || 0);
+                return cd.getMonth() === d.getMonth() && cd.getFullYear() === d.getFullYear();
+            });
+            monthJoined.push(mCans.filter(c => c.stage === 'Joined').length);
+            monthOffered.push(mCans.filter(c => ['Offer Released','Joined'].includes(c.stage)).length);
+        }
+        analyticsHireRateChart = new Chart(ctxH, {
+            type: 'bar',
+            data: {
+                labels: monthLabels2,
+                datasets: [
+                    { label: 'Offers Released', data: monthOffered, backgroundColor: 'rgba(16,185,129,0.3)', borderColor: '#10b981', borderWidth: 2, borderRadius: 4 },
+                    { label: 'Joined', data: monthJoined, backgroundColor: 'rgba(16,185,129,0.85)', borderColor: '#10b981', borderWidth: 0, borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // --- Recruiter Performance Table ---
+    const tbody = document.getElementById('analytics-recruiter-tbody');
+    if (tbody) {
+        const recruiterMap = {};
+        requirements.forEach(r => {
+            const rec = r.recruiter || r.primaryRecruiter || 'Unassigned';
+            if (!recruiterMap[rec]) recruiterMap[rec] = { reqs: 0, sourced: 0, interviews: 0, placements: 0 };
+            recruiterMap[rec].reqs++;
+            const reqCans = candidates.filter(c => c.reqId === r.id);
+            recruiterMap[rec].sourced += reqCans.length;
+            recruiterMap[rec].interviews += reqCans.filter(c => c.stage.toLowerCase().includes('interview')).length;
+            recruiterMap[rec].placements += reqCans.filter(c => c.stage === 'Joined').length;
+        });
+        const rows = Object.entries(recruiterMap).sort((a, b) => b[1].placements - a[1].placements);
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-light);">No recruiter data yet. Assign recruiters to requirements to see performance.</td></tr>';
+        } else {
+            tbody.innerHTML = rows.map(([name, d]) => {
+                const conv = d.sourced > 0 ? Math.round((d.placements / d.sourced) * 100) : 0;
+                const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : 'var(--danger)';
+                return `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td>${d.reqs}</td>
+                    <td>${d.sourced}</td>
+                    <td>${d.interviews}</td>
+                    <td><strong style="color:var(--success)">${d.placements}</strong></td>
+                    <td><span style="color:${convColor}; font-weight:700;">${conv}%</span></td>
+                </tr>`;
+            }).join('');
+        }
+    }
+}
+
 // CSV Export Helper
+async function generateExternalLogin() {
+    const u = document.getElementById('vms_username').value.trim();
+    const p = document.getElementById('vms_password').value;
+    const r = document.getElementById('vms_role').value;
+    const status = document.getElementById('vms_status');
+    
+    if (!u || !p) {
+        status.style.display = 'block';
+        status.style.color = 'var(--danger)';
+        status.innerText = 'Username and Password are required.';
+        return;
+    }
+    
+    status.style.display = 'block';
+    status.style.color = 'var(--primary)';
+    status.innerText = 'Generating access...';
+    
+    try {
+        const res = await fetch('http://localhost:3000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p, role: r })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+            status.style.color = 'var(--success)';
+            status.innerText = `${r} Access generated successfully for ${u}!`;
+            document.getElementById('vms_username').value = '';
+            document.getElementById('vms_password').value = '';
+        } else {
+            status.style.color = 'var(--danger)';
+            status.innerText = data.error || 'Failed to generate access.';
+        }
+    } catch (err) {
+        status.style.color = 'var(--danger)';
+        status.innerText = 'Server offline or error.';
+    }
+}
+
 function exportToCSV(filename, headers, rows) {
     const csvContent = "data:text/csv;charset=utf-8," 
         + [headers.join(",")].concat(rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))).join("\n");
@@ -1622,20 +3495,666 @@ function clearData() {
     }
 }
 
+function showLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.style.display = 'flex';
+}
+function hideLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.style.display = 'none';
+}
+
+// Global Search Logic
+function handleGlobalSearch(query) {
+    const resultsDiv = document.getElementById('globalSearchResults');
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    query = query.toLowerCase();
+    let resultsHTML = '<div style="padding: 10px;">';
+    
+    // Search Reqs
+    const matchingReqs = requirements.filter(r => r.id.toLowerCase().includes(query) || r.title.toLowerCase().includes(query) || r.client.toLowerCase().includes(query));
+    if (matchingReqs.length > 0) {
+        resultsHTML += '<strong style="color:var(--primary)">Requisitions</strong><br>';
+        matchingReqs.forEach(r => {
+            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openReqDetailsModal('${r.id}'); document.getElementById('globalSearchResults').style.display='none';">${r.id} - ${r.title} (${r.client})</div>`;
+        });
+    }
+
+    // Search Candidates
+    const matchingCands = candidates.filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query));
+    if (matchingCands.length > 0) {
+        resultsHTML += '<br><strong style="color:var(--primary)">Candidates</strong><br>';
+        matchingCands.forEach(c => {
+            resultsHTML += `<div style="padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="openCandidateDetailsModal('${c.id}'); document.getElementById('globalSearchResults').style.display='none';">${c.name} - ${c.email} (${c.stage})</div>`;
+        });
+    }
+
+    if (matchingReqs.length === 0 && matchingCands.length === 0) {
+        resultsHTML += '<div style="color: var(--text-light)">No results found.</div>';
+    }
+
+    resultsHTML += '</div>';
+    resultsDiv.innerHTML = resultsHTML;
+    resultsDiv.style.display = 'block';
+}
+
+// Bulk Actions
+function toggleAllCheckboxes(source) {
+    const checkboxes = document.querySelectorAll('.cand-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+function applyBulkAction() {
+    const stage = document.getElementById('bulkActionStage').value;
+    if (!stage) {
+        alert("Please select a stage to update to.");
+        return;
+    }
+    
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one candidate.");
+        return;
+    }
+    
+    const count = checkboxes.length;
+    if(confirm(`Are you sure you want to move ${count} candidate(s) to ${stage}?`)) {
+        checkboxes.forEach(cb => {
+            const can = candidates.find(c => c.id === cb.value);
+            if (can) {
+                if(!can.history) can.history = [];
+                can.history.unshift({ date: new Date().toLocaleDateString(), stage: stage, comment: 'Bulk Updated' });
+                can.stage = stage;
+                can.lastUpdated = new Date().toLocaleDateString();
+            }
+        });
+        alert(`Successfully updated ${count} candidate(s).`);
+    }
+}
+
+function openMassEmailModal() {
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one candidate to email.");
+        return;
+    }
+    
+    document.getElementById('me_count').innerText = checkboxes.length;
+    openModal('massEmailModal');
+}
+
+function executeMassEmail(e) {
+    e.preventDefault();
+    const subjectTemplate = document.getElementById('me_subject').value;
+    const bodyTemplate = document.getElementById('me_body').value;
+    
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    let delay = 0;
+    
+    checkboxes.forEach(cb => {
+        const can = candidates.find(c => c.id === cb.value);
+        if (can) {
+            let subject = subjectTemplate
+                .replace(/\{\{Candidate_Name\}\}/g, can.name)
+                .replace(/\{\{Target_Country\}\}/g, can.country || 'US')
+                .replace(/\{\{Current_Stage\}\}/g, can.stage);
+                
+            let body = bodyTemplate
+                .replace(/\{\{Candidate_Name\}\}/g, can.name)
+                .replace(/\{\{Target_Country\}\}/g, can.country || 'US')
+                .replace(/\{\{Current_Stage\}\}/g, can.stage);
+            
+            const mailtoLink = `mailto:${can.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Stagger opening the links slightly so browsers don't block them
+            setTimeout(() => {
+                window.open(mailtoLink, '_blank');
+            }, delay);
+            delay += 500;
+        }
+    });
+    
+    closeModal('massEmailModal');
+    e.target.reset();
+}
+
+function matchCandidate(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const resultsDiv = document.getElementById(`ai-match-results-${can.id}`);
+    if (!resultsDiv) return;
+    
+    if (resultsDiv.style.display === 'block') {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div style="text-align:center; padding: 10px; color:var(--text-light);">Scanning active requirements...</div>';
+    
+    setTimeout(() => {
+        const canSkills = (can.skills || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+        if (canSkills.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding: 10px; background:var(--warning-light); color:var(--warning); border-radius: 6px;">No Key Skills found on candidate profile to match against.</div>';
+            return;
+        }
+        
+        let matches = [];
+        requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+            const reqSkills = (req.skills || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            if (reqSkills.length === 0) return;
+            
+            const matchedSkills = reqSkills.filter(s => canSkills.includes(s));
+            const score = Math.round((matchedSkills.length / reqSkills.length) * 100);
+            
+            if (score > 0) {
+                matches.push({ req, score, matchedSkills });
+            }
+        });
+        
+        matches.sort((a, b) => b.score - a.score);
+        const topMatches = matches.slice(0, 3);
+        
+        if (topMatches.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding: 10px; background:var(--bg-light); border-radius: 6px; font-size: 0.9rem;">No matching active requirements found for this candidate\'s skills.</div>';
+        } else {
+            let html = `<h4 style="margin-bottom: 10px; color:var(--primary); font-size: 0.9rem;">🤖 AI Top Matches</h4>`;
+            html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+            topMatches.forEach(m => {
+                const color = m.score >= 80 ? 'var(--success)' : (m.score >= 50 ? 'var(--warning)' : 'var(--danger)');
+                html += `
+                    <div style="border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: white; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:600; font-size:0.9rem;">${m.req.id} - ${m.req.title}</div>
+                            <div style="font-size:0.75rem; color:var(--text-light); margin-top:3px;">
+                                Matched: <strong>${m.matchedSkills.join(', ')}</strong>
+                            </div>
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: ${color};">
+                            ${m.score}%
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            resultsDiv.innerHTML = html;
+        }
+    }, 600); // Simulate processing delay
+}
+
+function draftEmail(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('ec_canId').value = can.id;
+    document.getElementById('ec_to').value = can.email || 'no-email@candidate.com';
+    document.getElementById('ec_template').value = 'custom';
+    document.getElementById('ec_subject').value = `Update on your application - ${can.reqId}`;
+    document.getElementById('ec_body').value = `Hi ${can.name.split(' ')[0]},\n\n\n\nBest Regards,\n${localStorage.getItem('username') || currentRole}`;
+    
+    openModal('emailComposerModal');
+}
+
+function applyEmailTemplate() {
+    const canId = document.getElementById('ec_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const template = document.getElementById('ec_template').value;
+    let subject = '';
+    let body = `Hi ${can.name.split(' ')[0]},\n\n`;
+    
+    switch (template) {
+        case 'interview':
+            subject = `Interview Invitation - ${can.reqId}`;
+            body += `We were very impressed with your background and would like to invite you for an interview regarding the ${can.reqId} position.\n\nPlease let us know your availability over the next few days.`;
+            break;
+        case 'offer':
+            subject = `Offer Details - Congratulations!`;
+            body += `We are thrilled to extend an offer for the position of ${can.reqId}!\n\nPlease review the attached official offer details and let us know your decision. We hope you will join our team!`;
+            break;
+        case 'reject':
+            subject = `Update on your application`;
+            body += `Thank you for taking the time to interview with us. Unfortunately, we will not be moving forward with your application for ${can.reqId} at this time.\n\nWe will keep your resume in our talent pool for future opportunities. We wish you the best in your job search.`;
+            break;
+        case 'checkin':
+            subject = `Checking in on your application - ${can.reqId}`;
+            body += `We are just following up regarding your application for ${can.reqId}.\n\nWe are currently reviewing profiles and will have an update for you shortly. Please let us know if you have any questions in the meantime.`;
+            break;
+        default:
+            subject = `Update on your application - ${can.reqId}`;
+            body += ``;
+            break;
+    }
+    
+    body += `\n\nBest Regards,\n${localStorage.getItem('username') || currentRole}`;
+    
+    document.getElementById('ec_subject').value = subject;
+    document.getElementById('ec_body').value = body;
+}
+
+function sendIntegratedEmail(e) {
+    e.preventDefault();
+    const canId = document.getElementById('ec_canId').value;
+    const subject = document.getElementById('ec_subject').value;
+    const body = document.getElementById('ec_body').value;
+    
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: 'Email Sent',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Subject: ${subject}\n\n${body}`
+        });
+        
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        saveData();
+        updateAllViews();
+        closeModal('emailComposerModal');
+        createAlert(`Email successfully sent to ${can.name}!`, 'success');
+    }
+}
+
+function openReminderModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('rm_canId').value = can.id;
+    document.getElementById('rm_canName').innerText = can.name;
+    
+    // Default to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('rm_date').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('rm_note').value = '';
+    
+    openModal('reminderModal');
+}
+
+function saveReminder(e) {
+    e.preventDefault();
+    const canId = document.getElementById('rm_canId').value;
+    const date = document.getElementById('rm_date').value;
+    const note = document.getElementById('rm_note').value;
+    
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        reminders.push({
+            id: 'REM' + Math.floor(Math.random() * 10000),
+            date: date,
+            text: note,
+            targetId: can.id,
+            targetName: can.name,
+            user: localStorage.getItem('username') || currentRole,
+            completed: false
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('reminderModal');
+        createAlert(`Reminder set for ${date}`, 'success');
+    }
+}
+
+function markReminderDone(id) {
+    const rm = reminders.find(r => r.id === id);
+    if (rm) {
+        rm.completed = true;
+        saveData();
+        updateAllViews();
+    }
+}
+
+function generateICS(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+
+    // We will just generate an ICS for tomorrow at 10 AM for 1 hour
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Format to ICS standard: YYYYMMDDTHHMMSSZ
+    const formatDate = (date) => {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const startDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 10, 0, 0);
+    const endDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 11, 0, 0);
+
+    const icsString = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Recruitment OS//EN',
+        'BEGIN:VEVENT',
+        'UID:' + Math.random().toString(36).substr(2, 9) + '@recruitmentos.com',
+        'DTSTAMP:' + formatDate(new Date()),
+        'DTSTART:' + formatDate(startDate),
+        'DTEND:' + formatDate(endDate),
+        'SUMMARY:Interview: ' + can.name + ' - Req ' + can.reqId,
+        'DESCRIPTION:Please review candidate profile and resume prior to the call.\n\nRole: ' + can.reqId,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `Interview_${can.name.replace(/\s+/g, '_')}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 // Intercept Add Candidate modal open to override button behavior
 const oldOpenModal = openModal;
+let openingCandidate = false;
 openModal = function(id) {
-    if (id === 'candidateModal') openCandidateModal();
-    else oldOpenModal(id);
+    if (id === 'candidateModal' && !openingCandidate) {
+        openingCandidate = true;
+        openCandidateModal();
+        openingCandidate = false;
+    } else {
+        oldOpenModal(id);
+    }
 };
 
 // Start
-document.addEventListener('DOMContentLoaded', () => {
-    renderHeaderRoleSwitcher();
-    if (document.getElementById('cfg_inactivity')) {
-        document.getElementById('cfg_inactivity').value = appSettings.inactivity;
-        document.getElementById('cfg_sla').value = appSettings.sla;
-        document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+async function initApp() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
     }
-    updateAllViews();
+    
+    try {
+        const res = await fetch('http://localhost:3000/api/sync', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            throw new Error('Unauthorized');
+        }
+        const data = await res.json();
+        if (data.requisitions) requirements = data.requisitions;
+        if (data.candidates) candidates = data.candidates;
+        if (data.worklogs) worklogs = data.worklogs;
+        if (data.reminders) reminders = data.reminders;
+        
+        document.getElementById('loginScreen').style.display = 'none';
+        
+        currentRole = localStorage.getItem('role') || 'Recruiter';
+        renderHeaderRoleSwitcher();
+        
+        if (document.getElementById('cfg_inactivity')) {
+            document.getElementById('cfg_inactivity').value = appSettings.inactivity;
+            document.getElementById('cfg_sla').value = appSettings.sla;
+            document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+        }
+        updateAllViews();
+        generateAlerts();
+    } catch (e) {
+        console.error('Failed to load from API', e);
+        localStorage.removeItem('token');
+        document.getElementById('loginScreen').style.display = 'flex';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+
+function toggleNotifications() {
+    const dropdown = document.getElementById('notif-dropdown');
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Close notifications when clicking outside
+document.addEventListener('click', (e) => {
+    const notifContainer = document.querySelector('[onclick="toggleNotifications()"]');
+    const dropdown = document.getElementById('notif-dropdown');
+    if (notifContainer && dropdown && dropdown.style.display === 'block') {
+        if (!notifContainer.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
 });
+
+function generateAlerts() {
+    if (currentRole === 'Client') return; // Clients don't see internal alerts
+    
+    let alerts = [];
+    
+    // Check SLA Breaches
+    requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        if (age > appSettings.sla) {
+            alerts.push({
+                type: 'danger',
+                text: `SLA Breach: ${req.id} (${req.title}) is ${age} days old and remains unfulfilled.`
+            });
+        }
+    });
+    
+    // Check Stalled Candidates (Offer Stage without Join Date, etc.)
+    candidates.forEach(can => {
+        if (can.stage === 'Offer Released') {
+            alerts.push({
+                type: 'warning',
+                text: `Pending Offer: ${can.name} for ${can.reqId} needs follow-up.`
+            });
+        }
+    });
+    
+    const badge = document.getElementById('notif-badge');
+    const list = document.getElementById('notif-list');
+    
+    if (badge && list) {
+        if (alerts.length > 0) {
+            badge.style.display = 'block';
+            badge.innerText = alerts.length;
+            list.innerHTML = alerts.map(a => `
+                <div style="padding: 10px; border-radius: 4px; border-left: 4px solid var(--${a.type}); background: var(--bg-light); line-height: 1.4;">
+                    ${a.text}
+                </div>
+            `).join('');
+        } else {
+            badge.style.display = 'none';
+            list.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 10px;">No new alerts.</div>';
+        }
+    }
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('login_username').value;
+    const p = document.getElementById('login_password').value;
+    const errDiv = document.getElementById('login_error');
+    
+    try {
+        const res = await fetch('http://localhost:3000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role);
+            localStorage.setItem('username', data.username);
+            currentRole = data.role;
+            initApp();
+        } else {
+            errDiv.innerText = data.error || 'Login failed';
+            errDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errDiv.innerText = 'Server offline. Try again.';
+        errDiv.style.display = 'block';
+    }
+}
+
+function cloneReq(reqId) {
+    const r = requirements.find(req => req.id === reqId);
+    if (!r) return;
+    
+    closeModal('reqDetailsModal');
+    
+    document.getElementById('title').value = r.title + ' (Clone)';
+    document.getElementById('client').value = r.client;
+    document.getElementById('endClient').value = r.endClient || '';
+    document.getElementById('location').value = r.location;
+    document.getElementById('workMode').value = r.workMode || 'Hybrid';
+    document.getElementById('type').value = r.type;
+    document.getElementById('status').value = 'New';
+    document.getElementById('priority').value = r.priority || 'Medium';
+    document.getElementById('headcount').value = r.headcount || 1;
+    document.getElementById('billRate').value = r.billRate || '';
+    document.getElementById('payRate').value = r.payRate || '';
+    document.getElementById('margin').value = r.margin || '';
+    document.getElementById('budget').value = r.budget || '';
+    document.getElementById('noticePeriod').value = r.noticePeriod || '';
+    document.getElementById('country').value = r.country || 'US';
+    document.getElementById('desc').value = r.desc || '';
+    document.getElementById('exp').value = r.exp || '';
+    
+    editingReqId = null;
+    openModal('reqModal');
+    toggleReqFields();
+}
+
+// Phase 36: Offer Letter Generation logic
+function openOfferConfig(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('offer_canId').value = can.id;
+    document.getElementById('offer_salary').value = '';
+    document.getElementById('offer_startDate').value = '';
+    document.getElementById('offer_expireDate').value = '';
+    document.getElementById('offer_bonus').value = '';
+    document.getElementById('offer_hmName').value = '';
+    
+    closeModal('candidateDetailsModal');
+    openModal('offerConfigModal');
+}
+
+function generateOfferLetter(e) {
+    e.preventDefault();
+    
+    const canId = document.getElementById('offer_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const req = requirements.find(r => r.id === can.reqId);
+    const jobTitle = req ? req.title : 'the position';
+    const clientName = req ? req.client : 'our company';
+    
+    const salary = document.getElementById('offer_salary').value;
+    const startDate = new Date(document.getElementById('offer_startDate').value).toLocaleDateString();
+    const expireDate = new Date(document.getElementById('offer_expireDate').value).toLocaleDateString();
+    const bonus = document.getElementById('offer_bonus').value;
+    const hmName = document.getElementById('offer_hmName').value || 'Hiring Management Team';
+    const today = new Date().toLocaleDateString();
+    
+    // Create print-only content
+    const offerHtml = `
+        <div style="font-family: 'Times New Roman', serif; color: #000; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; background: white;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h1 style="margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">RecruitTrack ATS, Inc.</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">123 Enterprise Blvd, Tech District, CA 94105</p>
+                <hr style="margin-top: 20px; border: 0; border-top: 2px solid #000;" />
+            </div>
+            
+            <p><strong>Date:</strong> ${today}</p>
+            <p><strong>To:</strong> ${can.name}</p>
+            <p><strong>Address:</strong> On File</p>
+            <br>
+            <p>Dear ${can.name},</p>
+            <p>We are thrilled to officially extend an offer of employment to you for the position of <strong>${jobTitle}</strong> at <strong>${clientName}</strong>. We were incredibly impressed with your skills and believe you will be an outstanding addition to the team.</p>
+            
+            <h3 style="margin-top: 30px;">Offer Details:</h3>
+            <ul style="list-style-type: square; margin-bottom: 30px;">
+                <li><strong>Role:</strong> ${jobTitle}</li>
+                <li><strong>Compensation:</strong> ${salary}</li>
+                <li><strong>Target Start Date:</strong> ${startDate}</li>
+                ${bonus ? `<li><strong>Special Terms / Bonus:</strong> ${bonus}</li>` : ''}
+                <li><strong>Reporting To:</strong> ${hmName}</li>
+            </ul>
+            
+            <p>This offer is contingent upon the successful completion of a standard background check and verification of your right to work.</p>
+            <p>Please note that this offer will expire on <strong>${expireDate}</strong>. If you choose to accept, please sign and date this document below.</p>
+            
+            <p style="margin-top: 40px;">We look forward to welcoming you aboard!</p>
+            <br>
+            <p>Sincerely,</p>
+            <p><strong>Recruiting & HR Team</strong></p>
+            <p>RecruitTrack ATS, Inc.</p>
+            
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 30px; font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; line-height: 30px; padding-left: 10px;" id="signature-display"></div>
+                    <p style="margin-top: 5px; font-size: 14px;"><strong>Candidate Signature</strong></p>
+                </div>
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 30px; line-height: 30px; padding-left: 10px;" id="signature-date"></div>
+                    <p style="margin-top: 5px; font-size: 14px;"><strong>Date</strong></p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Set content in print div
+    document.getElementById('printable-offer-letter').innerHTML = offerHtml;
+    // Set content in preview modal
+    document.getElementById('offerPreviewContent').innerHTML = offerHtml;
+    
+    // Store currently signing canId globally
+    window.currentSigningCanId = canId;
+    
+    closeModal('offerConfigModal');
+    openModal('offerPreviewModal');
+}
+
+function openSignatureModal() {
+    document.getElementById('es_signature').value = '';
+    openModal('signatureModal');
+}
+
+function signOffer(e) {
+    e.preventDefault();
+    const signature = document.getElementById('es_signature').value;
+    const canId = window.currentSigningCanId;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    // Apply signature to preview and print view
+    document.querySelectorAll('#signature-display').forEach(el => el.innerText = signature);
+    document.querySelectorAll('#signature-date').forEach(el => el.innerText = new Date().toLocaleDateString());
+    
+    // Update candidate state
+    can.stage = 'Joined';
+    can.history = can.history || [];
+    can.history.unshift({
+        stage: 'Offer Signed',
+        date: new Date().toISOString().split('T')[0],
+        comment: `Digitally signed by ${signature}`
+    });
+    can.lastUpdated = new Date().toISOString().split('T')[0];
+    
+    saveData();
+    updateAllViews();
+    
+    closeModal('signatureModal');
+    
+    // Wait a brief moment, then print the signed offer
+    setTimeout(() => {
+        window.print();
+        closeModal('offerPreviewModal');
+        createAlert(`Amazing! ${can.name} has officially accepted the offer and Joined!`, 'success');
+    }, 500);
+}

@@ -6,15 +6,24 @@
     </h2>
     <div class="nav-items" style="font-size: 0.85rem;">
         <div class="nav-item active" onclick="switchView('dashboard')" data-role-visible="Management,Account Manager,Recruiter">Executive Dashboard</div>
+        <div class="nav-item" onclick="switchView('clientportal')" data-role-visible="Client">Client Portal (VMS)</div>
+        <div class="nav-item" onclick="switchView('hiringmanager')" data-role-visible="Hiring Manager">Hiring Manager Portal <span class="nav-badge" id="nav-hm-count">0</span></div>
+        <div class="nav-item" onclick="switchView('agencyportal')" data-role-visible="Agency Vendor">Agency Vendor Portal <span class="nav-badge" id="nav-ag-count">0</span></div>
         <div class="nav-item" onclick="switchView('requirements')" data-role-visible="Management,Account Manager,Recruiter">All Requirements <span class="nav-badge" id="nav-req-count">0</span></div>
         <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
         <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
         <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
+        <div class="nav-item" onclick="switchView('kanban')" data-role-visible="Management,Account Manager,Recruiter">📊 Visual Pipeline (Kanban)</div>
+        <div class="nav-item" onclick="switchView('auditlog')" data-role-visible="Management,Admin">📜 Global Audit Log</div>
+        <div class="nav-item" onclick="switchView('careersPortal')" data-role-visible="Management,Admin,Account Manager">🌐 Careers Portal</div>
+        <div class="nav-item" onclick="switchView('talentpool')" data-role-visible="Management,Account Manager,Recruiter">🏊 Talent Pool <span class="nav-badge" id="nav-pool-count">0</span></div>
         <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
-        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers & Onboarding <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('onboarding')" data-role-visible="Management,Account Manager,Recruiter">🚀 Onboarding Hub <span class="nav-badge" id="nav-onb-count">0</span></div>
         <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
         <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
-        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">Reports & Analytics</div>
+        <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">📊 Analytics Hub</div>
+        <div class="nav-item" onclick="switchView('emailtemplates')" data-role-visible="Management,Account Manager,Recruiter">📧 Email Templates</div>
         <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
         <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
         <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
@@ -214,6 +223,18 @@
         </div>
         <form id="candidateForm" onsubmit="handleCandidateSubmit(event)">
             <div class="form-grid">
+                <div class="form-group full-width" style="background: var(--bg-light); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label style="color: var(--primary); font-weight: bold;">⚡ Smart Quick-Import</label>
+                    <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 8px;">Upload a .txt Resume or Paste text below to auto-extract Name, Email & Phone.</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="file" id="c_resume_file" accept=".txt" style="flex: 1; padding: 4px;" onchange="handleResumeUpload(event)">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <textarea id="c_quick_import" rows="2" style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Or paste profile text here..."></textarea>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="autoFillCandidate()">Auto-Fill</button>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>First Name *</label>
                     <input type="text" id="c_firstname" required>
@@ -254,12 +275,25 @@
                         <option value="Internal">Internal Database</option>
                     </select>
                 </div>
+                <div class="form-group full-width">
+                    <label>Upload Resume (PDF/Docx)</label>
+                    <input type="file" id="c_resume" accept=".pdf,.doc,.docx" style="padding: 5px;">
+                </div>
                 <div class="form-group">
                     <label>Target Country *</label>
                     <select id="c_country" required>
                         <option value="US">United States</option>
                         <option value="IN">India</option>
                     </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Key Skills (Type & press Enter or comma to add tags)</label>
+                    <div id="c_skills_tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:8px; border:1px solid var(--border); border-radius:6px; min-height:42px; cursor:text; background:var(--white);" onclick="document.getElementById('c_skills_input').focus()">
+                        <!-- Tags rendered here -->
+                    </div>
+                    <input type="text" id="c_skills_input" placeholder="Type a skill and press Enter..." style="width:100%; margin-top:6px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:0.875rem;" oninput="showSkillSuggestions(this.value)" onkeydown="handleSkillInput(event)">
+                    <div id="skill_suggestions" style="display:none; position:absolute; background:var(--white); border:1px solid var(--border); border-radius:6px; box-shadow:var(--shadow-lg); z-index:200; max-height:180px; overflow-y:auto; width:300px;"></div>
+                    <input type="hidden" id="c_skills">
                 </div>
                 
                 <div id="duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
@@ -291,8 +325,10 @@
                         <option value="Screened">Screened</option>
                         <option value="Submitted to Client">Submitted to Client (Requires Rate)</option>
                         <option value="Interview Scheduled">Interview Scheduled (Requires Details)</option>
+                        <option value="Interview Completed">Interview Completed (Add Scorecard)</option>
                         <option value="Offer Released">Offer Released (Requires Offer Info)</option>
                         <option value="Joined">Joined (Requires Date & Final Pay)</option>
+                        <option value="Talent Pool">Talent Pool (Keep on Bench)</option>
                         <option value="Rejected">Rejected (Requires Reason)</option>
                         <option value="Candidate Withdrew">Candidate Withdrew (Requires Reason)</option>
                     </select>
@@ -328,6 +364,25 @@
                         <option value="Phone">Phone Call</option>
                         <option value="Onsite">Onsite Interview</option>
                     </select>
+                </div>
+                
+                <!-- Interview Completed / Scorecard Fields -->
+                <div class="form-group conditional-field stage-scorecard full-width">
+                    <label style="color:var(--primary); font-weight:bold;">Interview Scorecard (1-5 Stars) *</label>
+                    <div style="display:flex; gap: 20px; align-items:center; margin-top: 5px;">
+                        <div>
+                            <small>Technical</small><br>
+                            <input type="number" id="s_scoreTech" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                        <div>
+                            <small>Communication</small><br>
+                            <input type="number" id="s_scoreComm" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                        <div>
+                            <small>Cultural Fit</small><br>
+                            <input type="number" id="s_scoreCult" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Offer Fields -->
@@ -511,14 +566,541 @@
 
 <!-- Modal: Candidate Profile Inspector -->
 <div id="candidateDetailsModal" class="modal">
-    <div class="modal-content" style="max-width: 700px;">
-        <div class="modal-header">
-            <h2>Candidate Profile Card</h2>
+    <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+        <div class="modal-header" style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-light);">
+            <h2>Candidate Profile Card & Evaluation Hub</h2>
             <span class="close-btn" onclick="closeModal('candidateDetailsModal')">&times;</span>
         </div>
-        <div id="candidate-details-content" style="font-size: 0.9rem; line-height: 1.6;">
-            <!-- Populated via JS -->
+        <div id="candidate-details-content" style="display: flex; flex: 1; overflow: hidden; background: var(--bg-light);">
+            <!-- Populated via JS with Split View -->
         </div>
+    </div>
+</div>
+<!-- Modal: Bulk Stage Change -->
+<!-- Modal: Careers Portal - Apply Now -->
+<div id="applyModal" class="modal">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; border-radius: 8px 8px 0 0;">
+            <h2 style="color: white;">Apply for <span id="apply_job_title">Position</span></h2>
+            <span class="close-btn" onclick="closeModal('applyModal')" style="color: white;">&times;</span>
+        </div>
+        <form id="applyForm" onsubmit="submitApplication(event)" style="padding: 20px;">
+            <input type="hidden" id="apply_req_id">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="apply_firstname" required placeholder="John">
+                </div>
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="apply_lastname" required placeholder="Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email Address *</label>
+                    <input type="email" id="apply_email" required placeholder="john.doe@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="text" id="apply_phone" required placeholder="123-456-7890">
+                </div>
+                <div class="form-group full-width">
+                    <label>Years of Experience</label>
+                    <input type="number" id="apply_exp" min="0" max="40" placeholder="e.g. 5">
+                </div>
+                <div class="form-group full-width">
+                    <label>Paste Resume / Cover Letter</label>
+                    <textarea id="apply_resume" rows="5" placeholder="Paste your resume text or a short cover letter here..."></textarea>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('applyModal')">Cancel</button>
+                <button type="submit" class="btn">🚀 Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="bulkStageModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>🔄 Bulk Change Stage</h2>
+            <span class="close-btn" onclick="closeModal('bulkStageModal')">&times;</span>
+        </div>
+        <form onsubmit="processBulkStageChange(event)">
+            <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">Select the new stage for the <strong id="bulkStageCount">0</strong> selected candidate(s).</p>
+            <div class="form-group full-width">
+                <label>New Stage *</label>
+                <select id="bulk_new_stage" required>
+                    <option value="">-- Select Stage --</option>
+                    <option value="Sourced">Sourced</option>
+                    <option value="Screened">Screened</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="Interview Scheduled">Interview Scheduled</option>
+                    <option value="Interview Completed">Interview Completed</option>
+                    <option value="Offer Released">Offer Released</option>
+                    <option value="Joined">Joined</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <button type="submit" class="btn" style="background:var(--primary); color:white;">Update Stage</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Offer Letter Preview -->
+<div id="offerPreviewModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <h2>📜 Official Offer Letter Preview</h2>
+            <span class="close-btn" onclick="closeModal('offerPreviewModal')">&times;</span>
+        </div>
+        <div id="offerPreviewContent" style="flex:1; overflow-y:auto; padding: 20px; background: white; border: 1px solid var(--border); margin-bottom: 20px;">
+            <!-- Rendered Offer Letter -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap: 15px;">
+            <button class="btn btn-outline" onclick="window.print()">🖨️ Print Offer</button>
+            <button class="btn" style="background:var(--success); color:white;" onclick="openSignatureModal()">✍️ Accept & Sign Digitally</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Digital E-Signature -->
+<div id="signatureModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>✍️ Digital E-Signature Portal</h2>
+            <span class="close-btn" onclick="closeModal('signatureModal')">&times;</span>
+        </div>
+        <form onsubmit="signOffer(event)">
+            <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">By typing your name below, you formally accept the terms of the offer letter and electronically sign the document.</p>
+            <div class="form-group full-width">
+                <label>Type your Full Legal Name to Sign *</label>
+                <input type="text" id="es_signature" required style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.5rem; padding: 15px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <button type="submit" class="btn" style="background:var(--primary); color:white;">Sign & Accept Offer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Set Follow-up Reminder -->
+<div id="reminderModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>⏰ Set Follow-up Reminder</h2>
+            <span class="close-btn" onclick="closeModal('reminderModal')">&times;</span>
+        </div>
+        <form onsubmit="saveReminder(event)">
+            <input type="hidden" id="rm_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Set a reminder to follow up with <strong id="rm_canName"></strong>.</p>
+            
+            <div class="form-group full-width">
+                <label>Due Date *</label>
+                <input type="date" id="rm_date" required>
+            </div>
+            
+            <div class="form-group full-width">
+                <label>Note / Task Description *</label>
+                <textarea id="rm_note" rows="3" required placeholder="e.g. Call to discuss counter-offer"></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: var(--warning); color: #000;">Set Reminder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Integrated Email Composer -->
+<div id="emailComposerModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>📧 Compose Email</h2>
+            <span class="close-btn" onclick="closeModal('emailComposerModal')">&times;</span>
+        </div>
+        <form onsubmit="sendIntegratedEmail(event)">
+            <input type="hidden" id="ec_canId">
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>To:</label>
+                <input type="email" id="ec_to" readonly style="background: var(--bg-light); cursor: not-allowed;">
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>Template</label>
+                <select id="ec_template" onchange="applyEmailTemplate()">
+                    <option value="custom">Custom Message</option>
+                    <option value="interview">Interview Invitation</option>
+                    <option value="offer">Offer Details</option>
+                    <option value="reject">Polite Rejection</option>
+                    <option value="checkin">Status Check-in</option>
+                </select>
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>Subject</label>
+                <input type="text" id="ec_subject" required>
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 15px;">
+                <label>Message Body</label>
+                <textarea id="ec_body" rows="8" required style="resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('emailComposerModal')">Cancel</button>
+                <button type="submit" class="btn" style="background: var(--info); color: white; border: none;">🚀 Send Email</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Reassign Candidate -->
+<div id="reassignModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Re-assign to New Requirement</h2>
+            <span class="close-btn" onclick="closeModal('reassignModal')">&times;</span>
+        </div>
+        <form onsubmit="reassignCandidate(event)">
+            <input type="hidden" id="ra_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Move <strong id="ra_canName"></strong> out of the Talent Pool and assign them to an active role.</p>
+            
+            <div class="form-group full-width">
+                <label>Select Active Requirement *</label>
+                <select id="ra_reqId" required>
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: #9c27b0; color: white;">Re-engage Candidate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Agency Vendor Submittal Form -->
+<div id="agencySubmitModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🚀 Submit Candidate</h2>
+            <span class="close-btn" onclick="closeModal('agencySubmitModal')">&times;</span>
+        </div>
+        <form onsubmit="submitAgencyCandidate(event)">
+            <input type="hidden" id="ag_reqId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Submit a candidate to Req: <strong id="ag_reqTitle"></strong></p>
+            
+            <div class="form-group full-width">
+                <label>Candidate Full Name *</label>
+                <input type="text" id="ag_canName" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Email Address *</label>
+                <input type="email" id="ag_canEmail" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Phone Number *</label>
+                <input type="text" id="ag_canPhone" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Visa / Work Authorization</label>
+                <select id="ag_canVisa">
+                    <option value="US Citizen">US Citizen</option>
+                    <option value="Green Card">Green Card</option>
+                    <option value="H1B">H1B</option>
+                    <option value="OPT/CPT">OPT/CPT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Resume (PDF/DOCX)</label>
+                <input type="file" id="ag_canResume" accept=".pdf,.docx">
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: var(--primary); color: white;">Submit Candidate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Onboarding Checklist -->
+<div id="onboardingModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Post-Hire Onboarding Tracker</h2>
+            <span class="close-btn" onclick="closeModal('onboardingModal')">&times;</span>
+        </div>
+        <form onsubmit="saveOnboarding(event)">
+            <input type="hidden" id="onb_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Check off items as they are completed for <strong id="onb_canName"></strong>.</p>
+            
+            <div style="display:flex; flex-direction:column; gap: 15px; margin-bottom: 20px;">
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_bg" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Background Check</strong> (Cleared)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_it" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>IT Equipment & Access</strong> (Provisioned)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_pay" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Payroll & Direct Deposit</strong> (Completed)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_ori" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Day 1 Orientation</strong> (Scheduled)</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn">💾 Save Progress</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Offer Configuration -->
+<div id="offerConfigModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Generate Offer Letter</h2>
+            <span class="close-btn" onclick="closeModal('offerConfigModal')">&times;</span>
+        </div>
+        <form onsubmit="generateOfferLetter(event)">
+            <input type="hidden" id="offer_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Fill out the details below to generate a formal Offer Letter.</p>
+            
+            <div class="form-group full-width">
+                <label>Offered Salary / Hourly Rate *</label>
+                <input type="text" id="offer_salary" placeholder="e.g. $120,000/yr or $65/hr" required>
+            </div>
+            <div style="display:flex; gap:15px;" class="form-group full-width">
+                <div style="flex:1;">
+                    <label>Target Start Date *</label>
+                    <input type="date" id="offer_startDate" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Offer Expires On *</label>
+                    <input type="date" id="offer_expireDate" required>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Sign-on Bonus / Special Terms</label>
+                <input type="text" id="offer_bonus" placeholder="e.g. $5,000 sign-on bonus">
+            </div>
+            <div class="form-group full-width">
+                <label>Hiring Manager Name</label>
+                <input type="text" id="offer_hmName" placeholder="e.g. John Smith">
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn" style="background: var(--success); color: white; border: none;">📝 Generate Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal: Schedule Interview -->
+<div id="scheduleInterviewModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2>📅 Schedule Interview</h2>
+            <span class="close-btn" onclick="closeModal('scheduleInterviewModal')">&times;</span>
+        </div>
+        <form onsubmit="saveScheduledInterview(event)">
+            <input type="hidden" id="sint_id">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="form-group">
+                    <label>Candidate *</label>
+                    <select id="sint_canId" required style="width:100%;" onchange="checkInterviewConflict()">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Requirement *</label>
+                    <select id="sint_reqId" required style="width:100%;">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="sint_date" required onchange="checkInterviewConflict()">
+                </div>
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="time" id="sint_time" required onchange="checkInterviewConflict()">
+                </div>
+                <div class="form-group">
+                    <label>Round *</label>
+                    <select id="sint_round" required style="width:100%;">
+                        <option value="1st Round">1st Round</option>
+                        <option value="2nd Round">2nd Round</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Final Round">Final Round</option>
+                        <option value="HR">HR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="sint_type" required style="width:100%;">
+                        <option value="Video Call">Video Call</option>
+                        <option value="Phone Screen">Phone Screen</option>
+                        <option value="In-Person">In-Person</option>
+                        <option value="Technical Test">Technical Test</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Interviewer Name *</label>
+                    <input type="text" id="sint_interviewer" required placeholder="e.g. John Smith" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Duration (min)</label>
+                    <input type="number" id="sint_duration" value="60" min="15" style="width:100%;">
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Notes</label>
+                <textarea id="sint_notes" rows="2" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></textarea>
+            </div>
+            <div id="sint_conflict_warning" style="display:none; color:var(--warning); font-size:0.85rem; font-weight:600; margin-bottom:10px; padding:8px; background:var(--warning-light); border-radius:6px;">
+                ⚠️ Conflict: This interviewer may be double-booked at this time!
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('scheduleInterviewModal')">Cancel</button>
+                <button type="submit" class="btn">📅 Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Interview Feedback -->
+<div id="interviewFeedbackModal" class="modal">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h2>📋 Interview Feedback</h2>
+            <span class="close-btn" onclick="closeModal('interviewFeedbackModal')">&times;</span>
+        </div>
+        <form onsubmit="saveInterviewFeedback(event)">
+            <input type="hidden" id="ifb_intId">
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Feedback for: <strong id="ifb_title"></strong></p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Technical Skills (1-5) *</label>
+                    <input type="number" id="ifb_tech" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Communication (1-5) *</label>
+                    <input type="number" id="ifb_comm" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Cultural Fit (1-5) *</label>
+                    <input type="number" id="ifb_culture" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Overall Rating (1-5) *</label>
+                    <input type="number" id="ifb_overall" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Hire Recommendation *</label>
+                <select id="ifb_recommendation" required style="width:100%;">
+                    <option value="Strong Yes">Strong Yes</option>
+                    <option value="Yes">Yes</option>
+                    <option value="Maybe">Maybe</option>
+                    <option value="No">No</option>
+                    <option value="Strong No">Strong No</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Outcome *</label>
+                <select id="ifb_outcome" required style="width:100%;" onchange="checkAutoAdvance()">
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="No Show">No Show</option>
+                    <option value="On Hold">On Hold</option>
+                </select>
+            </div>
+            <div id="ifb_autoadvance_msg" style="display:none; color:var(--success); font-size:0.8rem; margin-bottom:8px; padding:6px; background:var(--success-light); border-radius:6px;">
+                ✅ Candidate will be auto-advanced to next stage on save.
+            </div>
+            <div class="form-group full-width">
+                <label>Notes</label>
+                <textarea id="ifb_notes" rows="3" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('interviewFeedbackModal')">Cancel</button>
+                <button type="submit" class="btn">💾 Save Feedback</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Hiring Manager Feedback Scorecard -->
+<div id="hmFeedbackModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Interview Feedback Scorecard</h2>
+            <span class="close-btn" onclick="closeModal('hmFeedbackModal')">&times;</span>
+        </div>
+        <form onsubmit="submitHMFeedback(event)">
+            <input type="hidden" id="hm_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Please rate the candidate on a scale of 1-5 stars.</p>
+            
+            <div class="form-group full-width">
+                <label>Technical Skills *</label>
+                <input type="number" id="hm_scoreTech" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Communication *</label>
+                <input type="number" id="hm_scoreComm" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Cultural Fit *</label>
+                <input type="number" id="hm_scoreCult" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Detailed Notes / Recommendation *</label>
+                <textarea id="hm_comments" rows="4" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Should we hire this candidate? Why or why not?"></textarea>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn" style="background: var(--success); color: white; border: none;">Submit Feedback</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Mass Email Campaign Builder -->
+<div id="massEmailModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Campaign Builder: Mass Email</h2>
+            <span class="close-btn" onclick="closeModal('massEmailModal')">&times;</span>
+        </div>
+        <form onsubmit="executeMassEmail(event)">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Selected Candidates: <span id="me_count" style="font-weight: bold; color: var(--primary);">0</span></p>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Subject Line *</label>
+                    <input type="text" id="me_subject" required placeholder="e.g. Exciting Opportunity for {{Candidate_Name}}">
+                </div>
+                <div class="form-group full-width">
+                    <label>Email Body *</label>
+                    <div style="font-size: 0.75rem; color: var(--info); margin-bottom: 5px;">Available placeholders: {{Candidate_Name}}, {{Target_Country}}, {{Current_Stage}}</div>
+                    <textarea id="me_body" rows="8" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Hi {{Candidate_Name}},\n\nI came across your profile and..."></textarea>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn">🚀 Generate & Open Emails</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -534,6 +1116,3 @@
         </div>
     </div>
 </div>
-
-
-

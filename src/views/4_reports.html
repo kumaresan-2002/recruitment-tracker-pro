@@ -1,51 +1,143 @@
-<!-- Interviews & Reports View -->
-<div id="interviews" class="view">
-    <h3 style="margin-bottom:20px;">Upcoming Interviews</h3>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Candidate</th>
-                    <th>Requirement</th>
-                    <th>Date & Time</th>
-                    <th>Round</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="interview-table">
-                <!-- Populated via JS -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
 <div id="reports" class="view">
-    <h3 style="margin-bottom:20px;">Data Export & Reports</h3>
-    
-    <!-- Turnaround Time Card -->
-    <div class="dashboard-grid" style="margin-bottom: 25px;">
-        <div class="card" style="border-color: var(--primary);">
-            <h3>Average Requirement Turnaround Time (TAT)</h3>
-            <div class="value" id="kpi-avg-tat" style="color: var(--primary);">0 Days</div>
-            <p style="font-size:0.75rem; color:var(--text-light); margin-top:5px;">Average days from job creation date to closure/fulfillment date.</p>
+    <!-- Analytics Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">📊 Analytics Hub</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Live recruitment performance metrics & insights</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; background:var(--bg-light); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                <button id="analytics-btn-30" onclick="setAnalyticsPeriod(30)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:var(--primary); color:white;">30 Days</button>
+                <button id="analytics-btn-60" onclick="setAnalyticsPeriod(60)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">60 Days</button>
+                <button id="analytics-btn-90" onclick="setAnalyticsPeriod(90)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">90 Days</button>
+                <button id="analytics-btn-365" onclick="setAnalyticsPeriod(365)" style="padding:8px 16px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-light);">All Time</button>
+            </div>
+            <button class="btn btn-outline" onclick="exportRequirementsCSV()">⬇ Req CSV</button>
+            <button class="btn btn-outline" onclick="exportCandidatesCSV()">⬇ Candidate CSV</button>
+            <button class="btn" onclick="exportData()">💾 Backup JSON</button>
         </div>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>Full Database Backup</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export all JSON data from LocalStorage.</p>
-            <button class="btn" onclick="exportData()">Download JSON</button>
+    <!-- Top KPI Analytics Cards -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); margin-bottom:24px;">
+        <div class="card" style="border-top:3px solid var(--primary);">
+            <h3>Avg Time-to-Fill</h3>
+            <div class="value" id="analytics-ttf" style="color:var(--primary);">– Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Req open → first placement</p>
         </div>
-        <div class="card">
-            <h3>Requirements Report</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export current requirements pipeline.</p>
-            <button class="btn btn-outline" onclick="exportRequirementsCSV()">Export CSV</button>
+        <div class="card" style="border-top:3px solid var(--success);">
+            <h3>Offer Acceptance Rate</h3>
+            <div class="value" id="analytics-oar" style="color:var(--success);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Offers released vs. joined</p>
         </div>
-        <div class="card">
-            <h3>Candidate Report</h3>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Export full candidate and stage history.</p>
-            <button class="btn btn-outline" onclick="exportCandidatesCSV()">Export CSV</button>
+        <div class="card" style="border-top:3px solid var(--warning);">
+            <h3>Pipeline Conversion</h3>
+            <div class="value" id="analytics-conv" style="color:var(--warning);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Sourced → Joined rate</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--purple);">
+            <h3>Active Candidates</h3>
+            <div class="value" id="analytics-active-can" style="color:var(--purple);">0</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">In pipeline (not closed)</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--info);">
+            <h3>Avg TAT (Reports)</h3>
+            <div class="value" id="kpi-avg-tat" style="color:var(--info);">0 Days</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Req creation to closure</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--danger);">
+            <h3>Req Fill Rate</h3>
+            <div class="value" id="analytics-fill-rate" style="color:var(--danger);">–%</div>
+            <p style="font-size:0.75rem; color:var(--text-light); margin-top:6px;">Filled / Total active reqs</p>
+        </div>
+    </div>
+
+    <!-- Row 1: Funnel + Source Effectiveness -->
+    <div class="charts-grid" style="grid-template-columns:1.5fr 1fr; margin-bottom:24px;">
+        <div class="chart-container" style="height:320px;">
+            <h3 style="margin-bottom:10px;">🔽 Recruitment Funnel Drop-off</h3>
+            <canvas id="analyticsFunnelChart"></canvas>
+        </div>
+        <div class="chart-container" style="height:320px;">
+            <h3 style="margin-bottom:10px;">🎯 Candidate Source Effectiveness</h3>
+            <canvas id="analyticsSourceChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Row 2: Time-to-Fill + Hire Rate Trend -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr; margin-bottom:24px;">
+        <div class="chart-container" style="height:300px;">
+            <h3 style="margin-bottom:10px;">⏱ Time-to-Fill Trend (Monthly Avg Days)</h3>
+            <canvas id="analyticsTimeToFillChart"></canvas>
+        </div>
+        <div class="chart-container" style="height:300px;">
+            <h3 style="margin-bottom:10px;">📈 Monthly Placements Trend</h3>
+            <canvas id="analyticsHireRateChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Row 3: Recruiter Performance Table -->
+    <div class="card" style="margin-bottom:24px;">
+        <h3 style="font-size:1rem; text-transform:none; letter-spacing:0; margin-bottom:16px;">🏆 Recruiter Performance Breakdown</h3>
+        <div class="table-container" style="margin-bottom:0; box-shadow:none; border:none;">
+            <table style="min-width:600px;">
+                <thead>
+                    <tr>
+                        <th>Recruiter</th>
+                        <th>Reqs Assigned</th>
+                        <th>Candidates Sourced</th>
+                        <th>Interviews</th>
+                        <th>Placements</th>
+                        <th>Conversion %</th>
+                    </tr>
+                </thead>
+                <tbody id="analytics-recruiter-tbody">
+                    <tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-light);">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Row 4: Custom Report Builder (preserved) -->
+    <div class="card">
+        <h3 style="font-size:1rem; text-transform:none; letter-spacing:0; margin-bottom:16px;">🔍 Custom Report Builder</h3>
+        <div style="display:flex; gap:15px; margin-bottom:15px; align-items:flex-end; flex-wrap:wrap;">
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Start Date</label>
+                <input type="date" id="rep_start_date">
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>End Date</label>
+                <input type="date" id="rep_end_date">
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Filter by Recruiter</label>
+                <select id="rep_recruiter">
+                    <option value="All">All Recruiters</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Filter by Client</label>
+                <select id="rep_client">
+                    <!-- Populated dynamically via JS -->
+                    <option value="All">All Clients</option>
+                </select>
+            </div>
+            <button class="btn" style="height: 38px;" onclick="generateCustomReport()">Generate Report</button>
+            <button class="btn btn-outline" style="height: 38px;" onclick="exportCustomReport()">Export CSV</button>
+        </div>
+        <div class="table-container" style="margin-bottom:0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Req ID</th><th>Job Title</th><th>Client</th><th>Recruiter</th>
+                        <th>Sourced</th><th>Screened</th><th>Submitted</th><th>Interviews</th><th>Placements</th>
+                    </tr>
+                </thead>
+                <tbody id="custom-report-table">
+                    <tr><td colspan="9" style="text-align:center; color:var(--text-light); padding:20px;">Use the filters above to generate a custom report.</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

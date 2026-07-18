@@ -1,31 +1,53 @@
-<!-- Candidates View -->
 <div id="candidates" class="view">
     
     <!-- Candidate Sub-folders (Sub-tabs) -->
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-        <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
-        <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
-        <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
+            <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
+            <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-sm" id="btn-view-list" onclick="toggleCandidateView('list')">List View</button>
+            <button class="btn btn-sm btn-outline" id="btn-view-kanban" onclick="toggleCandidateView('kanban')">Kanban Board</button>
+        </div>
     </div>
 
-    <div style="margin-bottom: 20px; display: flex; gap: 15px;">
-        <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
-        <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
-            <option value="All">All Stages</option>
-            <option value="Sourced">Sourced</option>
-            <option value="Screened">Screened</option>
-            <option value="Submitted to Client">Submitted to Client</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Offer Released">Offer Released</option>
-            <option value="Joined">Joined</option>
-        </select>
-        <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
-    </div>
-    
-    <div class="table-container">
-        <table>
+    <div id="candidate-list-view">
+        <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center;">
+            <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+            <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <option value="All">All Stages</option>
+                <option value="Sourced">Sourced</option>
+                <option value="Screened">Screened</option>
+                <option value="Submitted to Client">Submitted to Client</option>
+                <option value="Interview Scheduled">Interview Scheduled</option>
+                <option value="Offer Released">Offer Released</option>
+                <option value="Joined">Joined</option>
+                <option value="Talent Pool">Talent Pool</option>
+            </select>
+            
+            <div style="margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
+                <select id="bulkActionStage" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">-- Bulk Update Stage --</option>
+                    <option value="Screened">Screened</option>
+                    <option value="Submitted to Client">Submitted to Client</option>
+                    <option value="Interview Scheduled">Interview Scheduled</option>
+                    <option value="Offer Released">Offer Released</option>
+                    <option value="Talent Pool">Talent Pool</option>
+                </select>
+                <button class="btn btn-sm btn-outline" onclick="applyBulkAction()">Apply</button>
+                <button class="btn btn-sm" onclick="openMassEmailModal()" style="background: var(--info); color: white; border: none;">📧 Send Mass Email</button>
+            </div>
+
+            <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
             <thead>
                 <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAllCands" onclick="toggleAllCheckboxes(this)"></th>
                     <th>Candidate ID</th>
                     <th>Name & Email</th>
                     <th>Req ID</th>
@@ -39,5 +61,60 @@
                 <!-- Populated via JS -->
             </tbody>
         </table>
+    </div>
+    </div>
+    
+    <div id="candidate-kanban-view" style="display: none; padding-top: 10px;">
+        <div class="kanban-board" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; height: 600px;">
+            <!-- Sourced Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--primary); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Sourced <span class="badge" id="kb-count-Sourced">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Sourced" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Screened Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--info); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Screened <span class="badge" id="kb-count-Screened">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Screened" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Interview Scheduled Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--warning); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Interview Scheduled <span class="badge" id="kb-count-Interview">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Interview" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Offer Released Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--success); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Offer Released <span class="badge" id="kb-count-Offer">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Offer" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Joined Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid #2e7d32; background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Joined <span class="badge" id="kb-count-Joined">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Joined" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Talent Pool Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid #9c27b0; background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Talent Pool <span class="badge" id="kb-count-TalentPool">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-TalentPool" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Rejected/Lost Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--danger); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Rejected <span class="badge" id="kb-count-Rejected">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Rejected" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+        </div>
     </div>
 </div>

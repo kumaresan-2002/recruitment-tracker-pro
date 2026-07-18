@@ -21,6 +21,20 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
 
+[data-theme="dark"] {
+    --bg-light: hsl(220, 20%, 10%);
+    --text-dark: hsl(210, 40%, 98%);
+    --text-light: hsl(215, 16%, 65%);
+    --border: hsl(215, 20%, 20%);
+    --white: hsl(215, 25%, 15%);
+    --sidebar: hsl(220, 30%, 8%);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+    --success-light: hsl(150, 84%, 15%);
+    --warning-light: hsl(38, 92%, 15%);
+    --danger-light: hsl(0, 84%, 15%);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
 body { display: flex; height: 100vh; background-color: var(--bg-light); color: var(--text-dark); overflow: hidden; }
 
@@ -324,4 +338,76 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     font-size: 0.85rem;
     color: hsl(220, 9%, 30%);
 }
+/* Kanban Board Styles */
+.kanban-board {
+    display: flex;
+    gap: 15px;
+    height: calc(100vh - 150px);
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+.kanban-column {
+    flex: 0 0 300px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+.kanban-column-header {
+    padding: 15px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary);
+    background: var(--white);
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+}
+.kanban-column-body {
+    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 150px;
+}
+.kanban-column-body.drag-over {
+    background: var(--primary);
+    opacity: 0.1;
+}
+.kanban-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: grab;
+    box-shadow: var(--shadow);
+}
+.kanban-card:active {
+    cursor: grabbing;
+    opacity: 0.8;
+}
 
+/* Print Styles for Offer Letter */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #printable-offer-letter, #printable-offer-letter * {
+        visibility: visible;
+    }
+    #printable-offer-letter {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: block !important;
+    }
+    body {
+        background: white !important;
+        overflow: visible !important;
+        height: auto;
+    }
+}
+#printable-offer-letter {
+    display: none;
+}

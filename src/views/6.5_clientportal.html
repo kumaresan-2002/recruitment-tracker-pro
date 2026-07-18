@@ -1,0 +1,38 @@
+<div id="clientportal" class="view">
+    <h3 style="margin-bottom: 20px;">Client VMS Dashboard</h3>
+    <div class="dashboard-grid" style="margin-bottom: 30px;">
+        <div class="card">
+            <h3>Active Requirements</h3>
+            <div class="value" id="client-kpi-reqs">0</div>
+        </div>
+        <div class="card">
+            <h3>Candidates Submitted</h3>
+            <div class="value" id="client-kpi-subs">0</div>
+        </div>
+        <div class="card">
+            <h3>Interviews Scheduled</h3>
+            <div class="value" id="client-kpi-ints">0</div>
+        </div>
+        <div class="card">
+            <h3>Positions Filled</h3>
+            <div class="value" id="client-kpi-filled">0</div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID / Title</th>
+                    <th>Candidate Name</th>
+                    <th>Current Stage</th>
+                    <th>Submission Date</th>
+                    <th>Resume</th>
+                </tr>
+            </thead>
+            <tbody id="client-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

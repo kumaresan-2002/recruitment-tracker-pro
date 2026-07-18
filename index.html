@@ -1543,67 +1543,39 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 </div>
 
 
-
-
-
 <div class="main-content">
     <div class="header">
         <h3 id="current-view-title">Dashboard</h3>
-        <div style="flex: 1; max-width: 400px; margin: 0 20px; position: relative;">
-            <input type="text" id="globalSearchInput" placeholder="Global search reqs, candidates..." oninput="handleGlobalSearch(this.value)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
-            <div id="globalSearchResults" style="display: none; position: absolute; top: 40px; left: 0; width: 100%; background: white; box-shadow: var(--shadow-lg); border-radius: 6px; z-index: 1000; max-height: 400px; overflow-y: auto;"></div>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="btn btn-outline" style="border:none; font-size:1.2rem; padding: 5px 10px;" onclick="toggleTheme()" id="themeToggleBtn">🌙</button>
+        <div>
             <button class="btn" onclick="openModal('reqModal')">+ New Requirement</button>
             <button class="btn btn-outline" onclick="openModal('candidateModal')">+ New Candidate</button>
         </div>
     </div>
     
-    <div id="undoToast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--text-dark); color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; box-shadow: var(--shadow-lg); align-items: center; gap: 15px;">
-        <span id="undoMessage">Candidate deleted.</span>
-        <button class="btn btn-sm" id="undoBtn" style="background: var(--warning); color: var(--text-dark);">Undo</button>
-    </div>
-    
-    <div id="bulkActionsBar" style="display: none; position: fixed; bottom: 0; left: 260px; right: 0; background: var(--primary-dark); color: white; padding: 15px 30px; z-index: 9998; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); justify-content: space-between; align-items: center;">
-        <div>
-            <strong id="bulkSelectedCount">0</strong> Candidates Selected
-        </div>
-        <div style="display: flex; gap: 15px;">
-            <button class="btn btn-sm" style="background: white; color: var(--primary-dark);" onclick="openModal('bulkStageModal')">🔄 Change Stage</button>
-            <button class="btn btn-sm" style="background: var(--warning); color: var(--text-dark);" onclick="bulkEmailCampaign()">📧 Bulk Email</button>
-            <button class="btn btn-sm btn-outline" style="color: white; border-color: white;" onclick="clearBulkSelection()">Cancel</button>
-        </div>
-    </div>
-    
-    <!-- Login Screen -->
-    <div id="loginScreen" style="position: fixed; inset: 0; background: var(--bg-light); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-        <div class="card" style="width: 100%; max-width: 400px; padding: 40px; text-align: center; box-shadow: var(--shadow-lg);">
-            <div class="logo" style="justify-content: center; margin-bottom: 20px;">
-                <div class="logo-icon">RT</div>
-                RecruitTrack
-            </div>
-            <h2 style="margin-bottom: 20px;">Welcome Back</h2>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group" style="text-align: left;">
-                    <label>Username</label>
-                    <input type="text" id="login_username" required style="width: 100%;">
-                </div>
-                <div class="form-group" style="text-align: left;">
-                    <label>Password</label>
-                    <input type="password" id="login_password" required style="width: 100%;">
-                </div>
-                <div id="login_error" style="color: var(--danger); margin-bottom: 15px; display: none; font-size: 0.85rem;"></div>
-                <button type="submit" class="btn" style="width: 100%;">Login</button>
-            </form>
-            <div style="margin-top: 20px; font-size: 0.8rem; color: var(--text-light);">
-                Default Admin: admin / admin123
-            </div>
-        </div>
-    </div>
-
     <div class="content" id="view-container">
-<!-- Dashboard View -->
+<div id="kanban" class="view" style="padding-top: 10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0;">Interactive Visual Pipeline</h3>
+        <span style="font-size: 0.85rem; color: var(--text-light);">Drag and drop candidate cards to update their stage.</span>
+    </div>
+    <div class="kanban-board" id="kanban-board-container">
+        <!-- Columns will be injected here via JS -->
+    </div>
+</div>
+
+<div id="talentpool" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin-bottom: 5px;">🏊 Talent Pool & Bench</h2>
+            <p style="color: var(--text-light); font-size: 0.9rem;">Passive candidates ready for re-engagement when new roles open up.</p>
+        </div>
+    </div>
+    
+    <div id="talentpool-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Populated via JS -->
+    </div>
+</div>
+
 <div id="dashboard" class="view active">
     
     <!-- Top KPIs -->
@@ -1697,7 +1669,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- US Requirements View -->
 <div id="us_reqs" class="view">
     <h3 style="margin-bottom: 20px;">US Requirements Overview</h3>
     <div class="dashboard-grid">
@@ -1734,7 +1705,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- India Requirements View -->
 <div id="in_reqs" class="view">
     <h3 style="margin-bottom: 20px;">India Requirements Overview</h3>
     <div class="dashboard-grid">
@@ -1770,7 +1740,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Requirements View -->
 <div id="requirements" class="view">
     <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; gap: 15px;">
@@ -1803,7 +1772,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Offers & Onboarding View -->
 <div id="offers" class="view">
     
     <!-- Offers & Onboarding KPIs -->
@@ -1858,7 +1826,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Onboarding Hub View -->
 <div id="onboarding" class="view">
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
         <div>
@@ -1869,46 +1836,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     
     <div id="onboarding-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
         <!-- Populated via JS -->
-    </div>
-</div>
-
-<!-- Candidates View -->
-<!-- Visual Pipeline (Kanban) View -->
-<!-- Global Audit Log View -->
-<!-- Careers Portal View -->
-<div id="careersPortal" class="view" style="padding-top: 10px;">
-    <div style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin-bottom: 30px;">
-        <h2 style="margin: 0 0 10px; font-size: 2rem;">🌐 We're Hiring!</h2>
-        <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">Explore open positions and apply directly. We'll be in touch shortly.</p>
-    </div>
-    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
-        <input type="text" id="careerSearch" placeholder="🔍 Search by title, location or type..." onkeyup="renderCareersPortal()" style="padding: 10px 15px; border: 1px solid var(--border); border-radius: 8px; width: 350px; font-size: 0.95rem;">
-    </div>
-    <div id="careers-job-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-        <!-- Populated by JS -->
-    </div>
-</div>
-
-<div id="auditlog" class="view" style="padding-top: 10px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="margin:0;">📜 Global Audit Log</h3>
-        <span style="font-size: 0.85rem; color: var(--text-light);">A live, chronological timeline of all system-wide candidate activity.</span>
-    </div>
-    
-    <div style="max-width: 800px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);">
-        <div id="auditlog-timeline" style="display: flex; flex-direction: column; gap: 20px;">
-            <!-- Rendered via JS -->
-        </div>
-    </div>
-</div>
-
-<div id="kanban" class="view" style="padding-top: 10px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="margin:0;">Interactive Visual Pipeline</h3>
-        <span style="font-size: 0.85rem; color: var(--text-light);">Drag and drop candidate cards to update their stage.</span>
-    </div>
-    <div class="kanban-board" id="kanban-board-container">
-        <!-- Columns will be injected here via JS -->
     </div>
 </div>
 
@@ -2033,20 +1960,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Talent Pool View -->
-<div id="talentpool" class="view">
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
-        <div>
-            <h2 style="margin-bottom: 5px;">🏊 Talent Pool & Bench</h2>
-            <p style="color: var(--text-light); font-size: 0.9rem;">Passive candidates ready for re-engagement when new roles open up.</p>
-        </div>
-    </div>
-    
-    <div id="talentpool-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-        <!-- Populated via JS -->
-    </div>
-</div>
-<!-- Interviews & Reports View -->
 <div id="interviews" class="view">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
         <div>
@@ -2263,102 +2176,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Email Templates View -->
-<div id="emailtemplates" class="view">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-        <div>
-            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">📧 Email Templates</h2>
-            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Customizable templates for candidate communication. Click any card to edit & preview.</p>
-        </div>
-        <button class="btn" onclick="openSendEmailModal(null, null)">✉️ Compose Custom Email</button>
-    </div>
-
-    <!-- Template Library Cards -->
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); margin-bottom:28px;" id="template-card-grid">
-        <!-- Populated via JS -->
-    </div>
-
-    <!-- Template Editor -->
-    <div class="card" id="template-editor-panel" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h3 style="font-size:1rem; text-transform:none; letter-spacing:0;" id="template-editor-title">Edit Template</h3>
-            <button onclick="closeTemplateEditor()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--text-light);">✕</button>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-            <div>
-                <div class="form-group">
-                    <label>Template Name</label>
-                    <input type="text" id="tpl_name" style="width:100%;">
-                </div>
-                <div class="form-group">
-                    <label>Subject Line</label>
-                    <input type="text" id="tpl_subject" style="width:100%;">
-                </div>
-                <div class="form-group">
-                    <label>Body (use <code>{{candidate_name}}</code>, <code>{{job_title}}</code>, <code>{{company_name}}</code>, <code>{{interview_date}}</code>)</label>
-                    <textarea id="tpl_body" rows="12" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:0.9rem; resize:vertical;" oninput="previewTemplate()"></textarea>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" onclick="saveTemplate()">💾 Save Template</button>
-                    <button class="btn btn-outline" onclick="resetTemplateToDefault()">↺ Reset to Default</button>
-                </div>
-            </div>
-            <div>
-                <div class="form-group">
-                    <label>Preview (sample data substitution)</label>
-                    <div id="tpl_preview" style="background:var(--bg-light); border:1px solid var(--border); border-radius:8px; padding:16px; min-height:300px; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; color:var(--text-dark);"></div>
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn btn-outline" onclick="copyTemplateToClipboard()">📋 Copy to Clipboard</button>
-                    <button class="btn btn-outline" onclick="openMailtoLink()">📤 Open in Gmail</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Send Email to Candidate -->
-<div id="sendEmailModal" class="modal">
-    <div class="modal-content" style="max-width:600px;">
-        <div class="modal-header">
-            <h2>✉️ Send Email to Candidate</h2>
-            <span class="close-btn" onclick="closeModal('sendEmailModal')">×</span>
-        </div>
-        <form onsubmit="generateCandidateEmail(event)">
-            <input type="hidden" id="email_canId">
-            <div class="form-group full-width">
-                <label>Candidate</label>
-                <select id="email_canSelect" onchange="autoFillCandidateEmail()" style="width:100%;">
-                    <option value="">-- Select Candidate --</option>
-                </select>
-            </div>
-            <div class="form-group full-width">
-                <label>Email Template</label>
-                <select id="email_template" onchange="loadTemplateIntoComposer()" style="width:100%;">
-                    <option value="offer">Offer Letter Email</option>
-                    <option value="rejection">Rejection Email</option>
-                    <option value="interview">Interview Invite</option>
-                    <option value="followup">Follow-up Reminder</option>
-                </select>
-            </div>
-            <div class="form-group full-width">
-                <label>Subject</label>
-                <input type="text" id="email_subject" style="width:100%;">
-            </div>
-            <div class="form-group full-width">
-                <label>Body</label>
-                <textarea id="email_body" rows="10" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:0.9rem;"></textarea>
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
-                <button type="button" class="btn btn-outline" onclick="copyEmailToClipboard()">📋 Copy</button>
-                <button type="button" class="btn btn-outline" onclick="openEmailInGmail()">📤 Open in Gmail</button>
-                <button type="submit" class="btn">✅ Done</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Data Management View -->
 <div id="datamanagement" class="view">
     <h3 style="margin-bottom: 20px;">Database & Storage Control</h3>
     <div class="dashboard-grid">
@@ -2402,7 +2219,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Settings View -->
 <div id="settings" class="view">
     <h3 style="margin-bottom: 20px;">System Rules & Configurable Alerts</h3>
     <div class="card" style="max-width: 600px;">
@@ -2425,107 +2241,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Client Portal View -->
-<div id="clientportal" class="view">
-    <h3 style="margin-bottom: 20px;">Client VMS Dashboard</h3>
-    <div class="dashboard-grid" style="margin-bottom: 30px;">
-        <div class="card">
-            <h3>Active Requirements</h3>
-            <div class="value" id="client-kpi-reqs">0</div>
-        </div>
-        <div class="card">
-            <h3>Candidates Submitted</h3>
-            <div class="value" id="client-kpi-subs">0</div>
-        </div>
-        <div class="card">
-            <h3>Interviews Scheduled</h3>
-            <div class="value" id="client-kpi-ints">0</div>
-        </div>
-        <div class="card">
-            <h3>Positions Filled</h3>
-            <div class="value" id="client-kpi-filled">0</div>
-        </div>
-    </div>
-    
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Req ID / Title</th>
-                    <th>Candidate Name</th>
-                    <th>Current Stage</th>
-                    <th>Submission Date</th>
-                    <th>Resume</th>
-                </tr>
-            </thead>
-            <tbody id="client-portal-table">
-                <!-- Populated via JS -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Hiring Manager Portal View -->
-<div id="hiringmanager" class="view">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="margin: 0;">Hiring Manager - Interview Hub</h3>
-        <div style="font-size: 0.85rem; color: var(--text-light);">
-            Welcome back! You have <strong id="hm-pending-count" style="color:var(--warning);">0</strong> pending interviews to review.
-        </div>
-    </div>
-    
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Candidate Name</th>
-                    <th>Requirement / Role</th>
-                    <th>Interview Details</th>
-                    <th>Resume</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="hm-portal-table">
-                <!-- Populated via JS -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Agency Vendor Portal View -->
-<div id="agencyportal" class="view">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
-        <div>
-            <h2 style="margin: 0; margin-bottom: 5px;">Agency Vendor Portal</h2>
-            <div style="font-size: 0.85rem; color: var(--text-light);">
-                Submit top talent directly to active requirements.
-            </div>
-        </div>
-        <div style="font-size: 0.85rem; background: var(--primary); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold;">
-            Total Open Reqs: <span id="ag-portal-count">0</span>
-        </div>
-    </div>
-    
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Requirement ID</th>
-                    <th>Job Title</th>
-                    <th>Location / Mode</th>
-                    <th>Type</th>
-                    <th>Experience</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="ag-portal-table">
-                <!-- Populated via JS -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Recruiter Performance View -->
 <div id="performance" class="view">
     <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">Recruiter Performance Dashboard</h3>
@@ -2598,7 +2313,103 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
-<!-- Client and Account View -->
+<div id="clientportal" class="view">
+    <h3 style="margin-bottom: 20px;">Client VMS Dashboard</h3>
+    <div class="dashboard-grid" style="margin-bottom: 30px;">
+        <div class="card">
+            <h3>Active Requirements</h3>
+            <div class="value" id="client-kpi-reqs">0</div>
+        </div>
+        <div class="card">
+            <h3>Candidates Submitted</h3>
+            <div class="value" id="client-kpi-subs">0</div>
+        </div>
+        <div class="card">
+            <h3>Interviews Scheduled</h3>
+            <div class="value" id="client-kpi-ints">0</div>
+        </div>
+        <div class="card">
+            <h3>Positions Filled</h3>
+            <div class="value" id="client-kpi-filled">0</div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID / Title</th>
+                    <th>Candidate Name</th>
+                    <th>Current Stage</th>
+                    <th>Submission Date</th>
+                    <th>Resume</th>
+                </tr>
+            </thead>
+            <tbody id="client-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="hiringmanager" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;">Hiring Manager - Interview Hub</h3>
+        <div style="font-size: 0.85rem; color: var(--text-light);">
+            Welcome back! You have <strong id="hm-pending-count" style="color:var(--warning);">0</strong> pending interviews to review.
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate Name</th>
+                    <th>Requirement / Role</th>
+                    <th>Interview Details</th>
+                    <th>Resume</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="hm-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="agencyportal" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0; margin-bottom: 5px;">Agency Vendor Portal</h2>
+            <div style="font-size: 0.85rem; color: var(--text-light);">
+                Submit top talent directly to active requirements.
+            </div>
+        </div>
+        <div style="font-size: 0.85rem; background: var(--primary); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold;">
+            Total Open Reqs: <span id="ag-portal-count">0</span>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requirement ID</th>
+                    <th>Job Title</th>
+                    <th>Location / Mode</th>
+                    <th>Type</th>
+                    <th>Experience</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ag-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div id="clientview" class="view">
     <h3 style="margin-bottom: 20px;">Client & Account Dashboard</h3>
     
@@ -2620,6 +2431,85 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 <!-- Populated via JS -->
             </tbody>
         </table>
+    </div>
+</div>
+
+<div id="auditlog" class="view" style="padding-top: 10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0;">📜 Global Audit Log</h3>
+        <span style="font-size: 0.85rem; color: var(--text-light);">A live, chronological timeline of all system-wide candidate activity.</span>
+    </div>
+    
+    <div style="max-width: 800px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);">
+        <div id="auditlog-timeline" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Rendered via JS -->
+        </div>
+    </div>
+</div>
+
+<div id="emailtemplates" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">📧 Email Templates</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Customizable templates for candidate communication. Click any card to edit & preview.</p>
+        </div>
+        <button class="btn" onclick="openSendEmailModal(null, null)">✉️ Compose Custom Email</button>
+    </div>
+
+    <!-- Template Library Cards -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); margin-bottom:28px;" id="template-card-grid">
+        <!-- Populated via JS -->
+    </div>
+
+    <!-- Template Editor -->
+    <div class="card" id="template-editor-panel" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:1rem; text-transform:none; letter-spacing:0;" id="template-editor-title">Edit Template</h3>
+            <button onclick="closeTemplateEditor()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--text-light);">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div>
+                <div class="form-group">
+                    <label>Template Name</label>
+                    <input type="text" id="tpl_name" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Subject Line</label>
+                    <input type="text" id="tpl_subject" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Body (use <code>{{candidate_name}}</code>, <code>{{job_title}}</code>, <code>{{company_name}}</code>, <code>{{interview_date}}</code>)</label>
+                    <textarea id="tpl_body" rows="12" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:0.9rem; resize:vertical;" oninput="previewTemplate()"></textarea>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="saveTemplate()">💾 Save Template</button>
+                    <button class="btn btn-outline" onclick="resetTemplateToDefault()">↺ Reset to Default</button>
+                </div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Preview (sample data substitution)</label>
+                    <div id="tpl_preview" style="background:var(--bg-light); border:1px solid var(--border); border-radius:8px; padding:16px; min-height:300px; font-size:0.9rem; line-height:1.7; white-space:pre-wrap; color:var(--text-dark);"></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-outline" onclick="copyTemplateToClipboard()">📋 Copy to Clipboard</button>
+                    <button class="btn btn-outline" onclick="openMailtoLink()">📤 Open in Gmail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="careersPortal" class="view" style="padding-top: 10px;">
+    <div style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin-bottom: 30px;">
+        <h2 style="margin: 0 0 10px; font-size: 2rem;">🌐 We're Hiring!</h2>
+        <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">Explore open positions and apply directly. We'll be in touch shortly.</p>
+    </div>
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="careerSearch" placeholder="🔍 Search by title, location or type..." onkeyup="renderCareersPortal()" style="padding: 10px 15px; border: 1px solid var(--border); border-radius: 8px; width: 350px; font-size: 0.95rem;">
+    </div>
+    <div id="careers-job-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+        <!-- Populated by JS -->
     </div>
 </div>
 
@@ -6789,6 +6679,5 @@ function signOffer(e) {
     }, 500);
 }
 </script>
-<div id="printable-offer-letter"></div>
 </body>
 </html>

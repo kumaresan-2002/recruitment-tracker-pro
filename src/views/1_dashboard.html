@@ -1,8 +1,13 @@
-<!-- Dashboard View -->
 <div id="dashboard" class="view active">
     
     <!-- Top KPIs -->
     <div class="dashboard-grid">
+        <div class="card" style="grid-column: span 4; background: var(--warning); color: var(--text-dark);">
+            <h3 style="display:flex; justify-content:space-between;">⏰ My Upcoming Reminders</h3>
+            <div id="reminders-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                <!-- Populated via JS -->
+            </div>
+        </div>
         <div class="card">
             <h3>Total Requirements</h3>
             <div class="value" id="kpi-total-req">0</div>

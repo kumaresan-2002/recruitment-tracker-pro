@@ -1,0 +1,31 @@
+<div id="agencyportal" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0; margin-bottom: 5px;">Agency Vendor Portal</h2>
+            <div style="font-size: 0.85rem; color: var(--text-light);">
+                Submit top talent directly to active requirements.
+            </div>
+        </div>
+        <div style="font-size: 0.85rem; background: var(--primary); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold;">
+            Total Open Reqs: <span id="ag-portal-count">0</span>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requirement ID</th>
+                    <th>Job Title</th>
+                    <th>Location / Mode</th>
+                    <th>Type</th>
+                    <th>Experience</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ag-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+<div id="hiringmanager" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;">Hiring Manager - Interview Hub</h3>
+        <div style="font-size: 0.85rem; color: var(--text-light);">
+            Welcome back! You have <strong id="hm-pending-count" style="color:var(--warning);">0</strong> pending interviews to review.
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate Name</th>
+                    <th>Requirement / Role</th>
+                    <th>Interview Details</th>
+                    <th>Resume</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="hm-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

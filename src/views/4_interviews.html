@@ -1,0 +1,71 @@
+<div id="interviews" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">🤝 Interview Management</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Schedule, track and collect feedback on all interviews</p>
+        </div>
+        <button class="btn" onclick="openScheduleInterviewModal()">+ Schedule Interview</button>
+    </div>
+
+    <!-- Interview KPIs -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-bottom:20px;">
+        <div class="card" style="border-top:3px solid var(--primary);">
+            <h3>Scheduled</h3>
+            <div class="value" id="int-kpi-scheduled" style="color:var(--primary);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warning);">
+            <h3>Pending Feedback</h3>
+            <div class="value" id="int-kpi-pending" style="color:var(--warning);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--success);">
+            <h3>Passed</h3>
+            <div class="value" id="int-kpi-passed" style="color:var(--success);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--danger);">
+            <h3>Failed / No Show</h3>
+            <div class="value" id="int-kpi-failed" style="color:var(--danger);">0</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+        <select id="int-filter-status" onchange="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem;">
+            <option value="All">All Statuses</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Feedback Pending">Feedback Pending</option>
+            <option value="Passed">Passed</option>
+            <option value="Failed">Failed</option>
+            <option value="No Show">No Show</option>
+        </select>
+        <select id="int-filter-round" onchange="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem;">
+            <option value="All">All Rounds</option>
+            <option value="1st Round">1st Round</option>
+            <option value="2nd Round">2nd Round</option>
+            <option value="Final Round">Final Round</option>
+            <option value="Technical">Technical</option>
+            <option value="HR">HR</option>
+        </select>
+        <input type="text" id="int-search" placeholder="Search candidate or req..." oninput="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; width:220px;">
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Requirement</th>
+                    <th>Date & Time</th>
+                    <th>Round</th>
+                    <th>Type</th>
+                    <th>Interviewer</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="interview-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

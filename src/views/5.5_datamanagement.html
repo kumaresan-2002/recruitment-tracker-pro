@@ -1,4 +1,3 @@
-<!-- Data Management View -->
 <div id="datamanagement" class="view">
     <h3 style="margin-bottom: 20px;">Database & Storage Control</h3>
     <div class="dashboard-grid">
@@ -16,5 +15,28 @@
                 <button class="btn btn-sm btn-outline" onclick="importData(true)">Overwrite All</button>
             </div>
         </div>
+    </div>
+    
+    <h3 style="margin-top: 30px; margin-bottom: 20px;">External Stakeholder Access</h3>
+    <div class="card" style="max-width: 500px;">
+        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Generate login credentials for Clients, Hiring Managers, or Agency Vendors. For Clients or Vendors, the username should match their company name.</p>
+        <div class="form-group">
+            <label>Stakeholder Role *</label>
+            <select id="vms_role">
+                <option value="Client">Client (VMS Access)</option>
+                <option value="Hiring Manager">Hiring Manager (Feedback Hub)</option>
+                <option value="Agency Vendor">Agency Vendor (Submittal Portal)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Username (or Client Name) *</label>
+            <input type="text" id="vms_username" placeholder="e.g. TechCorp or JohnSmith">
+        </div>
+        <div class="form-group">
+            <label>Secure Password *</label>
+            <input type="password" id="vms_password">
+        </div>
+        <div id="vms_status" style="margin-top:10px; font-size:0.85rem; display:none; font-weight:bold;"></div>
+        <button class="btn" onclick="generateExternalLogin()" style="margin-top: 15px;">Generate Access</button>
     </div>
 </div>
