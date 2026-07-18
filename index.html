@@ -1326,6 +1326,142 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
+
+<!-- Modal: Schedule Interview -->
+<div id="scheduleInterviewModal" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2>📅 Schedule Interview</h2>
+            <span class="close-btn" onclick="closeModal('scheduleInterviewModal')">&times;</span>
+        </div>
+        <form onsubmit="saveScheduledInterview(event)">
+            <input type="hidden" id="sint_id">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="form-group">
+                    <label>Candidate *</label>
+                    <select id="sint_canId" required style="width:100%;" onchange="checkInterviewConflict()">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Requirement *</label>
+                    <select id="sint_reqId" required style="width:100%;">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="sint_date" required onchange="checkInterviewConflict()">
+                </div>
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="time" id="sint_time" required onchange="checkInterviewConflict()">
+                </div>
+                <div class="form-group">
+                    <label>Round *</label>
+                    <select id="sint_round" required style="width:100%;">
+                        <option value="1st Round">1st Round</option>
+                        <option value="2nd Round">2nd Round</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Final Round">Final Round</option>
+                        <option value="HR">HR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="sint_type" required style="width:100%;">
+                        <option value="Video Call">Video Call</option>
+                        <option value="Phone Screen">Phone Screen</option>
+                        <option value="In-Person">In-Person</option>
+                        <option value="Technical Test">Technical Test</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Interviewer Name *</label>
+                    <input type="text" id="sint_interviewer" required placeholder="e.g. John Smith" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Duration (min)</label>
+                    <input type="number" id="sint_duration" value="60" min="15" style="width:100%;">
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Notes</label>
+                <textarea id="sint_notes" rows="2" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></textarea>
+            </div>
+            <div id="sint_conflict_warning" style="display:none; color:var(--warning); font-size:0.85rem; font-weight:600; margin-bottom:10px; padding:8px; background:var(--warning-light); border-radius:6px;">
+                ⚠️ Conflict: This interviewer may be double-booked at this time!
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('scheduleInterviewModal')">Cancel</button>
+                <button type="submit" class="btn">📅 Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Interview Feedback -->
+<div id="interviewFeedbackModal" class="modal">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h2>📋 Interview Feedback</h2>
+            <span class="close-btn" onclick="closeModal('interviewFeedbackModal')">&times;</span>
+        </div>
+        <form onsubmit="saveInterviewFeedback(event)">
+            <input type="hidden" id="ifb_intId">
+            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Feedback for: <strong id="ifb_title"></strong></p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Technical Skills (1-5) *</label>
+                    <input type="number" id="ifb_tech" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Communication (1-5) *</label>
+                    <input type="number" id="ifb_comm" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Cultural Fit (1-5) *</label>
+                    <input type="number" id="ifb_culture" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Overall Rating (1-5) *</label>
+                    <input type="number" id="ifb_overall" min="1" max="5" value="3" required style="width:100%;">
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Hire Recommendation *</label>
+                <select id="ifb_recommendation" required style="width:100%;">
+                    <option value="Strong Yes">Strong Yes</option>
+                    <option value="Yes">Yes</option>
+                    <option value="Maybe">Maybe</option>
+                    <option value="No">No</option>
+                    <option value="Strong No">Strong No</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Outcome *</label>
+                <select id="ifb_outcome" required style="width:100%;" onchange="checkAutoAdvance()">
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="No Show">No Show</option>
+                    <option value="On Hold">On Hold</option>
+                </select>
+            </div>
+            <div id="ifb_autoadvance_msg" style="display:none; color:var(--success); font-size:0.8rem; margin-bottom:8px; padding:6px; background:var(--success-light); border-radius:6px;">
+                ✅ Candidate will be auto-advanced to next stage on save.
+            </div>
+            <div class="form-group full-width">
+                <label>Notes</label>
+                <textarea id="ifb_notes" rows="3" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('interviewFeedbackModal')">Cancel</button>
+                <button type="submit" class="btn">💾 Save Feedback</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Hiring Manager Feedback Scorecard -->
 <div id="hmFeedbackModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
@@ -1907,7 +2043,56 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 </div>
 <!-- Interviews & Reports View -->
 <div id="interviews" class="view">
-    <h3 style="margin-bottom:20px;">Upcoming Interviews</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2 style="font-size:1.5rem; font-weight:700; letter-spacing:-0.03em;">🤝 Interview Management</h2>
+            <p style="font-size:0.85rem; color:var(--text-light); margin-top:4px;">Schedule, track and collect feedback on all interviews</p>
+        </div>
+        <button class="btn" onclick="openScheduleInterviewModal()">+ Schedule Interview</button>
+    </div>
+
+    <!-- Interview KPIs -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-bottom:20px;">
+        <div class="card" style="border-top:3px solid var(--primary);">
+            <h3>Scheduled</h3>
+            <div class="value" id="int-kpi-scheduled" style="color:var(--primary);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warning);">
+            <h3>Pending Feedback</h3>
+            <div class="value" id="int-kpi-pending" style="color:var(--warning);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--success);">
+            <h3>Passed</h3>
+            <div class="value" id="int-kpi-passed" style="color:var(--success);">0</div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--danger);">
+            <h3>Failed / No Show</h3>
+            <div class="value" id="int-kpi-failed" style="color:var(--danger);">0</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+        <select id="int-filter-status" onchange="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem;">
+            <option value="All">All Statuses</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Feedback Pending">Feedback Pending</option>
+            <option value="Passed">Passed</option>
+            <option value="Failed">Failed</option>
+            <option value="No Show">No Show</option>
+        </select>
+        <select id="int-filter-round" onchange="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem;">
+            <option value="All">All Rounds</option>
+            <option value="1st Round">1st Round</option>
+            <option value="2nd Round">2nd Round</option>
+            <option value="Final Round">Final Round</option>
+            <option value="Technical">Technical</option>
+            <option value="HR">HR</option>
+        </select>
+        <input type="text" id="int-search" placeholder="Search candidate or req..." oninput="renderInterviewsEnhanced()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; width:220px;">
+    </div>
+
     <div class="table-container">
         <table>
             <thead>
@@ -1916,7 +2101,10 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                     <th>Requirement</th>
                     <th>Date & Time</th>
                     <th>Round</th>
+                    <th>Type</th>
+                    <th>Interviewer</th>
                     <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="interview-table">
@@ -4076,22 +4264,187 @@ function dropKanban(e) {
     }
 }
 
-function renderInterviews() {
+function renderInterviews() { renderInterviewsEnhanced(); }
+
+function renderInterviewsEnhanced() {
     const tbody = document.getElementById('interview-table');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    candidates.filter(c => c.stage.includes('Interview')).forEach(can => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${can.name}</strong></td>
-            <td>${can.reqId}</td>
-            <td>${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'Not Set'} ${can.interviewTimezone || ''}</td>
-            <td>${can.interviewRound || '-'} (${can.interviewMode || '-'})</td>
-            <td><span class="badge interview">${can.stage}</span></td>
-        `;
-        tbody.appendChild(tr);
+    if (!tbody) return;
+
+    // Data sources: scheduled interviews (stored separately) + legacy candidate interview stage data
+    const scheduled = getScheduledInterviews();
+    
+    // KPI Counts
+    const kpiSched = document.getElementById('int-kpi-scheduled');
+    const kpiPend = document.getElementById('int-kpi-pending');
+    const kpiPass = document.getElementById('int-kpi-passed');
+    const kpiFail = document.getElementById('int-kpi-failed');
+    if (kpiSched) kpiSched.textContent = scheduled.filter(i => i.status === 'Scheduled').length;
+    if (kpiPend) kpiPend.textContent = scheduled.filter(i => i.status === 'Feedback Pending').length;
+    if (kpiPass) kpiPass.textContent = scheduled.filter(i => i.status === 'Passed').length;
+    if (kpiFail) kpiFail.textContent = scheduled.filter(i => ['Failed','No Show'].includes(i.status)).length;
+
+    // Filters
+    const statusFilter = (document.getElementById('int-filter-status') || {}).value || 'All';
+    const roundFilter = (document.getElementById('int-filter-round') || {}).value || 'All';
+    const search = ((document.getElementById('int-search') || {}).value || '').toLowerCase();
+
+    let rows = scheduled;
+    if (statusFilter !== 'All') rows = rows.filter(i => i.status === statusFilter);
+    if (roundFilter !== 'All') rows = rows.filter(i => i.round === roundFilter);
+    if (search) rows = rows.filter(i => {
+        const can = candidates.find(c => c.id === i.canId);
+        const req = requirements.find(r => r.id === i.reqId);
+        return (can && can.name.toLowerCase().includes(search)) || (req && req.title.toLowerCase().includes(search));
     });
+
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-light);">No interviews found. Click "+ Schedule Interview" to add one.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rows.sort((a, b) => new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time)).map(int => {
+        const can = candidates.find(c => c.id === int.canId);
+        const req = requirements.find(r => r.id === int.reqId);
+        const statusColor = {
+            'Scheduled': 'var(--primary)', 'Feedback Pending': 'var(--warning)',
+            'Passed': 'var(--success)', 'Failed': 'var(--danger)', 'No Show': 'darkred', 'Completed': 'var(--text-light)'
+        }[int.status] || 'var(--text-light)';
+        const isPast = new Date(int.date + 'T' + (int.time || '00:00')) < new Date();
+        return `<tr>
+            <td><strong>${can ? can.name : int.canId}</strong>${isPast && int.status === 'Scheduled' ? ' <span style="color:var(--warning); font-size:0.7rem;">⚠ Overdue</span>' : ''}</td>
+            <td>${req ? req.title : int.reqId}<br><small style="color:var(--text-light);">${req ? req.client : ''}</small></td>
+            <td>${int.date} ${int.time ? int.time.substring(0,5) : ''}</td>
+            <td>${int.round}</td>
+            <td>${int.type}</td>
+            <td>${int.interviewer}</td>
+            <td><span style="font-weight:600; color:${statusColor};">${int.status}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:4px 8px;" onclick="openInterviewFeedbackModal('${int.id}')">📋 Feedback</button>
+                <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:4px 8px; margin-left:4px;" onclick="deleteScheduledInterview('${int.id}')">🗑</button>
+            </td>
+        </tr>`;
+    }).join('');
 }
+
+function getScheduledInterviews() {
+    return JSON.parse(localStorage.getItem('scheduledInterviews_v1') || '[]');
+}
+function saveScheduledInterviews(data) {
+    localStorage.setItem('scheduledInterviews_v1', JSON.stringify(data));
+}
+
+function openScheduleInterviewModal() {
+    // Populate dropdowns
+    const canSel = document.getElementById('sint_canId');
+    canSel.innerHTML = '<option value="">-- Select --</option>' + candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const reqSel = document.getElementById('sint_reqId');
+    reqSel.innerHTML = '<option value="">-- Select --</option>' + requirements.map(r => `<option value="${r.id}">${r.title} (${r.client})</option>`).join('');
+    document.getElementById('sint_id').value = '';
+    document.getElementById('sint_conflict_warning').style.display = 'none';
+    openModal('scheduleInterviewModal');
+}
+
+function checkInterviewConflict() {
+    const interviewer = (document.getElementById('sint_interviewer') || {}).value || '';
+    const date = (document.getElementById('sint_date') || {}).value || '';
+    const time = (document.getElementById('sint_time') || {}).value || '';
+    if (!interviewer || !date || !time) return;
+    const scheduled = getScheduledInterviews();
+    const conflict = scheduled.some(i => i.interviewer.toLowerCase() === interviewer.toLowerCase() && i.date === date && i.time === time && i.status === 'Scheduled');
+    document.getElementById('sint_conflict_warning').style.display = conflict ? 'block' : 'none';
+}
+
+function saveScheduledInterview(e) {
+    e.preventDefault();
+    const data = getScheduledInterviews();
+    const id = document.getElementById('sint_id').value || 'INT-' + Date.now();
+    const existIdx = data.findIndex(i => i.id === id);
+    const entry = {
+        id, canId: document.getElementById('sint_canId').value, reqId: document.getElementById('sint_reqId').value,
+        date: document.getElementById('sint_date').value, time: document.getElementById('sint_time').value,
+        round: document.getElementById('sint_round').value, type: document.getElementById('sint_type').value,
+        interviewer: document.getElementById('sint_interviewer').value,
+        duration: document.getElementById('sint_duration').value,
+        notes: document.getElementById('sint_notes').value, status: 'Scheduled',
+        createdAt: new Date().toISOString()
+    };
+    if (existIdx >= 0) data[existIdx] = { ...data[existIdx], ...entry }; else data.push(entry);
+    saveScheduledInterviews(data);
+    // Update candidate stage
+    const can = candidates.find(c => c.id === entry.canId);
+    if (can && !can.stage.includes('Interview')) {
+        can.stage = 'Interview Scheduled'; can.lastUpdated = entry.date;
+        can.history = can.history || [];
+        can.history.unshift({ stage: 'Interview Scheduled', date: entry.date, comment: `${entry.round} ${entry.type} with ${entry.interviewer}` });
+        saveData();
+    }
+    closeModal('scheduleInterviewModal');
+    updateAllViews();
+    createAlert(`Interview scheduled for ${can ? can.name : entry.canId}!`, 'success');
+}
+
+function openInterviewFeedbackModal(intId) {
+    const scheduled = getScheduledInterviews();
+    const int = scheduled.find(i => i.id === intId);
+    if (!int) return;
+    const can = candidates.find(c => c.id === int.canId);
+    const req = requirements.find(r => r.id === int.reqId);
+    document.getElementById('ifb_intId').value = intId;
+    document.getElementById('ifb_title').innerText = `${can ? can.name : ''} — ${int.round} (${req ? req.title : ''})`;
+    document.getElementById('ifb_tech').value = int.feedback?.tech || 3;
+    document.getElementById('ifb_comm').value = int.feedback?.comm || 3;
+    document.getElementById('ifb_culture').value = int.feedback?.culture || 3;
+    document.getElementById('ifb_overall').value = int.feedback?.overall || 3;
+    document.getElementById('ifb_recommendation').value = int.feedback?.recommendation || 'Yes';
+    document.getElementById('ifb_outcome').value = int.feedback?.outcome || 'Passed';
+    document.getElementById('ifb_notes').value = int.feedback?.notes || '';
+    checkAutoAdvance();
+    openModal('interviewFeedbackModal');
+}
+
+function checkAutoAdvance() {
+    const outcome = document.getElementById('ifb_outcome').value;
+    document.getElementById('ifb_autoadvance_msg').style.display = outcome === 'Passed' ? 'block' : 'none';
+}
+
+function saveInterviewFeedback(e) {
+    e.preventDefault();
+    const intId = document.getElementById('ifb_intId').value;
+    const scheduled = getScheduledInterviews();
+    const idx = scheduled.findIndex(i => i.id === intId);
+    if (idx < 0) return;
+    const outcome = document.getElementById('ifb_outcome').value;
+    scheduled[idx].feedback = {
+        tech: +document.getElementById('ifb_tech').value, comm: +document.getElementById('ifb_comm').value,
+        culture: +document.getElementById('ifb_culture').value, overall: +document.getElementById('ifb_overall').value,
+        recommendation: document.getElementById('ifb_recommendation').value,
+        outcome, notes: document.getElementById('ifb_notes').value
+    };
+    scheduled[idx].status = outcome;
+    // Auto-advance candidate stage
+    if (outcome === 'Passed') {
+        const can = candidates.find(c => c.id === scheduled[idx].canId);
+        if (can) {
+            can.stage = 'Offer Released'; can.lastUpdated = new Date().toISOString().split('T')[0];
+            can.history = can.history || [];
+            can.history.unshift({ stage: 'Interview Passed', date: can.lastUpdated, comment: `Recommendation: ${scheduled[idx].feedback.recommendation}` });
+            saveData();
+        }
+    }
+    saveScheduledInterviews(scheduled);
+    closeModal('interviewFeedbackModal');
+    updateAllViews();
+    createAlert('Interview feedback saved!', 'success');
+}
+
+function deleteScheduledInterview(intId) {
+    if (!confirm('Delete this interview?')) return;
+    const data = getScheduledInterviews().filter(i => i.id !== intId);
+    saveScheduledInterviews(data);
+    renderInterviewsEnhanced();
+    createAlert('Interview removed.', 'info');
+}
+
 
 function renderOffers() {
     const tbody = document.getElementById('offers-onboarding-table');
