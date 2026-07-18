@@ -423,6 +423,77 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </style>
 </head>
 <body>
+<!-- Login Screen Overlay -->
+<div id="loginScreen" style="display:none; position:fixed; inset:0; z-index:9999; background:linear-gradient(135deg, hsl(215,28%,13%) 0%, hsl(220,40%,18%) 50%, hsl(215,28%,13%) 100%); align-items:center; justify-content:center;">
+    <div style="width:420px; max-width:95vw; background:rgba(255,255,255,0.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:40px; box-shadow:0 25px 60px rgba(0,0,0,0.5);">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-size:2.5rem; margin-bottom:8px;">🎯</div>
+            <h1 style="color:#fff; font-size:1.6rem; font-weight:700; margin:0 0 6px 0;">Recruitment OS</h1>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.9rem; margin:0;">Sign in to your workspace</p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginFormContainer">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div style="margin-bottom:16px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Username</label>
+                    <input id="login_username" type="text" placeholder="Enter username" required autocomplete="username"
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='hsl(220,85%,57%)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Password</label>
+                    <input id="login_password" type="password" placeholder="Enter password" required autocomplete="current-password"
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='hsl(220,85%,57%)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
+                </div>
+                <div id="login_error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px;"></div>
+                <button type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(220,85%,57%), hsl(220,85%,47%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;">
+                    Sign In
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:20px;">
+                <span style="color:rgba(255,255,255,0.4); font-size:0.85rem;">No account? </span>
+                <span onclick="toggleAuthForm()" style="color:hsl(220,85%,70%); font-size:0.85rem; cursor:pointer; font-weight:500; text-decoration:underline;">Register</span>
+            </div>
+            <div style="margin-top:20px; padding:12px; background:rgba(255,255,255,0.04); border-radius:8px; text-align:center;">
+                <small style="color:rgba(255,255,255,0.35); font-size:0.75rem;">Default: <strong style="color:rgba(255,255,255,0.5);">admin / admin123</strong></small>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerFormContainer" style="display:none;">
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Username</label>
+                    <input id="reg_username" type="text" placeholder="Choose a username" required
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Password</label>
+                    <input id="reg_password" type="password" placeholder="Choose a password" required
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Role</label>
+                    <select id="reg_role" style="width:100%; padding:12px 14px; background:rgba(30,40,60,0.9); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                        <option value="Recruiter">Recruiter</option>
+                        <option value="Account Manager">Account Manager</option>
+                        <option value="Management">Management</option>
+                    </select>
+                </div>
+                <div id="reg_error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px;"></div>
+                <button type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(150,84%,37%), hsl(150,84%,27%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer;">
+                    Create Account
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:20px;">
+                <span onclick="toggleAuthForm()" style="color:hsl(220,85%,70%); font-size:0.85rem; cursor:pointer; font-weight:500; text-decoration:underline;">Back to Login</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Sidebar Navigation (Full 12-Tab Structure) -->
 <div class="sidebar" id="sidebar-menu">
     <h2 style="padding: 20px 15px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center;">
@@ -6386,9 +6457,12 @@ openModal = function(id) {
 
 // Start
 async function initApp() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (!loginScreen) return; // safety guard
+
     const token = localStorage.getItem('token');
     if (!token) {
-        document.getElementById('loginScreen').style.display = 'flex';
+        loginScreen.style.display = 'flex';
         return;
     }
     
@@ -6399,32 +6473,90 @@ async function initApp() {
         if (res.status === 401) {
             throw new Error('Unauthorized');
         }
+        if (!res.ok) {
+            throw new Error('Server error');
+        }
         const data = await res.json();
-        if (data.requisitions) requirements = data.requisitions;
-        if (data.candidates) candidates = data.candidates;
+        if (data.requisitions) requirements = data.requisitions.map(r => ({ ...r, ...JSON.parse(r.extraData || '{}') }));
+        if (data.candidates) candidates = data.candidates.map(c => ({ ...c, history: c.history ? JSON.parse(c.history) : [] }));
         if (data.worklogs) worklogs = data.worklogs;
         if (data.reminders) reminders = data.reminders;
         
-        document.getElementById('loginScreen').style.display = 'none';
-        
-        currentRole = localStorage.getItem('role') || 'Recruiter';
-        renderHeaderRoleSwitcher();
-        
-        if (document.getElementById('cfg_inactivity')) {
-            document.getElementById('cfg_inactivity').value = appSettings.inactivity;
-            document.getElementById('cfg_sla').value = appSettings.sla;
-            document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
-        }
-        updateAllViews();
-        generateAlerts();
+        loginScreen.style.display = 'none';
+        _finishAppInit();
     } catch (e) {
-        console.error('Failed to load from API', e);
-        localStorage.removeItem('token');
-        document.getElementById('loginScreen').style.display = 'flex';
+        if (e.message === 'Unauthorized') {
+            localStorage.removeItem('token');
+            loginScreen.style.display = 'flex';
+            return;
+        }
+        // API offline — fall back to localStorage data
+        console.warn('API offline, falling back to localStorage:', e.message);
+        loginScreen.style.display = 'none';
+        showOfflineBanner();
+        _finishAppInit();
     }
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
+function _finishAppInit() {
+    currentRole = localStorage.getItem('role') || 'Management';
+    renderHeaderRoleSwitcher();
+    if (document.getElementById('cfg_inactivity')) {
+        document.getElementById('cfg_inactivity').value = appSettings.inactivity;
+        document.getElementById('cfg_sla').value = appSettings.sla;
+        document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+    }
+    updateAllViews();
+    generateAlerts();
+}
+
+function showOfflineBanner() {
+    const existing = document.getElementById('offline-banner');
+    if (existing) return;
+    const banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:8888; background:hsl(38,92%,50%); color:#000; text-align:center; padding:8px 16px; font-size:0.82rem; font-weight:600;';
+    banner.innerHTML = '⚡ Running in offline mode — API server not reachable. Data is saved locally only. <a href="javascript:location.reload()" style="color:#000; text-decoration:underline; margin-left:10px;">Retry</a>';
+    document.body.prepend(banner);
+}
+
+function toggleAuthForm() {
+    const loginContainer = document.getElementById('loginFormContainer');
+    const regContainer = document.getElementById('registerFormContainer');
+    if (!loginContainer || !regContainer) return;
+    const isShowingLogin = loginContainer.style.display !== 'none';
+    loginContainer.style.display = isShowingLogin ? 'none' : 'block';
+    regContainer.style.display = isShowingLogin ? 'block' : 'none';
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const u = document.getElementById('reg_username').value;
+    const p = document.getElementById('reg_password').value;
+    const role = document.getElementById('reg_role').value;
+    const errDiv = document.getElementById('reg_error');
+    try {
+        const res = await fetch('http://localhost:3000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p, role })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            toggleAuthForm();
+            document.getElementById('login_username').value = u;
+            document.getElementById('login_error').style.display = 'none';
+            alert('Account created! Please log in.');
+        } else {
+            errDiv.innerText = data.error || 'Registration failed';
+            errDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errDiv.innerText = 'Server offline. Cannot register.';
+        errDiv.style.display = 'block';
+    }
+}
+
 
 function toggleNotifications() {
     const dropdown = document.getElementById('notif-dropdown');
@@ -6678,6 +6810,10 @@ function signOffer(e) {
         createAlert(`Amazing! ${can.name} has officially accepted the offer and Joined!`, 'success');
     }, 500);
 }
+
+// Boot the application
+document.addEventListener('DOMContentLoaded', initApp);
+
 </script>
 </body>
 </html>

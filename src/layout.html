@@ -1,3 +1,74 @@
+<!-- Login Screen Overlay -->
+<div id="loginScreen" style="display:none; position:fixed; inset:0; z-index:9999; background:linear-gradient(135deg, hsl(215,28%,13%) 0%, hsl(220,40%,18%) 50%, hsl(215,28%,13%) 100%); align-items:center; justify-content:center;">
+    <div style="width:420px; max-width:95vw; background:rgba(255,255,255,0.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:40px; box-shadow:0 25px 60px rgba(0,0,0,0.5);">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-size:2.5rem; margin-bottom:8px;">🎯</div>
+            <h1 style="color:#fff; font-size:1.6rem; font-weight:700; margin:0 0 6px 0;">Recruitment OS</h1>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.9rem; margin:0;">Sign in to your workspace</p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginFormContainer">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div style="margin-bottom:16px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Username</label>
+                    <input id="login_username" type="text" placeholder="Enter username" required autocomplete="username"
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='hsl(220,85%,57%)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Password</label>
+                    <input id="login_password" type="password" placeholder="Enter password" required autocomplete="current-password"
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='hsl(220,85%,57%)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
+                </div>
+                <div id="login_error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px;"></div>
+                <button type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(220,85%,57%), hsl(220,85%,47%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;">
+                    Sign In
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:20px;">
+                <span style="color:rgba(255,255,255,0.4); font-size:0.85rem;">No account? </span>
+                <span onclick="toggleAuthForm()" style="color:hsl(220,85%,70%); font-size:0.85rem; cursor:pointer; font-weight:500; text-decoration:underline;">Register</span>
+            </div>
+            <div style="margin-top:20px; padding:12px; background:rgba(255,255,255,0.04); border-radius:8px; text-align:center;">
+                <small style="color:rgba(255,255,255,0.35); font-size:0.75rem;">Default: <strong style="color:rgba(255,255,255,0.5);">admin / admin123</strong></small>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerFormContainer" style="display:none;">
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Username</label>
+                    <input id="reg_username" type="text" placeholder="Choose a username" required
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Password</label>
+                    <input id="reg_password" type="password" placeholder="Choose a password" required
+                        style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:500; display:block; margin-bottom:6px;">Role</label>
+                    <select id="reg_role" style="width:100%; padding:12px 14px; background:rgba(30,40,60,0.9); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.95rem; box-sizing:border-box; outline:none;">
+                        <option value="Recruiter">Recruiter</option>
+                        <option value="Account Manager">Account Manager</option>
+                        <option value="Management">Management</option>
+                    </select>
+                </div>
+                <div id="reg_error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px;"></div>
+                <button type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(150,84%,37%), hsl(150,84%,27%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer;">
+                    Create Account
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:20px;">
+                <span onclick="toggleAuthForm()" style="color:hsl(220,85%,70%); font-size:0.85rem; cursor:pointer; font-weight:500; text-decoration:underline;">Back to Login</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Sidebar Navigation (Full 12-Tab Structure) -->
 <div class="sidebar" id="sidebar-menu">
     <h2 style="padding: 20px 15px; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center;">

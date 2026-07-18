@@ -3866,9 +3866,12 @@ openModal = function(id) {
 
 // Start
 async function initApp() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (!loginScreen) return; // safety guard
+
     const token = localStorage.getItem('token');
     if (!token) {
-        document.getElementById('loginScreen').style.display = 'flex';
+        loginScreen.style.display = 'flex';
         return;
     }
     
@@ -3879,32 +3882,90 @@ async function initApp() {
         if (res.status === 401) {
             throw new Error('Unauthorized');
         }
+        if (!res.ok) {
+            throw new Error('Server error');
+        }
         const data = await res.json();
-        if (data.requisitions) requirements = data.requisitions;
-        if (data.candidates) candidates = data.candidates;
+        if (data.requisitions) requirements = data.requisitions.map(r => ({ ...r, ...JSON.parse(r.extraData || '{}') }));
+        if (data.candidates) candidates = data.candidates.map(c => ({ ...c, history: c.history ? JSON.parse(c.history) : [] }));
         if (data.worklogs) worklogs = data.worklogs;
         if (data.reminders) reminders = data.reminders;
         
-        document.getElementById('loginScreen').style.display = 'none';
-        
-        currentRole = localStorage.getItem('role') || 'Recruiter';
-        renderHeaderRoleSwitcher();
-        
-        if (document.getElementById('cfg_inactivity')) {
-            document.getElementById('cfg_inactivity').value = appSettings.inactivity;
-            document.getElementById('cfg_sla').value = appSettings.sla;
-            document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
-        }
-        updateAllViews();
-        generateAlerts();
+        loginScreen.style.display = 'none';
+        _finishAppInit();
     } catch (e) {
-        console.error('Failed to load from API', e);
-        localStorage.removeItem('token');
-        document.getElementById('loginScreen').style.display = 'flex';
+        if (e.message === 'Unauthorized') {
+            localStorage.removeItem('token');
+            loginScreen.style.display = 'flex';
+            return;
+        }
+        // API offline — fall back to localStorage data
+        console.warn('API offline, falling back to localStorage:', e.message);
+        loginScreen.style.display = 'none';
+        showOfflineBanner();
+        _finishAppInit();
     }
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
+function _finishAppInit() {
+    currentRole = localStorage.getItem('role') || 'Management';
+    renderHeaderRoleSwitcher();
+    if (document.getElementById('cfg_inactivity')) {
+        document.getElementById('cfg_inactivity').value = appSettings.inactivity;
+        document.getElementById('cfg_sla').value = appSettings.sla;
+        document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+    }
+    updateAllViews();
+    generateAlerts();
+}
+
+function showOfflineBanner() {
+    const existing = document.getElementById('offline-banner');
+    if (existing) return;
+    const banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:8888; background:hsl(38,92%,50%); color:#000; text-align:center; padding:8px 16px; font-size:0.82rem; font-weight:600;';
+    banner.innerHTML = '⚡ Running in offline mode — API server not reachable. Data is saved locally only. <a href="javascript:location.reload()" style="color:#000; text-decoration:underline; margin-left:10px;">Retry</a>';
+    document.body.prepend(banner);
+}
+
+function toggleAuthForm() {
+    const loginContainer = document.getElementById('loginFormContainer');
+    const regContainer = document.getElementById('registerFormContainer');
+    if (!loginContainer || !regContainer) return;
+    const isShowingLogin = loginContainer.style.display !== 'none';
+    loginContainer.style.display = isShowingLogin ? 'none' : 'block';
+    regContainer.style.display = isShowingLogin ? 'block' : 'none';
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const u = document.getElementById('reg_username').value;
+    const p = document.getElementById('reg_password').value;
+    const role = document.getElementById('reg_role').value;
+    const errDiv = document.getElementById('reg_error');
+    try {
+        const res = await fetch('http://localhost:3000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p, role })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            toggleAuthForm();
+            document.getElementById('login_username').value = u;
+            document.getElementById('login_error').style.display = 'none';
+            alert('Account created! Please log in.');
+        } else {
+            errDiv.innerText = data.error || 'Registration failed';
+            errDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errDiv.innerText = 'Server offline. Cannot register.';
+        errDiv.style.display = 'block';
+    }
+}
+
 
 function toggleNotifications() {
     const dropdown = document.getElementById('notif-dropdown');
@@ -4158,3 +4219,6 @@ function signOffer(e) {
         createAlert(`Amazing! ${can.name} has officially accepted the offer and Joined!`, 'success');
     }, 500);
 }
+
+// Boot the application
+document.addEventListener('DOMContentLoaded', initApp);
