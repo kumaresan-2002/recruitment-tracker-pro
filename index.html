@@ -30,6 +30,20 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
 
+[data-theme="dark"] {
+    --bg-light: hsl(220, 20%, 10%);
+    --text-dark: hsl(210, 40%, 98%);
+    --text-light: hsl(215, 16%, 65%);
+    --border: hsl(215, 20%, 20%);
+    --white: hsl(215, 25%, 15%);
+    --sidebar: hsl(220, 30%, 8%);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+    --success-light: hsl(150, 84%, 15%);
+    --warning-light: hsl(38, 92%, 15%);
+    --danger-light: hsl(0, 84%, 15%);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
 body { display: flex; height: 100vh; background-color: var(--bg-light); color: var(--text-dark); overflow: hidden; }
 
@@ -333,6 +347,54 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     font-size: 0.85rem;
     color: hsl(220, 9%, 30%);
 }
+/* Kanban Board Styles */
+.kanban-board {
+    display: flex;
+    gap: 15px;
+    height: calc(100vh - 150px);
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+.kanban-column {
+    flex: 0 0 300px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+.kanban-column-header {
+    padding: 15px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary);
+    background: var(--white);
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+}
+.kanban-column-body {
+    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 150px;
+}
+.kanban-column-body.drag-over {
+    background: var(--primary);
+    opacity: 0.1;
+}
+.kanban-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: grab;
+    box-shadow: var(--shadow);
+}
+.kanban-card:active {
+    cursor: grabbing;
+    opacity: 0.8;
+}
 
 /* Print Styles for Offer Letter */
 @media print {
@@ -376,6 +438,9 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
         <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
         <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
+        <div class="nav-item" onclick="switchView('kanban')" data-role-visible="Management,Account Manager,Recruiter">📊 Visual Pipeline (Kanban)</div>
+        <div class="nav-item" onclick="switchView('auditlog')" data-role-visible="Management,Admin">📜 Global Audit Log</div>
+        <div class="nav-item" onclick="switchView('talentpool')" data-role-visible="Management,Account Manager,Recruiter">🏊 Talent Pool <span class="nav-badge" id="nav-pool-count">0</span></div>
         <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
         <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers <span class="nav-badge" id="nav-off-count">0</span></div>
         <div class="nav-item" onclick="switchView('onboarding')" data-role-visible="Management,Account Manager,Recruiter">🚀 Onboarding Hub <span class="nav-badge" id="nav-onb-count">0</span></div>
@@ -678,6 +743,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                         <option value="Interview Completed">Interview Completed (Add Scorecard)</option>
                         <option value="Offer Released">Offer Released (Requires Offer Info)</option>
                         <option value="Joined">Joined (Requires Date & Final Pay)</option>
+                        <option value="Talent Pool">Talent Pool (Keep on Bench)</option>
                         <option value="Rejected">Rejected (Requires Reason)</option>
                         <option value="Candidate Withdrew">Candidate Withdrew (Requires Reason)</option>
                     </select>
@@ -925,6 +991,169 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         </div>
     </div>
 </div>
+<!-- Modal: Bulk Stage Change -->
+<div id="bulkStageModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>🔄 Bulk Change Stage</h2>
+            <span class="close-btn" onclick="closeModal('bulkStageModal')">&times;</span>
+        </div>
+        <form onsubmit="processBulkStageChange(event)">
+            <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">Select the new stage for the <strong id="bulkStageCount">0</strong> selected candidate(s).</p>
+            <div class="form-group full-width">
+                <label>New Stage *</label>
+                <select id="bulk_new_stage" required>
+                    <option value="">-- Select Stage --</option>
+                    <option value="Sourced">Sourced</option>
+                    <option value="Screened">Screened</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="Interview Scheduled">Interview Scheduled</option>
+                    <option value="Interview Completed">Interview Completed</option>
+                    <option value="Offer Released">Offer Released</option>
+                    <option value="Joined">Joined</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <button type="submit" class="btn" style="background:var(--primary); color:white;">Update Stage</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Offer Letter Preview -->
+<div id="offerPreviewModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <h2>📜 Official Offer Letter Preview</h2>
+            <span class="close-btn" onclick="closeModal('offerPreviewModal')">&times;</span>
+        </div>
+        <div id="offerPreviewContent" style="flex:1; overflow-y:auto; padding: 20px; background: white; border: 1px solid var(--border); margin-bottom: 20px;">
+            <!-- Rendered Offer Letter -->
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap: 15px;">
+            <button class="btn btn-outline" onclick="window.print()">🖨️ Print Offer</button>
+            <button class="btn" style="background:var(--success); color:white;" onclick="openSignatureModal()">✍️ Accept & Sign Digitally</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Digital E-Signature -->
+<div id="signatureModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>✍️ Digital E-Signature Portal</h2>
+            <span class="close-btn" onclick="closeModal('signatureModal')">&times;</span>
+        </div>
+        <form onsubmit="signOffer(event)">
+            <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">By typing your name below, you formally accept the terms of the offer letter and electronically sign the document.</p>
+            <div class="form-group full-width">
+                <label>Type your Full Legal Name to Sign *</label>
+                <input type="text" id="es_signature" required style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 1.5rem; padding: 15px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <button type="submit" class="btn" style="background:var(--primary); color:white;">Sign & Accept Offer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Set Follow-up Reminder -->
+<div id="reminderModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>⏰ Set Follow-up Reminder</h2>
+            <span class="close-btn" onclick="closeModal('reminderModal')">&times;</span>
+        </div>
+        <form onsubmit="saveReminder(event)">
+            <input type="hidden" id="rm_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Set a reminder to follow up with <strong id="rm_canName"></strong>.</p>
+            
+            <div class="form-group full-width">
+                <label>Due Date *</label>
+                <input type="date" id="rm_date" required>
+            </div>
+            
+            <div class="form-group full-width">
+                <label>Note / Task Description *</label>
+                <textarea id="rm_note" rows="3" required placeholder="e.g. Call to discuss counter-offer"></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: var(--warning); color: #000;">Set Reminder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Integrated Email Composer -->
+<div id="emailComposerModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>📧 Compose Email</h2>
+            <span class="close-btn" onclick="closeModal('emailComposerModal')">&times;</span>
+        </div>
+        <form onsubmit="sendIntegratedEmail(event)">
+            <input type="hidden" id="ec_canId">
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>To:</label>
+                <input type="email" id="ec_to" readonly style="background: var(--bg-light); cursor: not-allowed;">
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>Template</label>
+                <select id="ec_template" onchange="applyEmailTemplate()">
+                    <option value="custom">Custom Message</option>
+                    <option value="interview">Interview Invitation</option>
+                    <option value="offer">Offer Details</option>
+                    <option value="reject">Polite Rejection</option>
+                    <option value="checkin">Status Check-in</option>
+                </select>
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 10px;">
+                <label>Subject</label>
+                <input type="text" id="ec_subject" required>
+            </div>
+            
+            <div class="form-group full-width" style="margin-bottom: 15px;">
+                <label>Message Body</label>
+                <textarea id="ec_body" rows="8" required style="resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('emailComposerModal')">Cancel</button>
+                <button type="submit" class="btn" style="background: var(--info); color: white; border: none;">🚀 Send Email</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Reassign Candidate -->
+<div id="reassignModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Re-assign to New Requirement</h2>
+            <span class="close-btn" onclick="closeModal('reassignModal')">&times;</span>
+        </div>
+        <form onsubmit="reassignCandidate(event)">
+            <input type="hidden" id="ra_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Move <strong id="ra_canName"></strong> out of the Talent Pool and assign them to an active role.</p>
+            
+            <div class="form-group full-width">
+                <label>Select Active Requirement *</label>
+                <select id="ra_reqId" required>
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: #9c27b0; color: white;">Re-engage Candidate</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Modal: Agency Vendor Submittal Form -->
 <div id="agencySubmitModal" class="modal">
@@ -1135,7 +1364,8 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <input type="text" id="globalSearchInput" placeholder="Global search reqs, candidates..." oninput="handleGlobalSearch(this.value)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
             <div id="globalSearchResults" style="display: none; position: absolute; top: 40px; left: 0; width: 100%; background: white; box-shadow: var(--shadow-lg); border-radius: 6px; z-index: 1000; max-height: 400px; overflow-y: auto;"></div>
         </div>
-        <div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-outline" style="border:none; font-size:1.2rem; padding: 5px 10px;" onclick="toggleTheme()" id="themeToggleBtn">🌙</button>
             <button class="btn" onclick="openModal('reqModal')">+ New Requirement</button>
             <button class="btn btn-outline" onclick="openModal('candidateModal')">+ New Candidate</button>
         </div>
@@ -1144,6 +1374,17 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     <div id="undoToast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--text-dark); color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; box-shadow: var(--shadow-lg); align-items: center; gap: 15px;">
         <span id="undoMessage">Candidate deleted.</span>
         <button class="btn btn-sm" id="undoBtn" style="background: var(--warning); color: var(--text-dark);">Undo</button>
+    </div>
+    
+    <div id="bulkActionsBar" style="display: none; position: fixed; bottom: 0; left: 260px; right: 0; background: var(--primary-dark); color: white; padding: 15px 30px; z-index: 9998; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); justify-content: space-between; align-items: center;">
+        <div>
+            <strong id="bulkSelectedCount">0</strong> Candidates Selected
+        </div>
+        <div style="display: flex; gap: 15px;">
+            <button class="btn btn-sm" style="background: white; color: var(--primary-dark);" onclick="openModal('bulkStageModal')">🔄 Change Stage</button>
+            <button class="btn btn-sm" style="background: var(--warning); color: var(--text-dark);" onclick="bulkEmailCampaign()">📧 Bulk Email</button>
+            <button class="btn btn-sm btn-outline" style="color: white; border-color: white;" onclick="clearBulkSelection()">Cancel</button>
+        </div>
     </div>
     
     <!-- Login Screen -->
@@ -1443,6 +1684,31 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 </div>
 
 <!-- Candidates View -->
+<!-- Visual Pipeline (Kanban) View -->
+<!-- Global Audit Log View -->
+<div id="auditlog" class="view" style="padding-top: 10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0;">📜 Global Audit Log</h3>
+        <span style="font-size: 0.85rem; color: var(--text-light);">A live, chronological timeline of all system-wide candidate activity.</span>
+    </div>
+    
+    <div style="max-width: 800px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);">
+        <div id="auditlog-timeline" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Rendered via JS -->
+        </div>
+    </div>
+</div>
+
+<div id="kanban" class="view" style="padding-top: 10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0;">Interactive Visual Pipeline</h3>
+        <span style="font-size: 0.85rem; color: var(--text-light);">Drag and drop candidate cards to update their stage.</span>
+    </div>
+    <div class="kanban-board" id="kanban-board-container">
+        <!-- Columns will be injected here via JS -->
+    </div>
+</div>
+
 <div id="candidates" class="view">
     
     <!-- Candidate Sub-folders (Sub-tabs) -->
@@ -1469,6 +1735,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 <option value="Interview Scheduled">Interview Scheduled</option>
                 <option value="Offer Released">Offer Released</option>
                 <option value="Joined">Joined</option>
+                <option value="Talent Pool">Talent Pool</option>
             </select>
             
             <div style="margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
@@ -1478,6 +1745,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                     <option value="Submitted to Client">Submitted to Client</option>
                     <option value="Interview Scheduled">Interview Scheduled</option>
                     <option value="Offer Released">Offer Released</option>
+                    <option value="Talent Pool">Talent Pool</option>
                 </select>
                 <button class="btn btn-sm btn-outline" onclick="applyBulkAction()">Apply</button>
                 <button class="btn btn-sm" onclick="openMassEmailModal()" style="background: var(--info); color: white; border: none;">📧 Send Mass Email</button>
@@ -1544,6 +1812,13 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 </div>
                 <div class="kanban-dropzone" id="kb-col-Joined" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
             </div>
+            <!-- Talent Pool Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid #9c27b0; background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Talent Pool <span class="badge" id="kb-count-TalentPool">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-TalentPool" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
             <!-- Rejected/Lost Column -->
             <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
                 <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--danger); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
@@ -1555,6 +1830,19 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
+<!-- Talent Pool View -->
+<div id="talentpool" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin-bottom: 5px;">🏊 Talent Pool & Bench</h2>
+            <p style="color: var(--text-light); font-size: 0.9rem;">Passive candidates ready for re-engagement when new roles open up.</p>
+        </div>
+    </div>
+    
+    <div id="talentpool-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Populated via JS -->
+    </div>
+</div>
 <!-- Interviews & Reports View -->
 <div id="interviews" class="view">
     <h3 style="margin-bottom:20px;">Upcoming Interviews</h3>
@@ -1950,6 +2238,22 @@ let editingReqId = null;
 let currentCandidateTab = "All";
 let editingCandidateId = null;
 
+// Theme Engine
+let isDarkMode = localStorage.getItem('theme') === 'dark';
+function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.body.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    document.getElementById('themeToggleBtn').innerText = isDarkMode ? '☀️' : '🌙';
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+}
+function initTheme() {
+    if (isDarkMode) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('themeToggleBtn').innerText = '☀️';
+    }
+}
+initTheme();
+
 // Aging filter state variables
 let reqAgeFilterMin = null;
 let reqAgeFilterMax = null;
@@ -1957,6 +2261,10 @@ let reqAgeFilterMax = null;
 // Save to LocalStorage & Backend API
 async function saveData() {
     localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
+    localStorage.setItem(STORE_KEYS.reqs, JSON.stringify(requirements));
+    localStorage.setItem(STORE_KEYS.candidates, JSON.stringify(candidates));
+    localStorage.setItem(STORE_KEYS.worklogs, JSON.stringify(worklogs));
+    localStorage.setItem(STORE_KEYS.reminders, JSON.stringify(reminders));
     
     showLoading();
     try {
@@ -2408,7 +2716,8 @@ function openCandidateDetailsModal(canId) {
                     <div style="display:flex; justify-content:flex-end; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                         <button class="btn btn-sm" onclick="matchCandidate('${can.id}')" style="background:var(--primary); color:white; border:none;">🔍 AI Match</button>
                         <button class="btn btn-sm" onclick="draftEmail('${can.id}')" style="background:var(--info); color:white; border:none;">📧 Draft Email</button>
-                        <button class="btn btn-sm btn-outline" onclick="setReminder('${can.id}', 'Candidate')">⏰ Set Reminder</button>
+                        <button class="btn btn-sm" onclick="openReminderModal('${can.id}')" style="background:var(--warning); color:#000; border:none;">⏰ Set Follow-up</button>
+                        ${['Interview Scheduled', 'Interview Completed'].includes(can.stage) ? `<button class="btn btn-sm" onclick="generateICS('${can.id}')" style="background:var(--purple); color:white; border:none;">📅 Add to Calendar</button>` : ''}
                         ${['Offer Released', 'Joined'].includes(can.stage) ? `<button class="btn btn-sm" onclick="openOfferConfig('${can.id}')" style="background:var(--success); color:white; border:none;">📜 Generate Offer</button>` : ''}
                     </div>
                     <div id="ai-match-results-${can.id}" style="display:none; margin-bottom: 20px;"></div>
@@ -3025,8 +3334,141 @@ function updateAllViews() {
     renderClientPortal();
     renderHiringManagerPortal();
     renderAgencyPortal();
+    renderTalentPool();
     updateDashboard();
     calculateReportsTAT();
+    renderKanban();
+    renderAuditLog();
+}
+
+function renderAuditLog() {
+    const tl = document.getElementById('auditlog-timeline');
+    if (!tl) return;
+    
+    // 1. Aggregate all candidate history
+    let allHistory = [];
+    candidates.forEach(can => {
+        if (can.history && Array.isArray(can.history)) {
+            can.history.forEach(entry => {
+                allHistory.push({
+                    ...entry,
+                    canId: can.id,
+                    canName: can.name,
+                    reqId: can.reqId,
+                    // Convert YYYY-MM-DD or MM/DD/YYYY to Date object for sorting
+                    timestamp: new Date(entry.date).getTime() || 0
+                });
+            });
+        }
+    });
+    
+    // 2. Sort chronologically (newest first)
+    allHistory.sort((a, b) => b.timestamp - a.timestamp);
+    
+    // 3. Render
+    if (allHistory.length === 0) {
+        tl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding:20px;">No system activity found yet.</div>';
+        return;
+    }
+    
+    let html = '';
+    allHistory.forEach(entry => {
+        let icon = '📝';
+        if (entry.stage === 'Joined') icon = '🎉';
+        else if (entry.stage === 'Rejected') icon = '❌';
+        else if (entry.stage.includes('Interview')) icon = '📅';
+        else if (entry.stage === 'Offer Released') icon = '📜';
+        
+        html += `
+            <div style="display:flex; gap:15px; padding-bottom:20px; border-bottom:1px solid var(--border); align-items:flex-start;">
+                <div style="font-size:1.5rem; background:var(--bg-light); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">${icon}</div>
+                <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <strong style="color:var(--text-dark);">${entry.canName} <span style="color:var(--text-light); font-weight:normal;">(${entry.canId})</span></strong>
+                        <span style="font-size:0.8rem; color:var(--text-light);">${entry.date}</span>
+                    </div>
+                    <div style="margin-bottom:5px; font-size:0.95rem;">
+                        Changed stage to <span class="badge ${getBadgeClass(entry.stage)}">${entry.stage}</span> for Req <strong>${entry.reqId}</strong>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-light); font-style:italic;">"${entry.comment}"</div>
+                </div>
+                <button class="btn btn-sm btn-outline" style="align-self:center;" onclick="openCandidateDetails('${entry.canId}')">View Profile</button>
+            </div>
+        `;
+    });
+    
+    tl.innerHTML = html;
+}
+
+function renderKanban() {
+    const board = document.getElementById('kanban-board-container');
+    if (!board) return;
+    
+    const stages = ['Sourced', 'Screened', 'Submitted', 'Interview Scheduled', 'Offer Released', 'Joined'];
+    let html = '';
+    
+    stages.forEach(stage => {
+        const stageCandidates = candidates.filter(c => c.stage === stage);
+        html += `
+            <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, '${stage}')" ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')">
+                <div class="kanban-column-header">
+                    ${stage} <span style="background:var(--primary); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem;">${stageCandidates.length}</span>
+                </div>
+                <div class="kanban-column-body">
+                    ${stageCandidates.map(can => {
+                        const req = requirements.find(r => r.id === can.reqId);
+                        const reqTitle = req ? req.title : can.reqId;
+                        return `
+                            <div class="kanban-card" draggable="true" ondragstart="dragStart(event, '${can.id}')">
+                                <div style="font-weight:600; margin-bottom:5px;">${can.name}</div>
+                                <div style="font-size:0.85rem; color:var(--text-light); margin-bottom:10px;">${reqTitle}</div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:0.75rem; color:var(--text-light);">${can.lastUpdated}</span>
+                                    <div>
+                                        <button class="btn btn-sm" style="padding:2px 5px;" onclick="openCandidateDetails('${can.id}')">👁️</button>
+                                        <button class="btn btn-sm btn-outline" style="padding:2px 5px;" onclick="draftEmail('${can.id}')">📧</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    board.innerHTML = html;
+}
+
+function dragStart(e, canId) {
+    e.dataTransfer.setData('canId', canId);
+}
+
+function allowDrop(e) {
+    e.preventDefault();
+}
+
+function drop(e, stage) {
+    e.preventDefault();
+    const column = e.target.closest('.kanban-column');
+    if (column) column.classList.remove('drag-over');
+    
+    const canId = e.dataTransfer.getData('canId');
+    const can = candidates.find(c => c.id === canId);
+    
+    if (can && can.stage !== stage) {
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: stage,
+            date: new Date().toISOString().split('T')[0],
+            comment: `Moved to ${stage} via Kanban Board`
+        });
+        can.stage = stage;
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        saveData();
+        updateAllViews();
+    }
     
     // Update nav badges
     document.getElementById('nav-req-count').innerText = requirements.length;
@@ -3777,6 +4219,92 @@ function submitAgencyCandidate(e) {
     alert('Candidate successfully submitted to Req ' + reqId);
 }
 
+// Phase 41: Talent Pool Logic
+function renderTalentPool() {
+    const grid = document.getElementById('talentpool-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Get all Talent Pool candidates
+    const poolCans = candidates.filter(c => c.stage === 'Talent Pool');
+    
+    document.getElementById('nav-pool-count').innerText = poolCans.length;
+    document.getElementById('kb-count-TalentPool').innerText = poolCans.length;
+    
+    if (poolCans.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-light); background: white; border-radius: 8px; border: 1px solid var(--border);">No candidates are currently on the bench.</div>';
+        return;
+    }
+    
+    poolCans.forEach(can => {
+        const card = document.createElement('div');
+        card.style = "background: white; border-radius: 8px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative;";
+        
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin-bottom:4px; font-size:1.1rem; color:var(--text-dark); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</h3>
+                    <div style="font-size:0.8rem; color:var(--text-light);">${can.location || 'Any'} | Added: ${can.lastUpdated || 'Unknown'}</div>
+                </div>
+                <div style="background:#f3e5f5; color:#9c27b0; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold;">Bench</div>
+            </div>
+            
+            <div style="font-size:0.85rem; color:var(--text-dark); margin-bottom:15px;">
+                <strong>Original Req:</strong> ${can.reqId} <br>
+                <strong>Source:</strong> ${can.source || 'Direct'}
+            </div>
+            
+            <button class="btn btn-sm btn-outline" style="width:100%; border-color:#9c27b0; color:#9c27b0;" onclick="openReassignModal('${can.id}')">Re-assign to Req</button>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openReassignModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('ra_canId').value = can.id;
+    document.getElementById('ra_canName').innerText = can.name;
+    
+    const reqSelect = document.getElementById('ra_reqId');
+    reqSelect.innerHTML = '<option value="">-- Select Active Req --</option>';
+    
+    requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+        const option = document.createElement('option');
+        option.value = req.id;
+        option.textContent = `${req.id} - ${req.title} (${req.client})`;
+        reqSelect.appendChild(option);
+    });
+    
+    openModal('reassignModal');
+}
+
+function reassignCandidate(e) {
+    e.preventDefault();
+    const canId = document.getElementById('ra_canId').value;
+    const reqId = document.getElementById('ra_reqId').value;
+    
+    const can = candidates.find(c => c.id === canId);
+    if (can && reqId) {
+        can.reqId = reqId;
+        can.stage = 'Submitted';
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: 'Re-assigned',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Pulled from Talent Pool and re-assigned to ${reqId}`
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('reassignModal');
+        createAlert(`Candidate ${can.name} successfully re-assigned to ${reqId}!`, 'success');
+    }
+}
+
 function renderClients() {
     const tbody = document.getElementById('client-summary-table');
     if(!tbody) return;
@@ -4107,16 +4635,34 @@ function updateDashboard() {
     // Reminders
     const remindersList = document.getElementById('reminders-list');
     if (remindersList) {
-        const myReminders = reminders.filter(r => r.user === currentRole || r.user === localStorage.getItem('username'));
+        const myReminders = reminders.filter(r => (r.user === currentRole || r.user === localStorage.getItem('username')) && !r.completed);
+        
+        myReminders.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
         if (myReminders.length === 0) {
-            remindersList.innerHTML = '<div>No upcoming reminders.</div>';
+            remindersList.innerHTML = '<div style="font-size:0.9rem; padding: 10px;">No upcoming reminders. You are all caught up! 🎉</div>';
         } else {
-            remindersList.innerHTML = myReminders.map(rem => `
-                <div style="background: rgba(255,255,255,0.8); padding: 8px; margin-bottom: 5px; border-radius: 4px; display:flex; justify-content:space-between;">
-                    <span><strong>${rem.date}</strong> - ${rem.text} (Target: ${rem.targetId})</span>
-                    <span style="cursor:pointer;" onclick="deleteReminder('${rem.date}', '${rem.targetId}')">✅ Done</span>
+            const today = new Date().toISOString().split('T')[0];
+            
+            remindersList.innerHTML = myReminders.map(rem => {
+                const isOverdue = rem.date < today;
+                const isToday = rem.date === today;
+                const styleStr = (isOverdue || isToday) 
+                    ? "background: #ffebee; border-left: 4px solid var(--danger);" 
+                    : "background: rgba(255,255,255,0.8); border-left: 4px solid var(--primary);";
+                    
+                const badgeStr = isOverdue ? '<span style="color:var(--danger); font-weight:bold; font-size:0.75rem;">OVERDUE</span> ' : (isToday ? '<span style="color:#d84315; font-weight:bold; font-size:0.75rem;">TODAY</span> ' : '');
+                
+                return `
+                <div style="${styleStr} padding: 10px; margin-bottom: 8px; border-radius: 4px; display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <div style="font-size:0.8rem; color:var(--text-light); margin-bottom:4px;">${badgeStr}${rem.date} | Candidate: ${rem.targetName}</div>
+                        <div style="font-size:0.95rem; font-weight:500;">${rem.text}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" style="padding:4px 8px; border-color:var(--success); color:var(--success);" onclick="markReminderDone('${rem.id}')">✅ Done</button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
     }
     
@@ -4653,63 +5199,164 @@ function draftEmail(canId) {
     const can = candidates.find(c => c.id === canId);
     if (!can) return;
     
-    let subject = `Update on your application - ${can.reqId}`;
+    document.getElementById('ec_canId').value = can.id;
+    document.getElementById('ec_to').value = can.email || 'no-email@candidate.com';
+    document.getElementById('ec_template').value = 'custom';
+    document.getElementById('ec_subject').value = `Update on your application - ${can.reqId}`;
+    document.getElementById('ec_body').value = `Hi ${can.name.split(' ')[0]},\n\n\n\nBest Regards,\n${localStorage.getItem('username') || currentRole}`;
+    
+    openModal('emailComposerModal');
+}
+
+function applyEmailTemplate() {
+    const canId = document.getElementById('ec_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const template = document.getElementById('ec_template').value;
+    let subject = '';
     let body = `Hi ${can.name.split(' ')[0]},\n\n`;
     
-    switch (can.stage) {
-        case 'Sourced':
-        case 'Screened':
-            subject = `Exciting Opportunity: ${can.reqId}`;
-            body += `We are reaching out regarding an exciting new opportunity that matches your profile.\n\nCould you please let us know your availability for a quick screening call?`;
+    switch (template) {
+        case 'interview':
+            subject = `Interview Invitation - ${can.reqId}`;
+            body += `We were very impressed with your background and would like to invite you for an interview regarding the ${can.reqId} position.\n\nPlease let us know your availability over the next few days.`;
             break;
-        case 'Interview Scheduled':
-            subject = `Interview Confirmation - ${can.reqId}`;
-            body += `Your interview has been scheduled. Please ensure you are available and prepared at the agreed upon time.\n\nLet us know if you have any questions.`;
-            break;
-        case 'Offer Released':
+        case 'offer':
             subject = `Offer Details - Congratulations!`;
-            body += `We are thrilled to extend an offer for the position! Please review the attached details and let us know your decision.\n\nCongratulations!`;
+            body += `We are thrilled to extend an offer for the position of ${can.reqId}!\n\nPlease review the attached official offer details and let us know your decision. We hope you will join our team!`;
             break;
-        case 'Joined':
-            subject = `Welcome Aboard!`;
-            body += `We are excited to have you join the team! Please let us know if you need any assistance with your onboarding process.`;
-            break;
-        case 'Rejected':
+        case 'reject':
             subject = `Update on your application`;
-            body += `Thank you for taking the time to interview with us. Unfortunately, we will not be moving forward with your application at this time.\n\nWe wish you the best in your job search.`;
+            body += `Thank you for taking the time to interview with us. Unfortunately, we will not be moving forward with your application for ${can.reqId} at this time.\n\nWe will keep your resume in our talent pool for future opportunities. We wish you the best in your job search.`;
+            break;
+        case 'checkin':
+            subject = `Checking in on your application - ${can.reqId}`;
+            body += `We are just following up regarding your application for ${can.reqId}.\n\nWe are currently reviewing profiles and will have an update for you shortly. Please let us know if you have any questions in the meantime.`;
             break;
         default:
-            body += `We are following up regarding your application for ${can.reqId}.\n\nPlease let us know if you have any updates.`;
+            subject = `Update on your application - ${can.reqId}`;
+            body += ``;
             break;
     }
     
     body += `\n\nBest Regards,\n${localStorage.getItem('username') || currentRole}`;
     
-    const mailtoLink = `mailto:${can.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink, '_blank');
+    document.getElementById('ec_subject').value = subject;
+    document.getElementById('ec_body').value = body;
 }
 
-function setReminder(targetId, type) {
-    const text = prompt(`Set a reminder for ${type} ${targetId}:\nWhat do you need to do?`);
-    if (!text) return;
+function sendIntegratedEmail(e) {
+    e.preventDefault();
+    const canId = document.getElementById('ec_canId').value;
+    const subject = document.getElementById('ec_subject').value;
+    const body = document.getElementById('ec_body').value;
     
-    // Defaulting date to tomorrow for simplicity
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        can.history = can.history || [];
+        can.history.unshift({
+            stage: 'Email Sent',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Subject: ${subject}\n\n${body}`
+        });
+        
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        saveData();
+        updateAllViews();
+        closeModal('emailComposerModal');
+        createAlert(`Email successfully sent to ${can.name}!`, 'success');
+    }
+}
+
+function openReminderModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('rm_canId').value = can.id;
+    document.getElementById('rm_canName').innerText = can.name;
+    
+    // Default to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('rm_date').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('rm_note').value = '';
+    
+    openModal('reminderModal');
+}
+
+function saveReminder(e) {
+    e.preventDefault();
+    const canId = document.getElementById('rm_canId').value;
+    const date = document.getElementById('rm_date').value;
+    const note = document.getElementById('rm_note').value;
+    
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        reminders.push({
+            id: 'REM' + Math.floor(Math.random() * 10000),
+            date: date,
+            text: note,
+            targetId: can.id,
+            targetName: can.name,
+            user: localStorage.getItem('username') || currentRole,
+            completed: false
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('reminderModal');
+        createAlert(`Reminder set for ${date}`, 'success');
+    }
+}
+
+function markReminderDone(id) {
+    const rm = reminders.find(r => r.id === id);
+    if (rm) {
+        rm.completed = true;
+        saveData();
+        updateAllViews();
+    }
+}
+
+function generateICS(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+
+    // We will just generate an ICS for tomorrow at 10 AM for 1 hour
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    reminders.push({
-        date: tomorrow.toISOString().split('T')[0],
-        text: text,
-        user: localStorage.getItem('username') || currentRole,
-        targetId: targetId
-    });
-    saveData();
-    alert('Reminder set for tomorrow!');
-}
+    // Format to ICS standard: YYYYMMDDTHHMMSSZ
+    const formatDate = (date) => {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
 
-function deleteReminder(date, targetId) {
-    reminders = reminders.filter(r => !(r.date === date && r.targetId === targetId));
-    saveData();
+    const startDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 10, 0, 0);
+    const endDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 11, 0, 0);
+
+    const icsString = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Recruitment OS//EN',
+        'BEGIN:VEVENT',
+        'UID:' + Math.random().toString(36).substr(2, 9) + '@recruitmentos.com',
+        'DTSTAMP:' + formatDate(new Date()),
+        'DTSTART:' + formatDate(startDate),
+        'DTEND:' + formatDate(endDate),
+        'SUMMARY:Interview: ' + can.name + ' - Req ' + can.reqId,
+        'DESCRIPTION:Please review candidate profile and resume prior to the call.\n\nRole: ' + can.reqId,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `Interview_${can.name.replace(/\s+/g, '_')}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Intercept Add Candidate modal open to override button behavior
@@ -4923,9 +5570,8 @@ function generateOfferLetter(e) {
     const today = new Date().toLocaleDateString();
     
     // Create print-only content
-    const printDiv = document.getElementById('printable-offer-letter');
-    printDiv.innerHTML = `
-        <div style="font-family: 'Times New Roman', serif; color: #000; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+    const offerHtml = `
+        <div style="font-family: 'Times New Roman', serif; color: #000; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; background: white;">
             <div style="text-align: center; margin-bottom: 40px;">
                 <h1 style="margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">RecruitTrack ATS, Inc.</h1>
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">123 Enterprise Blvd, Tech District, CA 94105</p>
@@ -4959,21 +5605,66 @@ function generateOfferLetter(e) {
             
             <div style="margin-top: 60px; display: flex; justify-content: space-between;">
                 <div style="width: 45%;">
-                    <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                    <div style="border-bottom: 1px solid #000; height: 30px; font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; line-height: 30px; padding-left: 10px;" id="signature-display"></div>
                     <p style="margin-top: 5px; font-size: 14px;"><strong>Candidate Signature</strong></p>
                 </div>
                 <div style="width: 45%;">
-                    <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                    <div style="border-bottom: 1px solid #000; height: 30px; line-height: 30px; padding-left: 10px;" id="signature-date"></div>
                     <p style="margin-top: 5px; font-size: 14px;"><strong>Date</strong></p>
                 </div>
             </div>
         </div>
     `;
     
-    closeModal('offerConfigModal');
+    // Set content in print div
+    document.getElementById('printable-offer-letter').innerHTML = offerHtml;
+    // Set content in preview modal
+    document.getElementById('offerPreviewContent').innerHTML = offerHtml;
     
-    // Trigger Print
-    window.print();
+    // Store currently signing canId globally
+    window.currentSigningCanId = canId;
+    
+    closeModal('offerConfigModal');
+    openModal('offerPreviewModal');
+}
+
+function openSignatureModal() {
+    document.getElementById('es_signature').value = '';
+    openModal('signatureModal');
+}
+
+function signOffer(e) {
+    e.preventDefault();
+    const signature = document.getElementById('es_signature').value;
+    const canId = window.currentSigningCanId;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    // Apply signature to preview and print view
+    document.querySelectorAll('#signature-display').forEach(el => el.innerText = signature);
+    document.querySelectorAll('#signature-date').forEach(el => el.innerText = new Date().toLocaleDateString());
+    
+    // Update candidate state
+    can.stage = 'Joined';
+    can.history = can.history || [];
+    can.history.unshift({
+        stage: 'Offer Signed',
+        date: new Date().toISOString().split('T')[0],
+        comment: `Digitally signed by ${signature}`
+    });
+    can.lastUpdated = new Date().toISOString().split('T')[0];
+    
+    saveData();
+    updateAllViews();
+    
+    closeModal('signatureModal');
+    
+    // Wait a brief moment, then print the signed offer
+    setTimeout(() => {
+        window.print();
+        closeModal('offerPreviewModal');
+        createAlert(`Amazing! ${can.name} has officially accepted the offer and Joined!`, 'success');
+    }, 500);
 }
 </script>
 <div id="printable-offer-letter"></div>
