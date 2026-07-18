@@ -648,9 +648,12 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <div class="form-grid">
                 <div class="form-group full-width" style="background: var(--bg-light); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
                     <label style="color: var(--primary); font-weight: bold;">⚡ Smart Quick-Import</label>
-                    <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 8px;">Paste text from LinkedIn or a Resume. Click Auto-Fill to extract Email & Phone.</p>
+                    <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 8px;">Upload a .txt Resume or Paste text below to auto-extract Name, Email & Phone.</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="file" id="c_resume_file" accept=".txt" style="flex: 1; padding: 4px;" onchange="handleResumeUpload(event)">
+                    </div>
                     <div style="display: flex; gap: 10px;">
-                        <textarea id="c_quick_import" rows="2" style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Paste profile text here..."></textarea>
+                        <textarea id="c_quick_import" rows="2" style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Or paste profile text here..."></textarea>
                         <button type="button" class="btn btn-sm btn-outline" onclick="autoFillCandidate()">Auto-Fill</button>
                     </div>
                 </div>
@@ -2987,6 +2990,20 @@ function autoFillCandidate() {
     const box = document.getElementById('c_quick_import');
     box.style.borderColor = 'var(--success)';
     setTimeout(() => box.style.borderColor = 'var(--border)', 1000);
+}
+
+function handleResumeUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        document.getElementById('c_quick_import').value = text;
+        autoFillCandidate();
+        createAlert('Resume parsed successfully!', 'success');
+    };
+    reader.readAsText(file);
 }
 
 async function handleCandidateSubmit(e) {
