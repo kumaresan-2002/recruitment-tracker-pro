@@ -712,8 +712,13 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                     </select>
                 </div>
                 <div class="form-group full-width">
-                    <label>Key Skills (Parsed from Resume) *</label>
-                    <input type="text" id="c_skills" placeholder="e.g. React, Node.js, Python" required>
+                    <label>Key Skills (Type & press Enter or comma to add tags)</label>
+                    <div id="c_skills_tags" style="display:flex; flex-wrap:wrap; gap:6px; padding:8px; border:1px solid var(--border); border-radius:6px; min-height:42px; cursor:text; background:var(--white);" onclick="document.getElementById('c_skills_input').focus()">
+                        <!-- Tags rendered here -->
+                    </div>
+                    <input type="text" id="c_skills_input" placeholder="Type a skill and press Enter..." style="width:100%; margin-top:6px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:0.875rem;" oninput="showSkillSuggestions(this.value)" onkeydown="handleSkillInput(event)">
+                    <div id="skill_suggestions" style="display:none; position:absolute; background:var(--white); border:1px solid var(--border); border-radius:6px; box-shadow:var(--shadow-lg); z-index:200; max-height:180px; overflow-y:auto; width:300px;"></div>
+                    <input type="hidden" id="c_skills">
                 </div>
                 
                 <div id="duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
@@ -3356,6 +3361,7 @@ function openCandidateModal() {
     const reqSelect = document.getElementById('c_reqId');
     reqSelect.innerHTML = '<option value="">Select Requirement...</option>' + 
         requirements.map(r => `<option value="${r.id}">${r.id} - ${r.title} (${r.client})</option>`).join('');
+    initSkillTagInput();
     openModal('candidateModal');
 }
 
@@ -5459,6 +5465,137 @@ function updateDashboard() {
     });
 
     renderCharts();
+}
+
+// ============================================
+// PHASE 53: SKILLS TAGGING & SMART MATCHING
+// ============================================
+const DEFAULT_SKILLS_TAXONOMY = [
+    'JavaScript','TypeScript','React','Vue.js','Angular','Node.js','Python','Java','C#','.NET',
+    'SQL','PostgreSQL','MySQL','MongoDB','Redis','GraphQL','REST API','Docker','Kubernetes',
+    'AWS','Azure','GCP','CI/CD','Git','Agile','Scrum','Product Management','Data Analysis',
+    'Machine Learning','Deep Learning','TensorFlow','PyTorch','Tableau','Power BI','Excel',
+    'Salesforce','SAP','ServiceNow','JIRA','Confluence','DevOps','Linux','Terraform',
+    'Cyber Security','Network Engineering','Cloud Architecture','UI/UX Design','Figma',
+    'Recruitment','HR','Talent Acquisition','Business Development','Account Management',
+    'Project Management','PMP','Six Sigma','Lean','Quality Assurance','Selenium','Cypress'
+];
+
+function getSkillsTaxonomy() {
+    const saved = localStorage.getItem('skillsTaxonomy_v1');
+    return saved ? JSON.parse(saved) : [...DEFAULT_SKILLS_TAXONOMY];
+}
+
+function saveSkillsTaxonomy(t) { localStorage.setItem('skillsTaxonomy_v1', JSON.stringify(t)); }
+
+// Current tags being edited in the candidate form
+let currentCandidateSkillTags = [];
+
+function initSkillTagInput() {
+    currentCandidateSkillTags = [];
+    const tagsContainer = document.getElementById('c_skills_tags');
+    if (tagsContainer) tagsContainer.innerHTML = '';
+    const hiddenInput = document.getElementById('c_skills');
+    if (hiddenInput) hiddenInput.value = '';
+    const input = document.getElementById('c_skills_input');
+    if (input) input.value = '';
+}
+
+function loadSkillTagsFromString(skillsStr) {
+    currentCandidateSkillTags = [];
+    if (!skillsStr) return;
+    const skills = skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+    skills.forEach(s => addSkillTag(s));
+}
+
+function handleSkillInput(event) {
+    if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        const val = event.target.value.trim().replace(/,$/, '');
+        if (val) addSkillTag(val);
+        event.target.value = '';
+        document.getElementById('skill_suggestions').style.display = 'none';
+    } else if (event.key === 'Backspace' && !event.target.value) {
+        removeLastSkillTag();
+    }
+}
+
+function addSkillTag(skill) {
+    skill = skill.trim();
+    if (!skill || currentCandidateSkillTags.includes(skill)) return;
+    currentCandidateSkillTags.push(skill);
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function removeSkillTag(skill) {
+    currentCandidateSkillTags = currentCandidateSkillTags.filter(s => s !== skill);
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function removeLastSkillTag() {
+    if (!currentCandidateSkillTags.length) return;
+    currentCandidateSkillTags.pop();
+    renderSkillTags();
+    updateHiddenSkillsInput();
+}
+
+function renderSkillTags() {
+    const container = document.getElementById('c_skills_tags');
+    if (!container) return;
+    container.innerHTML = currentCandidateSkillTags.map(skill => `
+        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--primary); color:white; padding:3px 10px; border-radius:9999px; font-size:0.75rem; font-weight:600;">
+            ${skill}
+            <span onclick="removeSkillTag('${skill}')" style="cursor:pointer; font-size:0.85rem; margin-left:2px;">&times;</span>
+        </span>`).join('');
+}
+
+function updateHiddenSkillsInput() {
+    const hidden = document.getElementById('c_skills');
+    if (hidden) hidden.value = currentCandidateSkillTags.join(', ');
+}
+
+function showSkillSuggestions(query) {
+    const sugg = document.getElementById('skill_suggestions');
+    if (!sugg || query.length < 1) { if (sugg) sugg.style.display = 'none'; return; }
+    const taxonomy = getSkillsTaxonomy();
+    const matches = taxonomy.filter(s => s.toLowerCase().includes(query.toLowerCase()) && !currentCandidateSkillTags.includes(s)).slice(0, 8);
+    if (!matches.length) { sugg.style.display = 'none'; return; }
+    sugg.innerHTML = matches.map(m => `<div onclick="addSkillTag('${m}'); document.getElementById('c_skills_input').value=''; document.getElementById('skill_suggestions').style.display='none';" style="padding:8px 12px; cursor:pointer; font-size:0.85rem;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background=''">${m}</div>`).join('');
+    sugg.style.display = 'block';
+}
+
+// Smart Match Score: compare candidate skills vs requirement skills
+function calcMatchScore(canSkills, reqSkills) {
+    if (!reqSkills || !reqSkills.length) return 0;
+    if (!canSkills || !canSkills.length) return 0;
+    const canSet = canSkills.map(s => s.toLowerCase().trim());
+    const matches = reqSkills.filter(rs => canSet.some(cs => cs.includes(rs.toLowerCase().trim()) || rs.toLowerCase().trim().includes(cs)));
+    return Math.min(100, Math.round((matches.length / reqSkills.length) * 100));
+}
+
+function getSkillsArray(skillsStr) {
+    if (!skillsStr) return [];
+    return skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Best Matches: given a req, find top 5 matching candidates
+function getBestMatchesForReq(reqId) {
+    const req = requirements.find(r => r.id === reqId);
+    if (!req) return [];
+    const reqSkills = getSkillsArray(req.skills || req.mandatorySkills || req.r_skills || '');
+    return candidates
+        .map(c => ({ can: c, score: calcMatchScore(getSkillsArray(c.skills || c.c_skills || ''), reqSkills) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+}
+
+// Inject match score badge into candidate cards / tables
+function getMatchScoreBadge(score) {
+    const color = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--danger)';
+    return `<span style="background:${color}; color:white; padding:2px 8px; border-radius:9999px; font-size:0.7rem; font-weight:700; margin-left:6px;">${score}% Match</span>`;
 }
 
 // ============================================
