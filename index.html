@@ -334,7 +334,30 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     color: hsl(220, 9%, 30%);
 }
 
-
+/* Print Styles for Offer Letter */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #printable-offer-letter, #printable-offer-letter * {
+        visibility: visible;
+    }
+    #printable-offer-letter {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: block !important;
+    }
+    body {
+        background: white !important;
+        overflow: visible !important;
+        height: auto;
+    }
+}
+#printable-offer-letter {
+    display: none;
+}
     </style>
 </head>
 <body>
@@ -346,12 +369,16 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </h2>
     <div class="nav-items" style="font-size: 0.85rem;">
         <div class="nav-item active" onclick="switchView('dashboard')" data-role-visible="Management,Account Manager,Recruiter">Executive Dashboard</div>
+        <div class="nav-item" onclick="switchView('clientportal')" data-role-visible="Client">Client Portal (VMS)</div>
+        <div class="nav-item" onclick="switchView('hiringmanager')" data-role-visible="Hiring Manager">Hiring Manager Portal <span class="nav-badge" id="nav-hm-count">0</span></div>
+        <div class="nav-item" onclick="switchView('agencyportal')" data-role-visible="Agency Vendor">Agency Vendor Portal <span class="nav-badge" id="nav-ag-count">0</span></div>
         <div class="nav-item" onclick="switchView('requirements')" data-role-visible="Management,Account Manager,Recruiter">All Requirements <span class="nav-badge" id="nav-req-count">0</span></div>
         <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
         <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
         <div class="nav-item" onclick="switchView('candidates')" data-role-visible="Management,Account Manager,Recruiter">Candidate Pipeline <span class="nav-badge" id="nav-can-count">0</span></div>
         <div class="nav-item" onclick="switchView('interviews')" data-role-visible="Management,Account Manager,Recruiter">Interviews <span class="nav-badge" id="nav-int-count">0</span></div>
-        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers & Onboarding <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('offers')" data-role-visible="Management,Account Manager,Recruiter">Offers <span class="nav-badge" id="nav-off-count">0</span></div>
+        <div class="nav-item" onclick="switchView('onboarding')" data-role-visible="Management,Account Manager,Recruiter">🚀 Onboarding Hub <span class="nav-badge" id="nav-onb-count">0</span></div>
         <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
         <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
         <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">Reports & Analytics</div>
@@ -554,6 +581,15 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         </div>
         <form id="candidateForm" onsubmit="handleCandidateSubmit(event)">
             <div class="form-grid">
+                <div class="form-group full-width" style="background: var(--bg-light); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <label style="color: var(--primary); font-weight: bold;">⚡ Smart Quick-Import</label>
+                    <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 8px;">Paste text from LinkedIn or a Resume. Click Auto-Fill to extract Email & Phone.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <textarea id="c_quick_import" rows="2" style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Paste profile text here..."></textarea>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="autoFillCandidate()">Auto-Fill</button>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>First Name *</label>
                     <input type="text" id="c_firstname" required>
@@ -605,6 +641,10 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                         <option value="IN">India</option>
                     </select>
                 </div>
+                <div class="form-group full-width">
+                    <label>Key Skills (Parsed from Resume) *</label>
+                    <input type="text" id="c_skills" placeholder="e.g. React, Node.js, Python" required>
+                </div>
                 
                 <div id="duplicate-warning" class="form-group full-width" style="display:none; color:var(--danger); font-size:0.85rem; font-weight:bold;">
                     ⚠️ Warning: Candidate with this email/phone or submission already exists!
@@ -635,6 +675,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                         <option value="Screened">Screened</option>
                         <option value="Submitted to Client">Submitted to Client (Requires Rate)</option>
                         <option value="Interview Scheduled">Interview Scheduled (Requires Details)</option>
+                        <option value="Interview Completed">Interview Completed (Add Scorecard)</option>
                         <option value="Offer Released">Offer Released (Requires Offer Info)</option>
                         <option value="Joined">Joined (Requires Date & Final Pay)</option>
                         <option value="Rejected">Rejected (Requires Reason)</option>
@@ -672,6 +713,25 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                         <option value="Phone">Phone Call</option>
                         <option value="Onsite">Onsite Interview</option>
                     </select>
+                </div>
+                
+                <!-- Interview Completed / Scorecard Fields -->
+                <div class="form-group conditional-field stage-scorecard full-width">
+                    <label style="color:var(--primary); font-weight:bold;">Interview Scorecard (1-5 Stars) *</label>
+                    <div style="display:flex; gap: 20px; align-items:center; margin-top: 5px;">
+                        <div>
+                            <small>Technical</small><br>
+                            <input type="number" id="s_scoreTech" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                        <div>
+                            <small>Communication</small><br>
+                            <input type="number" id="s_scoreComm" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                        <div>
+                            <small>Cultural Fit</small><br>
+                            <input type="number" id="s_scoreCult" min="1" max="5" value="3" style="width: 80px;">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Offer Fields -->
@@ -855,14 +915,199 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 
 <!-- Modal: Candidate Profile Inspector -->
 <div id="candidateDetailsModal" class="modal">
-    <div class="modal-content" style="max-width: 700px;">
-        <div class="modal-header">
-            <h2>Candidate Profile Card</h2>
+    <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+        <div class="modal-header" style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: var(--bg-light);">
+            <h2>Candidate Profile Card & Evaluation Hub</h2>
             <span class="close-btn" onclick="closeModal('candidateDetailsModal')">&times;</span>
         </div>
-        <div id="candidate-details-content" style="font-size: 0.9rem; line-height: 1.6;">
-            <!-- Populated via JS -->
+        <div id="candidate-details-content" style="display: flex; flex: 1; overflow: hidden; background: var(--bg-light);">
+            <!-- Populated via JS with Split View -->
         </div>
+    </div>
+</div>
+
+<!-- Modal: Agency Vendor Submittal Form -->
+<div id="agencySubmitModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🚀 Submit Candidate</h2>
+            <span class="close-btn" onclick="closeModal('agencySubmitModal')">&times;</span>
+        </div>
+        <form onsubmit="submitAgencyCandidate(event)">
+            <input type="hidden" id="ag_reqId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Submit a candidate to Req: <strong id="ag_reqTitle"></strong></p>
+            
+            <div class="form-group full-width">
+                <label>Candidate Full Name *</label>
+                <input type="text" id="ag_canName" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Email Address *</label>
+                <input type="email" id="ag_canEmail" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Phone Number *</label>
+                <input type="text" id="ag_canPhone" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Visa / Work Authorization</label>
+                <select id="ag_canVisa">
+                    <option value="US Citizen">US Citizen</option>
+                    <option value="Green Card">Green Card</option>
+                    <option value="H1B">H1B</option>
+                    <option value="OPT/CPT">OPT/CPT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label>Resume (PDF/DOCX)</label>
+                <input type="file" id="ag_canResume" accept=".pdf,.docx">
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="submit" class="btn" style="background: var(--primary); color: white;">Submit Candidate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Onboarding Checklist -->
+<div id="onboardingModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Post-Hire Onboarding Tracker</h2>
+            <span class="close-btn" onclick="closeModal('onboardingModal')">&times;</span>
+        </div>
+        <form onsubmit="saveOnboarding(event)">
+            <input type="hidden" id="onb_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Check off items as they are completed for <strong id="onb_canName"></strong>.</p>
+            
+            <div style="display:flex; flex-direction:column; gap: 15px; margin-bottom: 20px;">
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_bg" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Background Check</strong> (Cleared)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_it" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>IT Equipment & Access</strong> (Provisioned)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_pay" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Payroll & Direct Deposit</strong> (Completed)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap: 10px; cursor:pointer;">
+                    <input type="checkbox" id="onb_ori" style="width:18px; height:18px; accent-color:var(--primary);">
+                    <span><strong>Day 1 Orientation</strong> (Scheduled)</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn">💾 Save Progress</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Offer Configuration -->
+<div id="offerConfigModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Generate Offer Letter</h2>
+            <span class="close-btn" onclick="closeModal('offerConfigModal')">&times;</span>
+        </div>
+        <form onsubmit="generateOfferLetter(event)">
+            <input type="hidden" id="offer_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Fill out the details below to generate a formal Offer Letter.</p>
+            
+            <div class="form-group full-width">
+                <label>Offered Salary / Hourly Rate *</label>
+                <input type="text" id="offer_salary" placeholder="e.g. $120,000/yr or $65/hr" required>
+            </div>
+            <div style="display:flex; gap:15px;" class="form-group full-width">
+                <div style="flex:1;">
+                    <label>Target Start Date *</label>
+                    <input type="date" id="offer_startDate" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Offer Expires On *</label>
+                    <input type="date" id="offer_expireDate" required>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Sign-on Bonus / Special Terms</label>
+                <input type="text" id="offer_bonus" placeholder="e.g. $5,000 sign-on bonus">
+            </div>
+            <div class="form-group full-width">
+                <label>Hiring Manager Name</label>
+                <input type="text" id="offer_hmName" placeholder="e.g. John Smith">
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn" style="background: var(--success); color: white; border: none;">📝 Generate Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Hiring Manager Feedback Scorecard -->
+<div id="hmFeedbackModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Interview Feedback Scorecard</h2>
+            <span class="close-btn" onclick="closeModal('hmFeedbackModal')">&times;</span>
+        </div>
+        <form onsubmit="submitHMFeedback(event)">
+            <input type="hidden" id="hm_canId">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Please rate the candidate on a scale of 1-5 stars.</p>
+            
+            <div class="form-group full-width">
+                <label>Technical Skills *</label>
+                <input type="number" id="hm_scoreTech" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Communication *</label>
+                <input type="number" id="hm_scoreComm" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Cultural Fit *</label>
+                <input type="number" id="hm_scoreCult" min="1" max="5" value="3" required style="width: 100px;">
+            </div>
+            <div class="form-group full-width">
+                <label>Detailed Notes / Recommendation *</label>
+                <textarea id="hm_comments" rows="4" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Should we hire this candidate? Why or why not?"></textarea>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn" style="background: var(--success); color: white; border: none;">Submit Feedback</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Mass Email Campaign Builder -->
+<div id="massEmailModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Campaign Builder: Mass Email</h2>
+            <span class="close-btn" onclick="closeModal('massEmailModal')">&times;</span>
+        </div>
+        <form onsubmit="executeMassEmail(event)">
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">Selected Candidates: <span id="me_count" style="font-weight: bold; color: var(--primary);">0</span></p>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Subject Line *</label>
+                    <input type="text" id="me_subject" required placeholder="e.g. Exciting Opportunity for {{Candidate_Name}}">
+                </div>
+                <div class="form-group full-width">
+                    <label>Email Body *</label>
+                    <div style="font-size: 0.75rem; color: var(--info); margin-bottom: 5px;">Available placeholders: {{Candidate_Name}}, {{Target_Country}}, {{Current_Stage}}</div>
+                    <textarea id="me_body" rows="8" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;" placeholder="Hi {{Candidate_Name}},\n\nI came across your profile and..."></textarea>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn">🚀 Generate & Open Emails</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -901,12 +1146,44 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         <button class="btn btn-sm" id="undoBtn" style="background: var(--warning); color: var(--text-dark);">Undo</button>
     </div>
     
+    <!-- Login Screen -->
+    <div id="loginScreen" style="position: fixed; inset: 0; background: var(--bg-light); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 400px; padding: 40px; text-align: center; box-shadow: var(--shadow-lg);">
+            <div class="logo" style="justify-content: center; margin-bottom: 20px;">
+                <div class="logo-icon">RT</div>
+                RecruitTrack
+            </div>
+            <h2 style="margin-bottom: 20px;">Welcome Back</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group" style="text-align: left;">
+                    <label>Username</label>
+                    <input type="text" id="login_username" required style="width: 100%;">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Password</label>
+                    <input type="password" id="login_password" required style="width: 100%;">
+                </div>
+                <div id="login_error" style="color: var(--danger); margin-bottom: 15px; display: none; font-size: 0.85rem;"></div>
+                <button type="submit" class="btn" style="width: 100%;">Login</button>
+            </form>
+            <div style="margin-top: 20px; font-size: 0.8rem; color: var(--text-light);">
+                Default Admin: admin / admin123
+            </div>
+        </div>
+    </div>
+
     <div class="content" id="view-container">
 <!-- Dashboard View -->
 <div id="dashboard" class="view active">
     
     <!-- Top KPIs -->
     <div class="dashboard-grid">
+        <div class="card" style="grid-column: span 4; background: var(--warning); color: var(--text-dark);">
+            <h3 style="display:flex; justify-content:space-between;">⏰ My Upcoming Reminders</h3>
+            <div id="reminders-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                <!-- Populated via JS -->
+            </div>
+        </div>
         <div class="card">
             <h3>Total Requirements</h3>
             <div class="value" id="kpi-total-req">0</div>
@@ -1151,44 +1428,66 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
 </div>
 
+<!-- Onboarding Hub View -->
+<div id="onboarding" class="view">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin-bottom: 5px;">🚀 Post-Hire Onboarding Hub</h2>
+            <p style="color: var(--text-light); font-size: 0.9rem;">Track the onboarding progress of candidates who have successfully joined.</p>
+        </div>
+    </div>
+    
+    <div id="onboarding-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Populated via JS -->
+    </div>
+</div>
+
 <!-- Candidates View -->
 <div id="candidates" class="view">
     
     <!-- Candidate Sub-folders (Sub-tabs) -->
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-        <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
-        <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
-        <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-sm" id="btn-can-all" type="button" onclick="switchCandidateTab('All')">All Candidates</button>
+            <button class="btn btn-sm btn-outline" id="btn-can-us" type="button" onclick="switchCandidateTab('US')">US Candidates</button>
+            <button class="btn btn-sm btn-outline" id="btn-can-in" type="button" onclick="switchCandidateTab('IN')">India Candidates</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-sm" id="btn-view-list" onclick="toggleCandidateView('list')">List View</button>
+            <button class="btn btn-sm btn-outline" id="btn-view-kanban" onclick="toggleCandidateView('kanban')">Kanban Board</button>
+        </div>
     </div>
 
-    <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center;">
-        <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
-        <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
-            <option value="All">All Stages</option>
-            <option value="Sourced">Sourced</option>
-            <option value="Screened">Screened</option>
-            <option value="Submitted to Client">Submitted to Client</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Offer Released">Offer Released</option>
-            <option value="Joined">Joined</option>
-        </select>
-        
-        <div style="margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
-            <select id="bulkActionStage" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
-                <option value="">-- Bulk Update Stage --</option>
+    <div id="candidate-list-view">
+        <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center;">
+            <input type="text" id="searchCan" placeholder="Search candidates..." onkeyup="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 300px;">
+            <select id="filterStage" onchange="updateAllViews()" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <option value="All">All Stages</option>
+                <option value="Sourced">Sourced</option>
                 <option value="Screened">Screened</option>
                 <option value="Submitted to Client">Submitted to Client</option>
                 <option value="Interview Scheduled">Interview Scheduled</option>
                 <option value="Offer Released">Offer Released</option>
+                <option value="Joined">Joined</option>
             </select>
-            <button class="btn btn-sm btn-outline" onclick="applyBulkAction()">Apply</button>
-        </div>
+            
+            <div style="margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
+                <select id="bulkActionStage" style="padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">-- Bulk Update Stage --</option>
+                    <option value="Screened">Screened</option>
+                    <option value="Submitted to Client">Submitted to Client</option>
+                    <option value="Interview Scheduled">Interview Scheduled</option>
+                    <option value="Offer Released">Offer Released</option>
+                </select>
+                <button class="btn btn-sm btn-outline" onclick="applyBulkAction()">Apply</button>
+                <button class="btn btn-sm" onclick="openMassEmailModal()" style="background: var(--info); color: white; border: none;">📧 Send Mass Email</button>
+            </div>
 
-        <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
-    </div>
-    
-    <div class="table-container">
-        <table>
+            <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
             <thead>
                 <tr>
                     <th style="width: 40px;"><input type="checkbox" id="selectAllCands" onclick="toggleAllCheckboxes(this)"></th>
@@ -1205,6 +1504,54 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 <!-- Populated via JS -->
             </tbody>
         </table>
+    </div>
+    </div>
+    
+    <div id="candidate-kanban-view" style="display: none; padding-top: 10px;">
+        <div class="kanban-board" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; height: 600px;">
+            <!-- Sourced Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--primary); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Sourced <span class="badge" id="kb-count-Sourced">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Sourced" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Screened Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--info); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Screened <span class="badge" id="kb-count-Screened">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Screened" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Interview Scheduled Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--warning); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Interview Scheduled <span class="badge" id="kb-count-Interview">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Interview" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Offer Released Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--success); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Offer Released <span class="badge" id="kb-count-Offer">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Offer" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Joined Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid #2e7d32; background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Joined <span class="badge" id="kb-count-Joined">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Joined" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+            <!-- Rejected/Lost Column -->
+            <div class="kanban-column" style="flex: 0 0 300px; background: var(--bg-light); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div style="padding: 15px; font-weight: bold; border-bottom: 2px solid var(--danger); background: white; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;">
+                    Rejected <span class="badge" id="kb-count-Rejected">0</span>
+                </div>
+                <div class="kanban-dropzone" id="kb-col-Rejected" ondrop="dropKanban(event)" ondragover="allowDropKanban(event)" style="flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 100px;"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1258,6 +1605,58 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <button class="btn btn-outline" onclick="exportCandidatesCSV()">Export CSV</button>
         </div>
     </div>
+    <h3 style="margin-top:30px; margin-bottom:15px;">Advanced Custom Report Builder</h3>
+    <div class="card">
+        <div style="display:flex; gap:15px; margin-bottom:15px; align-items:flex-end; flex-wrap:wrap;">
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Start Date</label>
+                <input type="date" id="rep_start_date">
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>End Date</label>
+                <input type="date" id="rep_end_date">
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Filter by Recruiter</label>
+                <select id="rep_recruiter">
+                    <option value="All">All Recruiters</option>
+                    <option value="Recruiter A">Recruiter A</option>
+                    <option value="Recruiter B">Recruiter B</option>
+                    <option value="Recruiter C">Recruiter C</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:1; min-width: 150px; margin-bottom:0;">
+                <label>Filter by Client</label>
+                <select id="rep_client">
+                    <!-- Populated dynamically via JS -->
+                    <option value="All">All Clients</option>
+                </select>
+            </div>
+            <button class="btn" style="height: 38px;" onclick="generateCustomReport()">Generate Report</button>
+            <button class="btn btn-outline" style="height: 38px;" onclick="exportCustomReport()">Export CSV</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Req ID</th>
+                        <th>Job Title</th>
+                        <th>Client</th>
+                        <th>Recruiter</th>
+                        <th>Sourced</th>
+                        <th>Screened</th>
+                        <th>Submitted</th>
+                        <th>Interviews</th>
+                        <th>Placements</th>
+                    </tr>
+                </thead>
+                <tbody id="custom-report-table">
+                    <tr><td colspan="9" style="text-align:center; color:var(--text-light); padding:20px;">Use the filters above to generate a custom report.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Data Management View -->
@@ -1278,6 +1677,29 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
                 <button class="btn btn-sm btn-outline" onclick="importData(true)">Overwrite All</button>
             </div>
         </div>
+    </div>
+    
+    <h3 style="margin-top: 30px; margin-bottom: 20px;">External Stakeholder Access</h3>
+    <div class="card" style="max-width: 500px;">
+        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">Generate login credentials for Clients, Hiring Managers, or Agency Vendors. For Clients or Vendors, the username should match their company name.</p>
+        <div class="form-group">
+            <label>Stakeholder Role *</label>
+            <select id="vms_role">
+                <option value="Client">Client (VMS Access)</option>
+                <option value="Hiring Manager">Hiring Manager (Feedback Hub)</option>
+                <option value="Agency Vendor">Agency Vendor (Submittal Portal)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Username (or Client Name) *</label>
+            <input type="text" id="vms_username" placeholder="e.g. TechCorp or JohnSmith">
+        </div>
+        <div class="form-group">
+            <label>Secure Password *</label>
+            <input type="password" id="vms_password">
+        </div>
+        <div id="vms_status" style="margin-top:10px; font-size:0.85rem; display:none; font-weight:bold;"></div>
+        <button class="btn" onclick="generateExternalLogin()" style="margin-top: 15px;">Generate Access</button>
     </div>
 </div>
 
@@ -1301,6 +1723,106 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <small style="color:var(--text-light)">Highlights US staff augmentation placements with red warning text if margins fall below this threshold.</small>
         </div>
         <button class="btn" onclick="saveSettings()" style="margin-top: 15px;">Save Configurations</button>
+    </div>
+</div>
+
+<!-- Client Portal View -->
+<div id="clientportal" class="view">
+    <h3 style="margin-bottom: 20px;">Client VMS Dashboard</h3>
+    <div class="dashboard-grid" style="margin-bottom: 30px;">
+        <div class="card">
+            <h3>Active Requirements</h3>
+            <div class="value" id="client-kpi-reqs">0</div>
+        </div>
+        <div class="card">
+            <h3>Candidates Submitted</h3>
+            <div class="value" id="client-kpi-subs">0</div>
+        </div>
+        <div class="card">
+            <h3>Interviews Scheduled</h3>
+            <div class="value" id="client-kpi-ints">0</div>
+        </div>
+        <div class="card">
+            <h3>Positions Filled</h3>
+            <div class="value" id="client-kpi-filled">0</div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Req ID / Title</th>
+                    <th>Candidate Name</th>
+                    <th>Current Stage</th>
+                    <th>Submission Date</th>
+                    <th>Resume</th>
+                </tr>
+            </thead>
+            <tbody id="client-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Hiring Manager Portal View -->
+<div id="hiringmanager" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0;">Hiring Manager - Interview Hub</h3>
+        <div style="font-size: 0.85rem; color: var(--text-light);">
+            Welcome back! You have <strong id="hm-pending-count" style="color:var(--warning);">0</strong> pending interviews to review.
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidate Name</th>
+                    <th>Requirement / Role</th>
+                    <th>Interview Details</th>
+                    <th>Resume</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="hm-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Agency Vendor Portal View -->
+<div id="agencyportal" class="view">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0; margin-bottom: 5px;">Agency Vendor Portal</h2>
+            <div style="font-size: 0.85rem; color: var(--text-light);">
+                Submit top talent directly to active requirements.
+            </div>
+        </div>
+        <div style="font-size: 0.85rem; background: var(--primary); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold;">
+            Total Open Reqs: <span id="ag-portal-count">0</span>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requirement ID</th>
+                    <th>Job Title</th>
+                    <th>Location / Mode</th>
+                    <th>Type</th>
+                    <th>Experience</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ag-portal-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -1413,13 +1935,15 @@ const STORE_KEYS = {
     candidates: 'recruitmentTracker_candidates_v1',
     worklogs: 'recruitmentTracker_worklogs_v1',
     settings: 'recruitmentTracker_settings_v1',
-    role: 'recruitmentTracker_role_v1'
+    role: 'recruitmentTracker_role_v1',
+    reminders: 'recruitmentTracker_reminders_v1'
 };
 
 // Initialize State
 let requirements = JSON.parse(localStorage.getItem(STORE_KEYS.reqs)) || [];
 let candidates = JSON.parse(localStorage.getItem(STORE_KEYS.candidates)) || [];
 let worklogs = JSON.parse(localStorage.getItem(STORE_KEYS.worklogs)) || [];
+let reminders = JSON.parse(localStorage.getItem(STORE_KEYS.reminders)) || [];
 let appSettings = JSON.parse(localStorage.getItem(STORE_KEYS.settings)) || { inactivity: 3, sla: 7, minMargin: 15 };
 let currentRole = localStorage.getItem(STORE_KEYS.role) || "Management";
 let editingReqId = null;
@@ -1433,14 +1957,17 @@ let reqAgeFilterMax = null;
 // Save to LocalStorage & Backend API
 async function saveData() {
     localStorage.setItem(STORE_KEYS.settings, JSON.stringify(appSettings));
-    localStorage.setItem(STORE_KEYS.role, currentRole);
     
     showLoading();
     try {
+        const token = localStorage.getItem('token');
         await fetch('http://localhost:3000/api/sync', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requisitions: requirements, candidates, worklogs })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ requisitions: requirements, candidates, worklogs, reminders })
         });
     } catch (e) {
         console.error('Failed to sync with API', e);
@@ -1554,6 +2081,7 @@ function toggleStageFields() {
     const stage = document.getElementById('s_newStage').value;
     document.querySelectorAll('.stage-submit').forEach(el => el.style.display = stage === 'Submitted to Client' ? 'block' : 'none');
     document.querySelectorAll('.stage-interview').forEach(el => el.style.display = stage === 'Interview Scheduled' ? 'block' : 'none');
+    document.querySelectorAll('.stage-scorecard').forEach(el => el.style.display = stage === 'Interview Completed' ? 'block' : 'none');
     document.querySelectorAll('.stage-offer').forEach(el => el.style.display = stage === 'Offer Released' ? 'block' : 'none');
     document.querySelectorAll('.stage-joined').forEach(el => el.style.display = stage === 'Joined' ? 'block' : 'none');
     document.querySelectorAll('.stage-reject').forEach(el => el.style.display = stage === 'Rejected' ? 'block' : 'none');
@@ -1827,7 +2355,8 @@ function openReqDetailsModal(reqId) {
         `;
         
         document.getElementById('req-details-content').innerHTML = `
-            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px; gap: 10px;">
+                <button class="btn btn-sm btn-outline" onclick="setReminder('${r.id}', 'Req')">⏰ Set Reminder</button>
                 <button class="btn btn-sm btn-outline" onclick="cloneReq('${r.id}')">📋 Clone Requirement</button>
             </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
@@ -1867,57 +2396,99 @@ function openCandidateDetailsModal(canId) {
     const can = candidates.find(c => c.id === canId);
     if(can) {
         document.getElementById('candidate-details-content').innerHTML = `
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
-                <div>
-                    <p><strong>Candidate ID:</strong> ${can.id}</p>
-                    <p><strong>Full Name:</strong> ${can.name}</p>
-                    <p><strong>Email Address:</strong> ${can.email}</p>
-                    <p><strong>Phone Contact:</strong> ${can.phone}</p>
+            <div style="display: flex; width: 100%; height: 100%;">
+                <!-- Left Panel: Built-in Resume Viewer -->
+                <div style="flex: 7; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-light);">
+                    ${can.resumeUrl ? `<iframe src="http://localhost:3000${can.resumeUrl}" style="width:100%; height:100%; border:none;"></iframe>` : `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-light); flex-direction:column; gap:15px;"><div style="font-size:4rem; opacity:0.5;">📄</div><div style="font-size: 1.1rem;">No Resume Uploaded</div></div>`}
                 </div>
-                <div>
-                    <p><strong>Target Country:</strong> <span class="badge active">${can.country || 'US'}</span></p>
-                    <p><strong>Current Pipeline Stage:</strong> <span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></p>
-                    <p><strong>Visa / Work Auth:</strong> ${can.visa || 'N/A'}</p>
-                    <p><strong>Notice Period:</strong> ${can.notice || 'Immediate'}</p>
-                </div>
-            </div>
-            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
-                <p><strong>Submitted to Requisition:</strong> <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="closeModal('candidateDetailsModal'); openReqDetailsModal('${can.reqId}')">${can.reqId} ➔</span></p>
-                <p><strong>Candidate Source:</strong> ${can.source || 'Referral'}</p>
-                <p><strong>Resume Document:</strong> ${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">Not Uploaded</span>'}</p>
-                <p><strong>Profile Last Updated:</strong> ${can.lastUpdated}</p>
-            </div>
-            <div style="border-top:1.5px solid var(--border); padding-top:15px;">
-                <h4 style="margin-bottom:8px; color:var(--primary);">Transition & Audit Journey</h4>
-                <div class="timeline" style="max-height: 250px; overflow-y: auto;">
-                    ${(can.history || []).map(h => `
-                        <div class="timeline-event" style="margin-bottom:12px;">
-                            <div class="timeline-marker" style="width:12px; height:12px; left:15px;"></div>
-                            <div class="timeline-content" style="padding:8px;">
-                                <div class="timeline-title" style="font-size:0.8rem;">${h.stage}</div>
-                                <div style="font-size:0.7rem; color:var(--text-light);">${h.date}</div>
-                                <div style="font-size:0.75rem; color:var(--text-dark);">${h.comment}</div>
+                
+                <!-- Right Panel: Action & Details Hub -->
+                <div style="flex: 3; min-width: 400px; max-width: 550px; overflow-y: auto; padding: 25px; background: white; font-size: 0.9rem; line-height: 1.6;">
+                    
+                    <div style="display:flex; justify-content:flex-end; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-sm" onclick="matchCandidate('${can.id}')" style="background:var(--primary); color:white; border:none;">🔍 AI Match</button>
+                        <button class="btn btn-sm" onclick="draftEmail('${can.id}')" style="background:var(--info); color:white; border:none;">📧 Draft Email</button>
+                        <button class="btn btn-sm btn-outline" onclick="setReminder('${can.id}', 'Candidate')">⏰ Set Reminder</button>
+                        ${['Offer Released', 'Joined'].includes(can.stage) ? `<button class="btn btn-sm" onclick="openOfferConfig('${can.id}')" style="background:var(--success); color:white; border:none;">📜 Generate Offer</button>` : ''}
+                    </div>
+                    <div id="ai-match-results-${can.id}" style="display:none; margin-bottom: 20px;"></div>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                        <div>
+                            <p><strong>Candidate ID:</strong> ${can.id}</p>
+                            <p><strong>Full Name:</strong> ${can.name}</p>
+                            <p><strong>Email Address:</strong> ${can.email}</p>
+                            <p><strong>Phone Contact:</strong> ${can.phone}</p>
+                        </div>
+                        <div>
+                            <p><strong>Target Country:</strong> <span class="badge active">${can.country || 'US'}</span></p>
+                            <p><strong>Current Pipeline Stage:</strong> <span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></p>
+                            <p><strong>Visa / Work Auth:</strong> ${can.visa || 'N/A'}</p>
+                            <p><strong>Notice Period:</strong> ${can.notice || 'Immediate'}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-bottom:15px;">
+                        <p><strong>Submitted to Requisition:</strong> <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="closeModal('candidateDetailsModal'); openReqDetailsModal('${can.reqId}')">${can.reqId} ➔</span></p>
+                        <p><strong>Candidate Source:</strong> ${can.source || 'Referral'}</p>
+                        <p><strong>Profile Last Updated:</strong> ${can.lastUpdated}</p>
+                    </div>
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Transition & Audit Journey</h4>
+                        <div class="timeline" style="max-height: 250px; overflow-y: auto;">
+                            ${(can.history || []).map(h => `
+                                <div class="timeline-event" style="margin-bottom:12px;">
+                                    <div class="timeline-marker" style="width:12px; height:12px; left:15px;"></div>
+                                    <div class="timeline-content" style="padding:8px;">
+                                        <div class="timeline-title" style="font-size:0.8rem;">${h.stage}</div>
+                                        <div style="font-size:0.7rem; color:var(--text-light);">${h.date}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-dark);">${h.comment}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    ${(can.scoreTech || can.scoreComm || can.scoreCult) ? `
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Interview Scorecard</h4>
+                        <div style="display:flex; gap: 30px;">
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Technical Skills</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreTech || 0)}${'☆'.repeat(5 - (can.scoreTech || 0))}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Communication</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreComm || 0)}${'☆'.repeat(5 - (can.scoreComm || 0))}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">Cultural Fit</div>
+                                <div style="font-weight:bold; font-size:1.1rem; color:var(--primary);">${'⭐'.repeat(can.scoreCult || 0)}${'☆'.repeat(5 - (can.scoreCult || 0))}</div>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            </div>
-            <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
-                <h4 style="margin-bottom:8px; color:var(--primary);">Comments & Notes</h4>
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <textarea id="new-comment-${can.id}" rows="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid var(--border);" placeholder="Add a timestamped note..."></textarea>
-                    <button class="btn btn-sm" style="align-self:flex-end;" onclick="addCandidateComment('${can.id}')">Add Comment</button>
-                </div>
-                <div class="comments-list" style="margin-top:15px; max-height:200px; overflow-y:auto; font-size:0.85rem;">
-                    ${(can.comments || []).slice().reverse().map(c => `
-                        <div style="background:var(--bg-light); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                                <strong style="color:var(--primary);">${c.user || 'User'}</strong>
-                                <span style="color:var(--text-light); font-size:0.75rem;">${c.timestamp}</span>
-                            </div>
-                            <div>${c.text}</div>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="border-top:1.5px solid var(--border); padding-top:15px; margin-top:15px;">
+                        <h4 style="margin-bottom:8px; color:var(--primary);">Comments & Notes</h4>
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <textarea id="new-comment-${can.id}" rows="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid var(--border);" placeholder="Add a timestamped note..."></textarea>
+                            <button class="btn btn-sm" style="align-self:flex-end;" onclick="addCandidateComment('${can.id}')">Add Comment</button>
                         </div>
-                    `).join('') || '<div style="color:var(--text-light); font-style:italic;">No comments yet.</div>'}
+                        <div class="comments-list" style="margin-top:15px; max-height:200px; overflow-y:auto; font-size:0.85rem;">
+                            ${(can.comments || []).slice().reverse().map(c => `
+                                <div style="background:var(--bg-light); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border);">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                        <strong style="color:var(--primary);">${c.user || 'User'}</strong>
+                                        <span style="color:var(--text-light); font-size:0.75rem;">${c.timestamp}</span>
+                                    </div>
+                                    <div>${c.text}</div>
+                                </div>
+                            `).join('') || '<div style="color:var(--text-light); font-style:italic;">No comments yet.</div>'}
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         `;
@@ -2072,6 +2643,43 @@ function openCandidateModal() {
     openModal('candidateModal');
 }
 
+function autoFillCandidate() {
+    const text = document.getElementById('c_quick_import').value;
+    if(!text) return;
+    
+    // Extract Email
+    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if(emailMatch) {
+        document.getElementById('c_email').value = emailMatch[0];
+    }
+    
+    // Extract Phone (handles formats like 123-456-7890, (123) 456-7890, +1 123 456 7890)
+    const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+    if(phoneMatch) {
+        document.getElementById('c_phone').value = phoneMatch[0];
+    }
+    
+    // Try to guess Name from first line if it looks like a name (not an email or phone)
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if(lines.length > 0) {
+        const potentialName = lines[0];
+        if(!potentialName.match(/@/) && !potentialName.match(/\d{3}/)) {
+            const parts = potentialName.split(' ');
+            if(parts.length >= 2) {
+                document.getElementById('c_firstname').value = parts[0];
+                document.getElementById('c_lastname').value = parts.slice(1).join(' ');
+            } else {
+                document.getElementById('c_firstname').value = potentialName;
+            }
+        }
+    }
+    
+    // Flash green to indicate success
+    const box = document.getElementById('c_quick_import');
+    box.style.borderColor = 'var(--success)';
+    setTimeout(() => box.style.borderColor = 'var(--border)', 1000);
+}
+
 async function handleCandidateSubmit(e) {
     e.preventDefault();
     const country = document.getElementById('c_country').value;
@@ -2104,6 +2712,7 @@ async function handleCandidateSubmit(e) {
         visa: document.getElementById('c_visa').value,
         notice: document.getElementById('c_notice').value,
         country: country,
+        skills: document.getElementById('c_skills').value,
         lastUpdated: new Date().toISOString().split('T')[0]
     };
     
@@ -2250,6 +2859,14 @@ function handleStageUpdate(e) {
             can.interviewTimezone = document.getElementById('s_timezone').value;
             can.interviewMode = document.getElementById('s_interviewMode').value;
             extraComment = `Round: ${can.interviewRound} on ${new Date(can.interviewDate).toLocaleString()} ${can.interviewTimezone}`;
+            
+            // Auto-generate Calendar Invite
+            downloadICS(can, can.interviewDate, can.interviewTimezone, can.interviewRound, can.interviewMode);
+        } else if (newStage === 'Interview Completed') {
+            can.scoreTech = parseInt(document.getElementById('s_scoreTech').value);
+            can.scoreComm = parseInt(document.getElementById('s_scoreComm').value);
+            can.scoreCult = parseInt(document.getElementById('s_scoreCult').value);
+            extraComment = `Scorecard: Tech (${can.scoreTech}/5), Comm (${can.scoreComm}/5), Cult (${can.scoreCult}/5)`;
         } else if (newStage === 'Offer Released') {
             can.offerDate = document.getElementById('s_offerDate').value;
             can.offeredComp = document.getElementById('s_offeredComp').value;
@@ -2283,6 +2900,38 @@ function handleStageUpdate(e) {
     saveData();
     closeModal('stageModal');
     e.target.reset();
+}
+
+function downloadICS(can, dateString, timezone, round, mode) {
+    if(!dateString) return;
+    
+    const startDate = new Date(dateString);
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+    
+    const formatDate = (date) => {
+        return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+    
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Recruitment Tracker//EN',
+        'BEGIN:VEVENT',
+        `DTSTART:${formatDate(startDate)}`,
+        `DTEND:${formatDate(endDate)}`,
+        `SUMMARY:Interview with ${can.name} - ${round}`,
+        `DESCRIPTION:Candidate: ${can.name}\\nRole: ${can.reqId}\\nMode: ${mode}\\nTimezone: ${timezone}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\\r\\n');
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Interview_${can.name.replace(/\\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Work Log Handlers
@@ -2334,18 +2983,30 @@ function changeRole(role) {
 function applyRolePermissions() {
     document.querySelectorAll('.nav-item').forEach(nav => {
         const allowedRoles = nav.getAttribute('data-role-visible').split(',');
-        nav.style.display = allowedRoles.includes(currentRole) ? 'flex' : 'none';
+        nav.style.display = (currentRole === 'Admin' || allowedRoles.includes(currentRole)) ? 'flex' : 'none';
     });
 
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav && activeNav.style.display === 'none') {
-        const dbNav = document.querySelector('.nav-item[onclick*="dashboard"]');
-        if (dbNav) dbNav.click();
+        if (currentRole === 'Client') {
+            const clientNav = document.querySelector('.nav-item[onclick*="clientportal"]');
+            if (clientNav) clientNav.click();
+        } else if (currentRole === 'Hiring Manager') {
+            const hmNav = document.querySelector('.nav-item[onclick*="hiringmanager"]');
+            if (hmNav) hmNav.click();
+        } else if (currentRole === 'Agency Vendor') {
+            const agNav = document.querySelector('.nav-item[onclick*="agencyportal"]');
+            if (agNav) agNav.click();
+        } else {
+            const dbNav = document.querySelector('.nav-item[onclick*="dashboard"]');
+            if (dbNav) dbNav.click();
+        }
     }
 
     document.querySelectorAll('[data-role-hide]').forEach(el => {
         const hiddenRoles = el.getAttribute('data-role-hide').split(',');
-        el.style.display = hiddenRoles.includes(currentRole) ? 'none' : 'block';
+        el.style.display = (currentRole === 'Admin' || !hiddenRoles.includes(currentRole)) ? 'block' : 'none';
+        if (currentRole === 'Admin') el.style.display = 'block'; // Admin overrides hide
     });
 }
 
@@ -2358,8 +3019,12 @@ function updateAllViews() {
     renderCandidates();
     renderInterviews();
     renderOffers();
+    renderOnboardingHub();
     renderPerformance();
     renderClients();
+    renderClientPortal();
+    renderHiringManagerPortal();
+    renderAgencyPortal();
     updateDashboard();
     calculateReportsTAT();
     
@@ -2369,6 +3034,7 @@ function updateAllViews() {
     document.getElementById('nav-in-count').innerText = requirements.filter(r => r.country === 'IN').length;
     document.getElementById('nav-can-count').innerText = candidates.length;
     document.getElementById('nav-int-count').innerText = candidates.filter(c => c.stage.includes('Interview')).length;
+    document.getElementById('nav-hm-count').innerText = candidates.filter(c => c.stage === 'Interview Scheduled').length;
     document.getElementById('nav-off-count').innerText = candidates.filter(c => c.stage === 'Offer Released' || c.stage === 'Joined').length;
 }
 
@@ -2486,7 +3152,7 @@ function renderINRequirements() {
             <td>${req.title}<br><small style="color:var(--text-light)">${req.client}</small></td>
             <td>${req.location}</td>
             <td>${req.type}</td>
-            <td>${req.budget} LPA ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
+            <td>₹ ${req.budget} LPA ${slaExceeded ? '<span class="badge" style="background:var(--danger-light); color:var(--danger); font-size:0.65rem; padding:2px 6px;">SLA</span>' : ''}</td>
             <td>
                 <span class="badge ${getBadgeClass(req.status)}">${req.status}</span>
                 ${getReqInactivityDays(req.id, req.dateOpened) > appSettings.inactivity && ['Active', 'New'].includes(req.status) ? '<span class="badge" style="background:var(--warning-light); color:var(--warning); font-size:0.65rem; padding:2px 6px;">Inactive</span>' : ''}
@@ -2531,6 +3197,108 @@ function renderCandidates() {
         `;
         tbody.appendChild(tr);
     });
+    
+    renderKanban(search, filterStage);
+}
+
+function toggleCandidateView(viewType) {
+    document.getElementById('btn-view-list').classList.toggle('btn-outline', viewType !== 'list');
+    document.getElementById('btn-view-kanban').classList.toggle('btn-outline', viewType !== 'kanban');
+    
+    document.getElementById('candidate-list-view').style.display = viewType === 'list' ? 'block' : 'none';
+    document.getElementById('candidate-kanban-view').style.display = viewType === 'kanban' ? 'block' : 'none';
+}
+
+function renderKanban(search, filterStage) {
+    const columns = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined', 'Rejected'];
+    
+    // Clear all dropzones and counts
+    columns.forEach(stage => {
+        const dropzone = document.getElementById(`kb-col-${stage.split(' ')[0]}`); // Mapped to Sourced, Screened, Interview, Offer, Joined, Rejected
+        if(dropzone) dropzone.innerHTML = '';
+        
+        const countBadge = document.getElementById(`kb-count-${stage.split(' ')[0]}`);
+        if(countBadge) countBadge.innerText = '0';
+    });
+    
+    const filteredCans = candidates.filter(can => {
+        const matchesSearch = can.name.toLowerCase().includes(search) || can.email.toLowerCase().includes(search);
+        const matchesStage = filterStage === 'All' || can.stage === filterStage;
+        const matchesCountry = currentCandidateTab === 'All' || (can.country || 'US') === currentCandidateTab;
+        return matchesSearch && matchesStage && matchesCountry;
+    });
+
+    filteredCans.forEach(can => {
+        let colId = can.stage.split(' ')[0]; // Sourced, Screened, Interview, Offer, Joined
+        if(can.stage === 'Lost' || can.stage === 'Rejected') colId = 'Rejected';
+        
+        const dropzone = document.getElementById(`kb-col-${colId}`);
+        if (dropzone) {
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.style = 'background: white; border: 1px solid var(--border); border-radius: 6px; padding: 12px; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
+            card.draggable = true;
+            card.id = `kb-card-${can.id}`;
+            card.ondragstart = (e) => dragstartKanban(e, can.id);
+            
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+                    <strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong>
+                    <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-light); margin-bottom: 8px;">Req: ${can.reqId}</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                    <span style="color:var(--text-light)">${can.lastUpdated}</span>
+                    ${can.skills ? '<span style="color:var(--info);">🤖 AI Parsed</span>' : ''}
+                </div>
+            `;
+            dropzone.appendChild(card);
+            
+            // Update count
+            const countBadge = document.getElementById(`kb-count-${colId}`);
+            if(countBadge) countBadge.innerText = parseInt(countBadge.innerText) + 1;
+        }
+    });
+}
+
+function dragstartKanban(e, canId) {
+    e.dataTransfer.setData("text/plain", canId);
+}
+
+function allowDropKanban(e) {
+    e.preventDefault();
+}
+
+function dropKanban(e) {
+    e.preventDefault();
+    const canId = e.dataTransfer.getData("text/plain");
+    const dropzone = e.target.closest('.kanban-dropzone');
+    
+    if (dropzone && canId) {
+        let newStage = '';
+        const zoneId = dropzone.id.replace('kb-col-', ''); // Sourced, Screened, Interview, Offer, Joined, Rejected
+        
+        if(zoneId === 'Interview') newStage = 'Interview Scheduled';
+        else if(zoneId === 'Offer') newStage = 'Offer Released';
+        else if(zoneId === 'Rejected') newStage = 'Rejected';
+        else newStage = zoneId; // Sourced, Screened, Joined
+        
+        const candIndex = candidates.findIndex(c => c.id === canId);
+        if (candIndex !== -1 && candidates[candIndex].stage !== newStage) {
+            candidates[candIndex].stage = newStage;
+            candidates[candIndex].lastUpdated = new Date().toISOString().split('T')[0];
+            
+            if(!candidates[candIndex].history) candidates[candIndex].history = [];
+            candidates[candIndex].history.unshift({
+                stage: newStage,
+                date: new Date().toISOString().split('T')[0],
+                comment: 'Moved via Kanban board'
+            });
+            
+            saveData();
+            updateAllViews();
+        }
+    }
 }
 
 function renderInterviews() {
@@ -2604,6 +3372,128 @@ function renderOffers() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Phase 39: Onboarding Hub Logic
+function renderOnboardingHub() {
+    const grid = document.getElementById('onboarding-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Get all Joined candidates
+    const joinedCans = candidates.filter(c => c.stage === 'Joined');
+    
+    document.getElementById('nav-onb-count').innerText = joinedCans.length;
+    
+    if (joinedCans.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-light); background: white; border-radius: 8px; border: 1px solid var(--border);">No candidates are currently in the onboarding phase.</div>';
+        return;
+    }
+    
+    joinedCans.forEach(can => {
+        // Default onboarding state if not present
+        if (!can.onboarding) {
+            can.onboarding = { bg: false, it: false, pay: false, ori: false };
+        }
+        
+        // Calculate progress
+        const tasks = [can.onboarding.bg, can.onboarding.it, can.onboarding.pay, can.onboarding.ori];
+        const completed = tasks.filter(t => t).length;
+        const progressPercent = Math.round((completed / 4) * 100);
+        
+        let progressColor = 'var(--warning)';
+        if (progressPercent === 100) progressColor = 'var(--success)';
+        else if (progressPercent === 0) progressColor = 'var(--danger)';
+        
+        const card = document.createElement('div');
+        card.style = "background: white; border-radius: 8px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative;";
+        
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <h3 style="margin-bottom:4px; font-size:1.1rem; color:var(--text-dark);">${can.name}</h3>
+                    <div style="font-size:0.8rem; color:var(--text-light);">${can.reqId} | Start: ${can.expectedJoining || 'TBD'}</div>
+                </div>
+                ${progressPercent === 100 ? `<div style="background:var(--success-light); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold;">Fully Onboarded</div>` : `<button class="btn btn-sm btn-outline" onclick="openOnboardingModal('${can.id}')">Update</button>`}
+            </div>
+            
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; font-size:0.8rem; font-weight:600;">
+                <span>Onboarding Progress</span>
+                <span style="color:${progressColor};">${progressPercent}%</span>
+            </div>
+            <div style="width:100%; height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:15px;">
+                <div style="height:100%; width:${progressPercent}%; background:${progressColor}; transition:width 0.3s ease;"></div>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.bg ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Background Check</span>
+                    <span>${can.onboarding.bg ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.it ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>IT Equipment</span>
+                    <span>${can.onboarding.it ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.pay ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Payroll Forms</span>
+                    <span>${can.onboarding.pay ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:${can.onboarding.ori ? 'var(--text-dark)' : 'var(--text-light)'}">
+                    <span>Orientation</span>
+                    <span>${can.onboarding.ori ? '✅' : '⏳'}</span>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openOnboardingModal(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('onb_canId').value = can.id;
+    document.getElementById('onb_canName').innerText = can.name;
+    
+    const onb = can.onboarding || { bg: false, it: false, pay: false, ori: false };
+    document.getElementById('onb_bg').checked = onb.bg;
+    document.getElementById('onb_it').checked = onb.it;
+    document.getElementById('onb_pay').checked = onb.pay;
+    document.getElementById('onb_ori').checked = onb.ori;
+    
+    openModal('onboardingModal');
+}
+
+function saveOnboarding(e) {
+    e.preventDefault();
+    const canId = document.getElementById('onb_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (can) {
+        can.onboarding = {
+            bg: document.getElementById('onb_bg').checked,
+            it: document.getElementById('onb_it').checked,
+            pay: document.getElementById('onb_pay').checked,
+            ori: document.getElementById('onb_ori').checked
+        };
+        
+        // Add history log if complete
+        const tasks = [can.onboarding.bg, can.onboarding.it, can.onboarding.pay, can.onboarding.ori];
+        const completed = tasks.filter(t => t).length;
+        if (completed === 4) {
+            can.history = can.history || [];
+            can.history.push({
+                stage: "Onboarding Completed",
+                date: new Date().toLocaleDateString(),
+                comment: "All onboarding tasks have been cleared."
+            });
+            createAlert(`Candidate ${can.name} is now fully onboarded!`, 'success');
+        } else {
+            createAlert(`Onboarding progress updated for ${can.name}.`, 'info');
+        }
+        
+        updateAllViews();
+        closeModal('onboardingModal');
+    }
 }
 
 function renderPerformance() {
@@ -2703,6 +3593,190 @@ function renderPerformance() {
     document.getElementById('kpi-ratio-off-join').innerText = `${offJoinRatio}%`;
 }
 
+function renderClientPortal() {
+    const tbody = document.getElementById('client-portal-table');
+    if (!tbody) return;
+    
+    // The client can only see data for their exact company name (stored in username)
+    const clientName = localStorage.getItem('username');
+    
+    // Filter reqs for this client
+    const clientReqs = requirements.filter(r => r.client === clientName);
+    const reqIds = clientReqs.map(r => r.id);
+    
+    // Filter candidates submitted to those reqs
+    const clientCans = candidates.filter(c => reqIds.includes(c.reqId));
+    
+    document.getElementById('client-kpi-reqs').innerText = clientReqs.filter(r => r.status === 'Active' || r.status === 'New').length;
+    document.getElementById('client-kpi-subs').innerText = clientCans.length;
+    document.getElementById('client-kpi-ints').innerText = clientCans.filter(c => c.stage.includes('Interview')).length;
+    document.getElementById('client-kpi-filled').innerText = clientCans.filter(c => c.stage === 'Joined').length;
+    
+    tbody.innerHTML = '';
+    clientCans.forEach(can => {
+        const req = clientReqs.find(r => r.id === can.reqId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${req ? req.id : can.reqId}</strong><br><small style="color:var(--text-light)">${req ? req.title : ''}</small></td>
+            <td><strong>${can.name}</strong></td>
+            <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></td>
+            <td>${can.lastUpdated}</td>
+            <td>${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderHiringManagerPortal() {
+    const tbody = document.getElementById('hm-portal-table');
+    if (!tbody) return;
+    
+    // In a real app, we'd filter by the HM's name/reqs. Here we show all interviews.
+    const interviewCans = candidates.filter(c => c.stage === 'Interview Scheduled');
+    document.getElementById('hm-pending-count').innerText = interviewCans.length;
+    
+    tbody.innerHTML = '';
+    
+    if(interviewCans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-light);">No pending interviews.</td></tr>';
+        return;
+    }
+    
+    interviewCans.forEach(can => {
+        const req = requirements.find(r => r.id === can.reqId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${can.name}</strong><br><small style="color:var(--text-light);">${can.email}</small></td>
+            <td><strong>${req ? req.id : can.reqId}</strong><br><small style="color:var(--text-light);">${req ? req.title : ''}</small></td>
+            <td>${can.interviewRound || 'Interview'} on ${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'TBD'}<br><small>${can.interviewMode || ''}</small></td>
+            <td>${can.resumeUrl ? `<a href="http://localhost:3000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+            <td><button class="btn btn-sm" style="background: var(--success); color: white; border: none;" onclick="openHMFeedbackModal('${can.id}')">✏️ Submit Feedback</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openHMFeedbackModal(canId) {
+    document.getElementById('hm_canId').value = canId;
+    openModal('hmFeedbackModal');
+}
+
+function submitHMFeedback(e) {
+    e.preventDefault();
+    const canId = document.getElementById('hm_canId').value;
+    const canIndex = candidates.findIndex(c => c.id === canId);
+    
+    if(canIndex !== -1) {
+        const can = candidates[canIndex];
+        can.scoreTech = parseInt(document.getElementById('hm_scoreTech').value);
+        can.scoreComm = parseInt(document.getElementById('hm_scoreComm').value);
+        can.scoreCult = parseInt(document.getElementById('hm_scoreCult').value);
+        const comments = document.getElementById('hm_comments').value;
+        
+        can.stage = 'Interview Completed';
+        can.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        if(!can.history) can.history = [];
+        can.history.unshift({
+            stage: 'Interview Completed',
+            date: new Date().toISOString().split('T')[0],
+            comment: `HM Scorecard: Tech (${can.scoreTech}/5), Comm (${can.scoreComm}/5), Cult (${can.scoreCult}/5). Notes: ${comments}`
+        });
+        
+        saveData();
+        updateAllViews();
+        closeModal('hmFeedbackModal');
+        e.target.reset();
+        alert('Feedback submitted successfully!');
+    }
+}
+
+// Phase 40: Agency Vendor Portal Logic
+function renderAgencyPortal() {
+    const tbody = document.getElementById('ag-portal-table');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const activeReqs = requirements.filter(r => r.status === 'Active' || r.status === 'New');
+    document.getElementById('ag-portal-count').innerText = activeReqs.length;
+    document.getElementById('nav-ag-count').innerText = activeReqs.length;
+    
+    if (activeReqs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No active requirements available for submittals at this time.</td></tr>';
+        return;
+    }
+    
+    activeReqs.forEach(req => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${req.id}</strong></td>
+            <td><strong style="color:var(--primary);">${req.title}</strong></td>
+            <td>${req.location} (${req.workMode || 'Hybrid'})</td>
+            <td>${req.type}</td>
+            <td>${req.exp || '-'}</td>
+            <td>
+                <button class="btn btn-sm" onclick="openAgencySubmitModal('${req.id}', '${req.title.replace(/'/g, "\\'")}')" style="background:var(--success); color:white; border:none;">🚀 Submit Candidate</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openAgencySubmitModal(reqId, reqTitle) {
+    document.getElementById('ag_reqId').value = reqId;
+    document.getElementById('ag_reqTitle').innerText = reqTitle + ' (' + reqId + ')';
+    document.getElementById('ag_canName').value = '';
+    document.getElementById('ag_canEmail').value = '';
+    document.getElementById('ag_canPhone').value = '';
+    document.getElementById('ag_canVisa').value = 'US Citizen';
+    document.getElementById('ag_canResume').value = '';
+    
+    openModal('agencySubmitModal');
+}
+
+function submitAgencyCandidate(e) {
+    e.preventDefault();
+    
+    const reqId = document.getElementById('ag_reqId').value;
+    const name = document.getElementById('ag_canName').value;
+    const email = document.getElementById('ag_canEmail').value;
+    const phone = document.getElementById('ag_canPhone').value;
+    const visa = document.getElementById('ag_canVisa').value;
+    const vendorName = localStorage.getItem('username') || 'Unknown Agency';
+    
+    // Simulate Resume upload (just attach a fake path for now since it's client side)
+    const fileInput = document.getElementById('ag_canResume');
+    const resumeUrl = fileInput.files.length > 0 ? '/uploads/mock-resume.pdf' : '';
+    
+    const newCan = {
+        id: 'CAN' + Math.floor(Math.random() * 10000),
+        name: name,
+        reqId: reqId,
+        stage: 'Submitted',
+        source: 'Agency: ' + vendorName,
+        email: email,
+        phone: phone,
+        visa: visa,
+        country: 'US',
+        notice: 'Immediate',
+        score: 0,
+        resumeUrl: resumeUrl,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        history: [{
+            stage: 'Submitted',
+            date: new Date().toISOString().split('T')[0],
+            comment: `Candidate submitted by vendor: ${vendorName}`
+        }]
+    };
+    
+    candidates.push(newCan);
+    saveData();
+    updateAllViews();
+    closeModal('agencySubmitModal');
+    
+    alert('Candidate successfully submitted to Req ' + reqId);
+}
+
 function renderClients() {
     const tbody = document.getElementById('client-summary-table');
     if(!tbody) return;
@@ -2759,21 +3833,126 @@ function renderHeaderRoleSwitcher() {
     const header = document.querySelector('.header');
     if (header && !document.getElementById('header-role-selector')) {
         const switcherDiv = document.createElement('div');
+        switcherDiv.id = 'header-role-selector';
         switcherDiv.style.display = 'flex';
         switcherDiv.style.alignItems = 'center';
-        switcherDiv.style.gap = '10px';
+        switcherDiv.style.gap = '15px';
+        
+        const username = localStorage.getItem('username') || 'User';
+        const role = localStorage.getItem('role') || currentRole;
+        
         switcherDiv.innerHTML = `
-            <span class="menu-toggle" onclick="toggleSidebar()">&#9776;</span>
-            <small style="color:var(--text-light); font-weight:bold;">View As:</small>
-            <select id="header-role-selector" onchange="changeRole(this.value)" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; font-weight: 500;">
-                <option value="Management" ${currentRole === 'Management' ? 'selected' : ''}>Management</option>
-                <option value="Account Manager" ${currentRole === 'Account Manager' ? 'selected' : ''}>Account Manager</option>
-                <option value="Recruiter" ${currentRole === 'Recruiter' ? 'selected' : ''}>Recruiter</option>
-            </select>
+            <span class="menu-toggle" onclick="toggleSidebar()" style="font-size: 1.5rem; cursor: pointer;">&#9776;</span>
+            <div style="flex:1; position:relative; min-width: 300px; max-width: 500px; margin-left: 20px;">
+                <input type="search" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="Search candidates, skills, or jobs..." style="width:100%; padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.85rem; outline: none; background: var(--bg-light);">
+                <div id="search-dropdown" style="display:none; position:absolute; top: 38px; left:0; width:100%; background:white; border:1px solid var(--border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:2000; max-height:400px; overflow-y:auto; padding: 10px;"></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:15px; margin-left: auto;">
+                <div style="position:relative; cursor:pointer; padding: 5px;" onclick="toggleNotifications()">
+                    <span style="font-size: 1.2rem;">🔔</span>
+                    <span id="notif-badge" style="position:absolute; top:0; right:0; background:var(--danger); color:white; font-size:0.6rem; font-weight:bold; padding:2px 5px; border-radius:10px; display:none;">0</span>
+                    <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:35px; width:320px; background:white; border:1px solid var(--border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:400px; overflow-y:auto; cursor:default;" onclick="event.stopPropagation()">
+                        <div style="padding:12px; border-bottom:1px solid var(--border); font-weight:bold; font-size:0.9rem; background: var(--bg-light); border-radius: 6px 6px 0 0; color:var(--text-dark);">
+                            Notification Center
+                        </div>
+                        <div id="notif-list" style="padding:10px; font-size:0.85rem; display:flex; flex-direction:column; gap:8px;">
+                            <div style="text-align:center; color:var(--text-light); padding: 10px;">No new alerts.</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background:var(--primary); color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                        ${username.charAt(0).toUpperCase()}
+                    </div>
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-weight:600; font-size:0.9rem;">${username}</span>
+                        <span style="font-size:0.75rem; color:var(--text-light);">${role}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline" style="margin-left: 10px; border-color: var(--danger); color: var(--danger);" onclick="logout()">Logout</button>
+                </div>
+            </div>
         `;
-        header.insertBefore(switcherDiv, header.firstChild);
+        header.appendChild(switcherDiv);
     }
 }
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    window.location.reload();
+}
+
+// Global Omni-Search Logic
+function handleGlobalSearch(query) {
+    const dropdown = document.getElementById('search-dropdown');
+    if (!query || query.trim().length < 2) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    const q = query.toLowerCase().trim();
+    let html = '';
+    
+    // Search Candidates
+    const matchingCans = candidates.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.email.toLowerCase().includes(q) || 
+        (c.skills && c.skills.toLowerCase().includes(q))
+    ).slice(0, 5); // Max 5 results
+    
+    if (matchingCans.length > 0) {
+        html += '<div style="font-size: 0.75rem; font-weight: bold; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px;">Candidates</div>';
+        matchingCans.forEach(c => {
+            html += `<div style="padding: 8px; cursor: pointer; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('search-dropdown').style.display='none'; openCandidateDetailsModal('${c.id}')">
+                <div style="font-weight: 600; color: var(--primary);">${c.name}</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">${c.email} | Stage: ${c.stage}</div>
+            </div>`;
+        });
+    }
+    
+    // Search Requirements
+    const matchingReqs = requirements.filter(r => 
+        r.title.toLowerCase().includes(q) || 
+        r.client.toLowerCase().includes(q) || 
+        r.id.toLowerCase().includes(q)
+    ).slice(0, 5);
+    
+    if (matchingReqs.length > 0) {
+        html += '<div style="font-size: 0.75rem; font-weight: bold; color: var(--text-light); text-transform: uppercase; margin-top: 10px; margin-bottom: 5px;">Requirements</div>';
+        matchingReqs.forEach(r => {
+            html += `<div style="padding: 8px; cursor: pointer; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-light)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('search-dropdown').style.display='none'; openReqDetailsModal('${r.id}')">
+                <div style="font-weight: 600; color: var(--info);">${r.title}</div>
+                <div style="font-size: 0.8rem; color: var(--text-light);">${r.client} | ${r.id}</div>
+            </div>`;
+        });
+    }
+    
+    if (html === '') {
+        html = '<div style="padding: 10px; color: var(--text-light); text-align: center; font-size: 0.85rem;">No matches found.</div>';
+    }
+    
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    const searchDropdown = document.getElementById('search-dropdown');
+    const globalSearch = document.getElementById('global-search');
+    if (searchDropdown && searchDropdown.style.display === 'block') {
+        if (!searchDropdown.contains(e.target) && e.target !== globalSearch) {
+            searchDropdown.style.display = 'none';
+        }
+    }
+    
+    const notifDropdown = document.getElementById('notif-dropdown');
+    if (notifDropdown && notifDropdown.style.display === 'block') {
+        if (!notifDropdown.contains(e.target) && !e.target.closest('[onclick="toggleNotifications()"]')) {
+            notifDropdown.style.display = 'none';
+        }
+    }
+});
 
 function getReqInactivityDays(reqId, dateOpened) {
     let latestActivity = new Date(dateOpened);
@@ -2822,13 +4001,124 @@ function calculateReportsTAT() {
     
     const avg = Math.round(totalDays / closedReqs.length);
     kpiAvgTat.innerText = `${avg} Days`;
+    
+    // Populate Client dropdown for Custom Reports
+    const clientSelect = document.getElementById('rep_client');
+    if (clientSelect) {
+        const currentClient = clientSelect.value;
+        const clients = [...new Set(requirements.map(r => r.client))].sort();
+        clientSelect.innerHTML = '<option value="All">All Clients</option>' + clients.map(c => `<option value="${c}">${c}</option>`).join('');
+        if (clients.includes(currentClient)) clientSelect.value = currentClient;
+    }
+}
+
+function generateCustomReport() {
+    const startDate = document.getElementById('rep_start_date').value;
+    const endDate = document.getElementById('rep_end_date').value;
+    const recruiter = document.getElementById('rep_recruiter').value;
+    const client = document.getElementById('rep_client').value;
+    
+    const tbody = document.getElementById('custom-report-table');
+    if (!tbody) return;
+    
+    let filteredReqs = requirements;
+    if (client !== 'All') {
+        filteredReqs = filteredReqs.filter(r => r.client === client);
+    }
+    
+    // Create report mapping
+    let reportData = [];
+    
+    filteredReqs.forEach(req => {
+        let reqLogs = worklogs.filter(w => w.reqId === req.id);
+        if (recruiter !== 'All') reqLogs = reqLogs.filter(w => w.recruiter === recruiter);
+        if (startDate) reqLogs = reqLogs.filter(w => new Date(w.date) >= new Date(startDate));
+        if (endDate) reqLogs = reqLogs.filter(w => new Date(w.date) <= new Date(endDate));
+        
+        let sourced = 0, screened = 0, submitted = 0;
+        reqLogs.forEach(l => {
+            sourced += l.sourced;
+            screened += l.screened;
+            submitted += l.submitted;
+        });
+        
+        let reqCans = candidates.filter(c => c.reqId === req.id);
+        // If filtering by date, we only count candidates whose last updated falls in range? 
+        // For simplicity, we just look at the current state of candidates submitted to this req
+        let interviews = reqCans.filter(c => c.stage.includes('Interview')).length;
+        let placements = reqCans.filter(c => c.stage === 'Joined').length;
+        
+        // Only include if there is activity or it's a direct recruiter match
+        if (sourced > 0 || screened > 0 || submitted > 0 || interviews > 0 || placements > 0) {
+            reportData.push({
+                reqId: req.id,
+                title: req.title,
+                client: req.client,
+                recruiter: recruiter !== 'All' ? recruiter : 'Multiple',
+                sourced, screened, submitted, interviews, placements
+            });
+        }
+    });
+    
+    tbody.innerHTML = '';
+    if (reportData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-light); padding:20px;">No data matches your filters.</td></tr>';
+        return;
+    }
+    
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${row.reqId}</strong></td>
+            <td>${row.title}</td>
+            <td>${row.client}</td>
+            <td>${row.recruiter}</td>
+            <td>${row.sourced}</td>
+            <td>${row.screened}</td>
+            <td>${row.submitted}</td>
+            <td>${row.interviews}</td>
+            <td><strong style="color:var(--success)">${row.placements}</strong></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Store globally for export
+    window.currentCustomReportData = reportData;
+}
+
+function exportCustomReport() {
+    if (!window.currentCustomReportData || window.currentCustomReportData.length === 0) {
+        alert("Please generate a report first with data to export.");
+        return;
+    }
+    const headers = ["Req ID", "Job Title", "Client", "Recruiter", "Sourced", "Screened", "Submitted", "Interviews", "Placements"];
+    const rows = window.currentCustomReportData.map(r => [
+        r.reqId, r.title, r.client, r.recruiter, r.sourced, r.screened, r.submitted, r.interviews, r.placements
+    ]);
+    exportToCSV("Custom_Report.csv", headers, rows);
 }
 
 function updateDashboard() {
     document.getElementById('kpi-total-req').innerText = requirements.length;
-    document.getElementById('kpi-active-req').innerText = requirements.filter(r => r.status === 'Active' || r.status === 'New').length;
-    document.getElementById('kpi-stalled-req').innerText = requirements.filter(r => r.status === 'Pending' || r.status === 'Stalled').length;
+    document.getElementById('kpi-active-req').innerText = requirements.filter(r => ['Active', 'New'].includes(r.status)).length;
+    document.getElementById('kpi-stalled-req').innerText = requirements.filter(r => r.status === 'Pending' || r.status === 'Hold').length;
     document.getElementById('kpi-joined').innerText = candidates.filter(c => c.stage === 'Joined').length;
+    
+    // Reminders
+    const remindersList = document.getElementById('reminders-list');
+    if (remindersList) {
+        const myReminders = reminders.filter(r => r.user === currentRole || r.user === localStorage.getItem('username'));
+        if (myReminders.length === 0) {
+            remindersList.innerHTML = '<div>No upcoming reminders.</div>';
+        } else {
+            remindersList.innerHTML = myReminders.map(rem => `
+                <div style="background: rgba(255,255,255,0.8); padding: 8px; margin-bottom: 5px; border-radius: 4px; display:flex; justify-content:space-between;">
+                    <span><strong>${rem.date}</strong> - ${rem.text} (Target: ${rem.targetId})</span>
+                    <span style="cursor:pointer;" onclick="deleteReminder('${rem.date}', '${rem.targetId}')">✅ Done</span>
+                </div>
+            `).join('');
+        }
+    }
     
     let a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0;
     const bottleneckReasons = {};
@@ -3013,6 +4303,46 @@ function renderCharts() {
 }
 
 // CSV Export Helper
+async function generateExternalLogin() {
+    const u = document.getElementById('vms_username').value.trim();
+    const p = document.getElementById('vms_password').value;
+    const r = document.getElementById('vms_role').value;
+    const status = document.getElementById('vms_status');
+    
+    if (!u || !p) {
+        status.style.display = 'block';
+        status.style.color = 'var(--danger)';
+        status.innerText = 'Username and Password are required.';
+        return;
+    }
+    
+    status.style.display = 'block';
+    status.style.color = 'var(--primary)';
+    status.innerText = 'Generating access...';
+    
+    try {
+        const res = await fetch('http://localhost:3000/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p, role: r })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+            status.style.color = 'var(--success)';
+            status.innerText = `${r} Access generated successfully for ${u}!`;
+            document.getElementById('vms_username').value = '';
+            document.getElementById('vms_password').value = '';
+        } else {
+            status.style.color = 'var(--danger)';
+            status.innerText = data.error || 'Failed to generate access.';
+        }
+    } catch (err) {
+        status.style.color = 'var(--danger)';
+        status.innerText = 'Server offline or error.';
+    }
+}
+
 function exportToCSV(filename, headers, rows) {
     const csvContent = "data:text/csv;charset=utf-8," 
         + [headers.join(",")].concat(rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))).join("\n");
@@ -3204,9 +4534,182 @@ function applyBulkAction() {
                 can.lastUpdated = new Date().toLocaleDateString();
             }
         });
-        saveData();
         alert(`Successfully updated ${count} candidate(s).`);
     }
+}
+
+function openMassEmailModal() {
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one candidate to email.");
+        return;
+    }
+    
+    document.getElementById('me_count').innerText = checkboxes.length;
+    openModal('massEmailModal');
+}
+
+function executeMassEmail(e) {
+    e.preventDefault();
+    const subjectTemplate = document.getElementById('me_subject').value;
+    const bodyTemplate = document.getElementById('me_body').value;
+    
+    const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+    let delay = 0;
+    
+    checkboxes.forEach(cb => {
+        const can = candidates.find(c => c.id === cb.value);
+        if (can) {
+            let subject = subjectTemplate
+                .replace(/\{\{Candidate_Name\}\}/g, can.name)
+                .replace(/\{\{Target_Country\}\}/g, can.country || 'US')
+                .replace(/\{\{Current_Stage\}\}/g, can.stage);
+                
+            let body = bodyTemplate
+                .replace(/\{\{Candidate_Name\}\}/g, can.name)
+                .replace(/\{\{Target_Country\}\}/g, can.country || 'US')
+                .replace(/\{\{Current_Stage\}\}/g, can.stage);
+            
+            const mailtoLink = `mailto:${can.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Stagger opening the links slightly so browsers don't block them
+            setTimeout(() => {
+                window.open(mailtoLink, '_blank');
+            }, delay);
+            delay += 500;
+        }
+    });
+    
+    closeModal('massEmailModal');
+    e.target.reset();
+}
+
+function matchCandidate(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const resultsDiv = document.getElementById(`ai-match-results-${can.id}`);
+    if (!resultsDiv) return;
+    
+    if (resultsDiv.style.display === 'block') {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div style="text-align:center; padding: 10px; color:var(--text-light);">Scanning active requirements...</div>';
+    
+    setTimeout(() => {
+        const canSkills = (can.skills || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+        if (canSkills.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding: 10px; background:var(--warning-light); color:var(--warning); border-radius: 6px;">No Key Skills found on candidate profile to match against.</div>';
+            return;
+        }
+        
+        let matches = [];
+        requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+            const reqSkills = (req.skills || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            if (reqSkills.length === 0) return;
+            
+            const matchedSkills = reqSkills.filter(s => canSkills.includes(s));
+            const score = Math.round((matchedSkills.length / reqSkills.length) * 100);
+            
+            if (score > 0) {
+                matches.push({ req, score, matchedSkills });
+            }
+        });
+        
+        matches.sort((a, b) => b.score - a.score);
+        const topMatches = matches.slice(0, 3);
+        
+        if (topMatches.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding: 10px; background:var(--bg-light); border-radius: 6px; font-size: 0.9rem;">No matching active requirements found for this candidate\'s skills.</div>';
+        } else {
+            let html = `<h4 style="margin-bottom: 10px; color:var(--primary); font-size: 0.9rem;">🤖 AI Top Matches</h4>`;
+            html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+            topMatches.forEach(m => {
+                const color = m.score >= 80 ? 'var(--success)' : (m.score >= 50 ? 'var(--warning)' : 'var(--danger)');
+                html += `
+                    <div style="border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: white; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:600; font-size:0.9rem;">${m.req.id} - ${m.req.title}</div>
+                            <div style="font-size:0.75rem; color:var(--text-light); margin-top:3px;">
+                                Matched: <strong>${m.matchedSkills.join(', ')}</strong>
+                            </div>
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: ${color};">
+                            ${m.score}%
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            resultsDiv.innerHTML = html;
+        }
+    }, 600); // Simulate processing delay
+}
+
+function draftEmail(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    let subject = `Update on your application - ${can.reqId}`;
+    let body = `Hi ${can.name.split(' ')[0]},\n\n`;
+    
+    switch (can.stage) {
+        case 'Sourced':
+        case 'Screened':
+            subject = `Exciting Opportunity: ${can.reqId}`;
+            body += `We are reaching out regarding an exciting new opportunity that matches your profile.\n\nCould you please let us know your availability for a quick screening call?`;
+            break;
+        case 'Interview Scheduled':
+            subject = `Interview Confirmation - ${can.reqId}`;
+            body += `Your interview has been scheduled. Please ensure you are available and prepared at the agreed upon time.\n\nLet us know if you have any questions.`;
+            break;
+        case 'Offer Released':
+            subject = `Offer Details - Congratulations!`;
+            body += `We are thrilled to extend an offer for the position! Please review the attached details and let us know your decision.\n\nCongratulations!`;
+            break;
+        case 'Joined':
+            subject = `Welcome Aboard!`;
+            body += `We are excited to have you join the team! Please let us know if you need any assistance with your onboarding process.`;
+            break;
+        case 'Rejected':
+            subject = `Update on your application`;
+            body += `Thank you for taking the time to interview with us. Unfortunately, we will not be moving forward with your application at this time.\n\nWe wish you the best in your job search.`;
+            break;
+        default:
+            body += `We are following up regarding your application for ${can.reqId}.\n\nPlease let us know if you have any updates.`;
+            break;
+    }
+    
+    body += `\n\nBest Regards,\n${localStorage.getItem('username') || currentRole}`;
+    
+    const mailtoLink = `mailto:${can.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+}
+
+function setReminder(targetId, type) {
+    const text = prompt(`Set a reminder for ${type} ${targetId}:\nWhat do you need to do?`);
+    if (!text) return;
+    
+    // Defaulting date to tomorrow for simplicity
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    reminders.push({
+        date: tomorrow.toISOString().split('T')[0],
+        text: text,
+        user: localStorage.getItem('username') || currentRole,
+        targetId: targetId
+    });
+    saveData();
+    alert('Reminder set for tomorrow!');
+}
+
+function deleteReminder(date, targetId) {
+    reminders = reminders.filter(r => !(r.date === date && r.targetId === targetId));
+    saveData();
 }
 
 // Intercept Add Candidate modal open to override button behavior
@@ -3223,25 +4726,138 @@ openModal = function(id) {
 };
 
 // Start
-document.addEventListener('DOMContentLoaded', async () => {
+async function initApp() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+    }
+    
     try {
-        const res = await fetch('http://localhost:3000/api/sync');
+        const res = await fetch('http://localhost:3000/api/sync', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            throw new Error('Unauthorized');
+        }
         const data = await res.json();
         if (data.requisitions) requirements = data.requisitions;
         if (data.candidates) candidates = data.candidates;
         if (data.worklogs) worklogs = data.worklogs;
+        if (data.reminders) reminders = data.reminders;
+        
+        document.getElementById('loginScreen').style.display = 'none';
+        
+        currentRole = localStorage.getItem('role') || 'Recruiter';
+        renderHeaderRoleSwitcher();
+        
+        if (document.getElementById('cfg_inactivity')) {
+            document.getElementById('cfg_inactivity').value = appSettings.inactivity;
+            document.getElementById('cfg_sla').value = appSettings.sla;
+            document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+        }
+        updateAllViews();
+        generateAlerts();
     } catch (e) {
-        console.error('Failed to load from API, keeping localStorage defaults', e);
+        console.error('Failed to load from API', e);
+        localStorage.removeItem('token');
+        document.getElementById('loginScreen').style.display = 'flex';
     }
+}
 
-    renderHeaderRoleSwitcher();
-    if (document.getElementById('cfg_inactivity')) {
-        document.getElementById('cfg_inactivity').value = appSettings.inactivity;
-        document.getElementById('cfg_sla').value = appSettings.sla;
-        document.getElementById('cfg_margin_threshold').value = appSettings.minMargin || 15;
+document.addEventListener('DOMContentLoaded', initApp);
+
+function toggleNotifications() {
+    const dropdown = document.getElementById('notif-dropdown');
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
-    updateAllViews();
+}
+
+// Close notifications when clicking outside
+document.addEventListener('click', (e) => {
+    const notifContainer = document.querySelector('[onclick="toggleNotifications()"]');
+    const dropdown = document.getElementById('notif-dropdown');
+    if (notifContainer && dropdown && dropdown.style.display === 'block') {
+        if (!notifContainer.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
 });
+
+function generateAlerts() {
+    if (currentRole === 'Client') return; // Clients don't see internal alerts
+    
+    let alerts = [];
+    
+    // Check SLA Breaches
+    requirements.filter(r => r.status === 'Active' || r.status === 'New').forEach(req => {
+        const age = Math.floor((new Date() - new Date(req.dateOpened)) / (1000 * 60 * 60 * 24));
+        if (age > appSettings.sla) {
+            alerts.push({
+                type: 'danger',
+                text: `SLA Breach: ${req.id} (${req.title}) is ${age} days old and remains unfulfilled.`
+            });
+        }
+    });
+    
+    // Check Stalled Candidates (Offer Stage without Join Date, etc.)
+    candidates.forEach(can => {
+        if (can.stage === 'Offer Released') {
+            alerts.push({
+                type: 'warning',
+                text: `Pending Offer: ${can.name} for ${can.reqId} needs follow-up.`
+            });
+        }
+    });
+    
+    const badge = document.getElementById('notif-badge');
+    const list = document.getElementById('notif-list');
+    
+    if (badge && list) {
+        if (alerts.length > 0) {
+            badge.style.display = 'block';
+            badge.innerText = alerts.length;
+            list.innerHTML = alerts.map(a => `
+                <div style="padding: 10px; border-radius: 4px; border-left: 4px solid var(--${a.type}); background: var(--bg-light); line-height: 1.4;">
+                    ${a.text}
+                </div>
+            `).join('');
+        } else {
+            badge.style.display = 'none';
+            list.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 10px;">No new alerts.</div>';
+        }
+    }
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('login_username').value;
+    const p = document.getElementById('login_password').value;
+    const errDiv = document.getElementById('login_error');
+    
+    try {
+        const res = await fetch('http://localhost:3000/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role);
+            localStorage.setItem('username', data.username);
+            currentRole = data.role;
+            initApp();
+        } else {
+            errDiv.innerText = data.error || 'Login failed';
+            errDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errDiv.innerText = 'Server offline. Try again.';
+        errDiv.style.display = 'block';
+    }
+}
 
 function cloneReq(reqId) {
     const r = requirements.find(req => req.id === reqId);
@@ -3272,6 +4888,94 @@ function cloneReq(reqId) {
     toggleReqFields();
 }
 
+// Phase 36: Offer Letter Generation logic
+function openOfferConfig(canId) {
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    document.getElementById('offer_canId').value = can.id;
+    document.getElementById('offer_salary').value = '';
+    document.getElementById('offer_startDate').value = '';
+    document.getElementById('offer_expireDate').value = '';
+    document.getElementById('offer_bonus').value = '';
+    document.getElementById('offer_hmName').value = '';
+    
+    closeModal('candidateDetailsModal');
+    openModal('offerConfigModal');
+}
+
+function generateOfferLetter(e) {
+    e.preventDefault();
+    
+    const canId = document.getElementById('offer_canId').value;
+    const can = candidates.find(c => c.id === canId);
+    if (!can) return;
+    
+    const req = requirements.find(r => r.id === can.reqId);
+    const jobTitle = req ? req.title : 'the position';
+    const clientName = req ? req.client : 'our company';
+    
+    const salary = document.getElementById('offer_salary').value;
+    const startDate = new Date(document.getElementById('offer_startDate').value).toLocaleDateString();
+    const expireDate = new Date(document.getElementById('offer_expireDate').value).toLocaleDateString();
+    const bonus = document.getElementById('offer_bonus').value;
+    const hmName = document.getElementById('offer_hmName').value || 'Hiring Management Team';
+    const today = new Date().toLocaleDateString();
+    
+    // Create print-only content
+    const printDiv = document.getElementById('printable-offer-letter');
+    printDiv.innerHTML = `
+        <div style="font-family: 'Times New Roman', serif; color: #000; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h1 style="margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">RecruitTrack ATS, Inc.</h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">123 Enterprise Blvd, Tech District, CA 94105</p>
+                <hr style="margin-top: 20px; border: 0; border-top: 2px solid #000;" />
+            </div>
+            
+            <p><strong>Date:</strong> ${today}</p>
+            <p><strong>To:</strong> ${can.name}</p>
+            <p><strong>Address:</strong> On File</p>
+            <br>
+            <p>Dear ${can.name},</p>
+            <p>We are thrilled to officially extend an offer of employment to you for the position of <strong>${jobTitle}</strong> at <strong>${clientName}</strong>. We were incredibly impressed with your skills and believe you will be an outstanding addition to the team.</p>
+            
+            <h3 style="margin-top: 30px;">Offer Details:</h3>
+            <ul style="list-style-type: square; margin-bottom: 30px;">
+                <li><strong>Role:</strong> ${jobTitle}</li>
+                <li><strong>Compensation:</strong> ${salary}</li>
+                <li><strong>Target Start Date:</strong> ${startDate}</li>
+                ${bonus ? `<li><strong>Special Terms / Bonus:</strong> ${bonus}</li>` : ''}
+                <li><strong>Reporting To:</strong> ${hmName}</li>
+            </ul>
+            
+            <p>This offer is contingent upon the successful completion of a standard background check and verification of your right to work.</p>
+            <p>Please note that this offer will expire on <strong>${expireDate}</strong>. If you choose to accept, please sign and date this document below.</p>
+            
+            <p style="margin-top: 40px;">We look forward to welcoming you aboard!</p>
+            <br>
+            <p>Sincerely,</p>
+            <p><strong>Recruiting & HR Team</strong></p>
+            <p>RecruitTrack ATS, Inc.</p>
+            
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                    <p style="margin-top: 5px; font-size: 14px;"><strong>Candidate Signature</strong></p>
+                </div>
+                <div style="width: 45%;">
+                    <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                    <p style="margin-top: 5px; font-size: 14px;"><strong>Date</strong></p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    closeModal('offerConfigModal');
+    
+    // Trigger Print
+    window.print();
+}
 </script>
+<div id="printable-offer-letter"></div>
 </body>
 </html>

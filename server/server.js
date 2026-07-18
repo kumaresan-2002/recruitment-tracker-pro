@@ -4,6 +4,10 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+const SECRET_KEY = "my_super_secret_recruitment_key"; // In production, use process.env
 
 const app = express();
 app.use(cors());
@@ -59,6 +63,19 @@ const Worklog = sequelize.define('Worklog', {
   submitted: { type: DataTypes.INTEGER, defaultValue: 0 }
 });
 
+const User = sequelize.define('User', {
+  username: { type: DataTypes.STRING, unique: true, allowNull: false },
+  password: { type: DataTypes.STRING, allowNull: false },
+  role: { type: DataTypes.STRING, defaultValue: 'Recruiter' }
+});
+
+const Reminder = sequelize.define('Reminder', {
+  date: { type: DataTypes.DATEONLY, allowNull: false },
+  text: { type: DataTypes.STRING, allowNull: false },
+  user: { type: DataTypes.STRING, allowNull: false },
+  targetId: { type: DataTypes.STRING }
+});
+
 // Basic API Routes
 app.get('/api/requisitions', async (req, res) => {
   const reqs = await Requisition.findAll();
@@ -112,17 +129,45 @@ app.post('/api/upload', upload.single('resume'), (req, res) => {
   res.json({ url: fileUrl });
 });
 
+// Authentication API
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ where: { username } });
+  
+  if (!user || !bcrypt.compareSync(password, user.password)) {
+    return res.status(401).json({ error: 'Invalid username or password' });
+  }
+  
+  const token = jwt.sign({ id: user.id, role: user.role, username: user.username }, SECRET_KEY, { expiresIn: '24h' });
+  res.json({ token, role: user.role, username: user.username });
+});
+
+// Authentication Middleware
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) return res.status(401).json({ error: 'Failed to authenticate token' });
+    req.userId = decoded.id;
+    req.userRole = decoded.role;
+    req.username = decoded.username;
+    next();
+  });
+};
+
 // Bulk Sync API (for smooth transition from localStorage)
-app.get('/api/sync', async (req, res) => {
+app.get('/api/sync', verifyToken, async (req, res) => {
   const reqs = await Requisition.findAll();
   const cands = await Candidate.findAll();
   const logs = await Worklog.findAll();
-  res.json({ requisitions: reqs, candidates: cands, worklogs: logs });
+  const rems = await Reminder.findAll();
+  res.json({ requisitions: reqs, candidates: cands, worklogs: logs, reminders: rems });
 });
 
-app.post('/api/sync', async (req, res) => {
+app.post('/api/sync', verifyToken, async (req, res) => {
   try {
-    const { requisitions, candidates, worklogs } = req.body;
+    const { requisitions, candidates, worklogs, reminders } = req.body;
     
     if (requisitions) {
       await Requisition.destroy({ where: {} });
@@ -136,6 +181,10 @@ app.post('/api/sync', async (req, res) => {
       await Worklog.destroy({ where: {} });
       await Worklog.bulkCreate(worklogs);
     }
+    if (reminders) {
+      await Reminder.destroy({ where: {} });
+      await Reminder.bulkCreate(reminders);
+    }
     
     res.json({ success: true });
   } catch (err) {
@@ -143,10 +192,40 @@ app.post('/api/sync', async (req, res) => {
   }
 });
 
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    const existing = await User.findOne({ where: { username } });
+    if (existing) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    const newUser = await User.create({
+      username,
+      password: bcrypt.hashSync(password, 10),
+      role: role || 'Recruiter'
+    });
+    res.json({ success: true, user: { id: newUser.id, username: newUser.username, role: newUser.role } });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Sync DB and Start Server
 const PORT = process.env.PORT || 3000;
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync({ alter: true }).then(async () => {
   console.log('Database synced');
+  
+  // Seed initial admin user if none exists
+  const adminCount = await User.count();
+  if (adminCount === 0) {
+    await User.create({
+      username: 'admin',
+      password: bcrypt.hashSync('admin123', 10),
+      role: 'Admin'
+    });
+    console.log('Created default admin user (admin / admin123)');
+  }
+
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
