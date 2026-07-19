@@ -40,7 +40,11 @@
                 <button class="btn btn-sm" onclick="openMassEmailModal()" style="background: var(--info); color: white; border: none;">📧 Send Mass Email</button>
             </div>
 
-            <button class="btn btn-sm" onclick="openModal('candidateModal')" style="margin-left: auto;">+ Add Candidate</button>
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button class="btn btn-sm btn-outline" onclick="exportCandidatesCSV()" style="color:var(--primary); border-color:var(--primary);">📥 Export CSV</button>
+                <button class="btn btn-sm btn-outline" onclick="openModal('importCSVModal')" style="color:var(--success); border-color:var(--success);">📤 Import CSV</button>
+                <button class="btn btn-sm" onclick="openModal('candidateModal')">+ Add Candidate</button>
+            </div>
         </div>
         
         <div class="table-container">

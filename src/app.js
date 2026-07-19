@@ -3385,6 +3385,105 @@ function simulateCampaignDay() {
     }
 }
 
+// --- Phase 59: Bulk CSV Import & Export ---
+function exportCandidatesCSV() {
+    if (candidates.length === 0) {
+        createAlert('No candidates to export.', 'warning');
+        return;
+    }
+    
+    // Create CSV Header
+    const headers = ['ID', 'Name', 'Email', 'Phone', 'ReqId', 'Stage', 'Country', 'Source', 'LastUpdated'];
+    let csvContent = headers.join(',') + '\n';
+    
+    // Get the currently filtered candidates if possible, else all
+    // To keep it simple, we'll just export all candidates, or if a global filtered list existed we'd use that.
+    // For Phase 59, we export ALL candidates in the state.
+    candidates.forEach(c => {
+        const row = [
+            c.id,
+            `"${c.name}"`,
+            c.email,
+            c.phone,
+            c.reqId,
+            c.stage,
+            c.country || 'US',
+            c.source || 'Direct',
+            c.lastUpdated
+        ];
+        csvContent += row.join(',') + '\n';
+    });
+    
+    // Trigger Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Candidates_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    createAlert('CSV Export successfully downloaded.', 'success');
+}
+
+function processCSVImport() {
+    const rawData = document.getElementById('csv_import_data').value.trim();
+    if (!rawData) {
+        createAlert('Please paste CSV data first.', 'warning');
+        return;
+    }
+    
+    const lines = rawData.split('\n');
+    if (lines.length < 2) {
+        createAlert('CSV must contain a header row and at least one data row.', 'warning');
+        return;
+    }
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    let importedCount = 0;
+    
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < headers.length) continue; // Skip malformed rows
+        
+        let canData = {
+            id: 'CAN-' + Date.now() + i,
+            history: [],
+            lastUpdated: new Date().toLocaleDateString()
+        };
+        
+        headers.forEach((h, idx) => {
+            if (h === 'name') canData.name = cols[idx];
+            else if (h === 'email') canData.email = cols[idx];
+            else if (h === 'phone') canData.phone = cols[idx];
+            else if (h === 'reqid' || h === 'req') canData.reqId = cols[idx];
+            else if (h === 'stage') canData.stage = cols[idx];
+            else if (h === 'country') canData.country = cols[idx];
+        });
+        
+        // Validation minimums
+        if (canData.name && canData.email) {
+            canData.stage = canData.stage || 'Sourced';
+            canData.reqId = canData.reqId || 'N/A';
+            canData.country = canData.country || 'US';
+            candidates.push(canData);
+            importedCount++;
+        }
+    }
+    
+    if (importedCount > 0) {
+        saveData();
+        closeModal('importCSVModal');
+        updateAllViews();
+        document.getElementById('csv_import_data').value = '';
+        createAlert(`Successfully imported ${importedCount} candidates!`, 'success');
+    } else {
+        createAlert('No valid candidates found in CSV data. Ensure Name and Email columns exist.', 'danger');
+    }
+}
+
 // ============================================
 // Chart.js Setup — Dashboard + Analytics Hub
 // ============================================
