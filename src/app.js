@@ -3554,6 +3554,78 @@ function simulateAIParsing() {
     }, 1200); // 1.2 second simulated processing delay
 }
 
+// --- Phase 62: Omni-Search Command Center ---
+document.addEventListener('keydown', function(e) {
+    // Listen for Ctrl+K or Cmd+K
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const modal = document.getElementById('omniSearchModal');
+        if (modal.style.display === 'flex') {
+            closeModal('omniSearchModal');
+        } else {
+            openModal('omniSearchModal');
+            document.getElementById('omni_search_input').value = '';
+            executeOmniSearch('');
+            setTimeout(() => document.getElementById('omni_search_input').focus(), 100);
+        }
+    }
+});
+
+function executeOmniSearch(query) {
+    const resultsContainer = document.getElementById('omni_search_results');
+    const q = query.trim().toLowerCase();
+    
+    if (!q) {
+        resultsContainer.innerHTML = '<div style="padding: 15px; color: var(--text-light); text-align: center; font-size: 0.9rem;">Start typing to search your entire workspace.</div>';
+        return;
+    }
+    
+    let html = '';
+    let count = 0;
+    
+    // Search Candidates
+    const matchingCans = candidates.filter(c => c.name.toLowerCase().includes(q) || (c.email && c.email.toLowerCase().includes(q)) || c.id.toLowerCase().includes(q));
+    if (matchingCans.length > 0) {
+        html += '<div style="padding: 5px 15px; font-weight: 600; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; margin-top: 10px;">Candidates</div>';
+        matchingCans.forEach(c => {
+            html += `
+                <div class="omni-result-item" onclick="closeModal('omniSearchModal'); switchTab('candidates'); setTimeout(() => openCandidateDetailsModal('${c.id}'), 100);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-dark);">${c.name}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-light);">${c.email} • ${c.stage}</div>
+                    </div>
+                    <span class="badge ${c.stage === 'Joined' ? 'active' : ''}">${c.stage}</span>
+                </div>
+            `;
+            count++;
+        });
+    }
+    
+    // Search Requirements
+    const matchingReqs = requirements.filter(r => r.title.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+    if (matchingReqs.length > 0) {
+        html += '<div style="padding: 5px 15px; font-weight: 600; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; margin-top: 10px;">Requirements</div>';
+        matchingReqs.forEach(r => {
+            html += `
+                <div class="omni-result-item" onclick="closeModal('omniSearchModal'); switchTab('requirements'); setTimeout(() => openWorklogModal('${r.id}'), 100);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-dark);">${r.title}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-light);">${r.id} • ${r.status}</div>
+                    </div>
+                    <span class="badge ${r.status === 'Active' ? 'active' : ''}">${r.status}</span>
+                </div>
+            `;
+            count++;
+        });
+    }
+    
+    if (count === 0) {
+        html = '<div style="padding: 15px; color: var(--text-light); text-align: center; font-size: 0.9rem;">No results found across Candidates or Requirements.</div>';
+    }
+    
+    resultsContainer.innerHTML = html;
+}
+
 // ============================================
 // Chart.js Setup — Dashboard + Analytics Hub
 // ============================================

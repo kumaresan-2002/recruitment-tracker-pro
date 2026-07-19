@@ -411,3 +411,19 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
 #printable-offer-letter {
     display: none;
 }
+/* Omni-Search Styles */
+.omni-result-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+.omni-result-item:hover {
+    background: rgba(37, 99, 235, 0.1);
+}
+.omni-result-item:last-child {
+    border-bottom: none;
+}
