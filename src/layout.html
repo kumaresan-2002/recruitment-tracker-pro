@@ -1220,3 +1220,18 @@
         </div>
     </div>
 </div>
+<!-- Modal: AI Resume Parser -->
+<div id="aiResumeParseModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>?? AI Resume Parser</h2>
+            <span class="close-btn" onclick="closeModal('aiResumeParseModal')">&times;</span>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px;">Paste the candidate's raw resume text below. Our AI engine will automatically extract their Name, Email, and Phone number to generate a profile.</p>
+        <textarea id="ai_resume_text" rows="12" style="width:100%; padding:12px; border-radius:6px; border:1px solid var(--border); font-family:monospace; font-size:0.85rem;" placeholder="Paste resume or LinkedIn profile text here..."></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-outline" onclick="closeModal('aiResumeParseModal')">Cancel</button>
+            <button class="btn" style="background:var(--accent); color:white; border:none;" onclick="simulateAIParsing()">Extract & Build Profile</button>
+        </div>
+    </div>
+</div>

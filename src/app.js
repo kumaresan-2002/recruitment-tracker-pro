@@ -3484,6 +3484,76 @@ function processCSVImport() {
     }
 }
 
+// --- Phase 61: AI Resume Parsing ---
+function simulateAIParsing() {
+    const text = document.getElementById('ai_resume_text').value.trim();
+    if (!text) {
+        createAlert('Please paste resume text to extract.', 'warning');
+        return;
+    }
+    
+    // Simulate AI parsing delay for effect
+    const btn = document.querySelector('#aiResumeParseModal .btn[style*="background:var(--accent)"]');
+    if(btn) {
+        btn.innerText = 'Extracting...';
+        btn.disabled = true;
+    }
+    
+    setTimeout(() => {
+        // Simple Regex Extractors
+        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
+        const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+        
+        let extractedEmail = (text.match(emailRegex) || [])[0] || '';
+        let extractedPhone = (text.match(phoneRegex) || [])[0] || '';
+        
+        // Name heuristic: Take the first line, strip non-alpha, take first two words
+        let extractedName = "Unknown Candidate";
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length > 0) {
+            const possibleName = lines[0].replace(/[^a-zA-Z\s]/g, '').trim();
+            if (possibleName) {
+                // Limit to 3 words max for a name
+                extractedName = possibleName.split(' ').slice(0, 3).join(' ');
+            }
+        }
+        
+        if (!extractedEmail && !extractedPhone) {
+            createAlert('AI Engine could not extract an Email or Phone number from this text.', 'danger');
+            if(btn) { btn.innerText = 'Extract & Build Profile'; btn.disabled = false; }
+            return;
+        }
+        
+        // Build candidate object
+        const newCan = {
+            id: 'CAN-AI-' + Date.now(),
+            name: extractedName,
+            email: extractedEmail,
+            phone: extractedPhone,
+            reqId: 'N/A',
+            stage: 'Sourced',
+            country: 'US',
+            source: 'AI Parser',
+            lastUpdated: new Date().toLocaleDateString(),
+            history: [{
+                date: new Date().toLocaleDateString(),
+                stage: 'Sourced',
+                comment: 'Profile automatically generated via AI Resume Parser.',
+                user: 'System'
+            }]
+        };
+        
+        candidates.push(newCan);
+        saveData();
+        closeModal('aiResumeParseModal');
+        updateAllViews();
+        document.getElementById('ai_resume_text').value = '';
+        createAlert(`AI Successfully created profile for ${extractedName}!`, 'success');
+        
+        if(btn) { btn.innerText = 'Extract & Build Profile'; btn.disabled = false; }
+    }, 1200); // 1.2 second simulated processing delay
+}
+
 // ============================================
 // Chart.js Setup — Dashboard + Analytics Hub
 // ============================================

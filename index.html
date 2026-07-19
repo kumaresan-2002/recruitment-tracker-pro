@@ -1645,6 +1645,21 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         </div>
     </div>
 </div>
+<!-- Modal: AI Resume Parser -->
+<div id="aiResumeParseModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>?? AI Resume Parser</h2>
+            <span class="close-btn" onclick="closeModal('aiResumeParseModal')">&times;</span>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px;">Paste the candidate's raw resume text below. Our AI engine will automatically extract their Name, Email, and Phone number to generate a profile.</p>
+        <textarea id="ai_resume_text" rows="12" style="width:100%; padding:12px; border-radius:6px; border:1px solid var(--border); font-family:monospace; font-size:0.85rem;" placeholder="Paste resume or LinkedIn profile text here..."></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-outline" onclick="closeModal('aiResumeParseModal')">Cancel</button>
+            <button class="btn" style="background:var(--accent); color:white; border:none;" onclick="simulateAIParsing()">Extract & Build Profile</button>
+        </div>
+    </div>
+</div>
 
 
 <div class="main-content">
@@ -1986,6 +2001,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             </div>
 
             <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button class="btn btn-sm" onclick="openModal('aiResumeParseModal')" style="background:var(--accent); color:white; border:none;">🤖 AI Parse Resume</button>
                 <button class="btn btn-sm btn-outline" onclick="exportCandidatesCSV()" style="color:var(--primary); border-color:var(--primary);">📥 Export CSV</button>
                 <button class="btn btn-sm btn-outline" onclick="openModal('importCSVModal')" style="color:var(--success); border-color:var(--success);">📤 Import CSV</button>
                 <button class="btn btn-sm" onclick="openModal('candidateModal')">+ Add Candidate</button>
@@ -6212,6 +6228,76 @@ function processCSVImport() {
     } else {
         createAlert('No valid candidates found in CSV data. Ensure Name and Email columns exist.', 'danger');
     }
+}
+
+// --- Phase 61: AI Resume Parsing ---
+function simulateAIParsing() {
+    const text = document.getElementById('ai_resume_text').value.trim();
+    if (!text) {
+        createAlert('Please paste resume text to extract.', 'warning');
+        return;
+    }
+    
+    // Simulate AI parsing delay for effect
+    const btn = document.querySelector('#aiResumeParseModal .btn[style*="background:var(--accent)"]');
+    if(btn) {
+        btn.innerText = 'Extracting...';
+        btn.disabled = true;
+    }
+    
+    setTimeout(() => {
+        // Simple Regex Extractors
+        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
+        const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+        
+        let extractedEmail = (text.match(emailRegex) || [])[0] || '';
+        let extractedPhone = (text.match(phoneRegex) || [])[0] || '';
+        
+        // Name heuristic: Take the first line, strip non-alpha, take first two words
+        let extractedName = "Unknown Candidate";
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length > 0) {
+            const possibleName = lines[0].replace(/[^a-zA-Z\s]/g, '').trim();
+            if (possibleName) {
+                // Limit to 3 words max for a name
+                extractedName = possibleName.split(' ').slice(0, 3).join(' ');
+            }
+        }
+        
+        if (!extractedEmail && !extractedPhone) {
+            createAlert('AI Engine could not extract an Email or Phone number from this text.', 'danger');
+            if(btn) { btn.innerText = 'Extract & Build Profile'; btn.disabled = false; }
+            return;
+        }
+        
+        // Build candidate object
+        const newCan = {
+            id: 'CAN-AI-' + Date.now(),
+            name: extractedName,
+            email: extractedEmail,
+            phone: extractedPhone,
+            reqId: 'N/A',
+            stage: 'Sourced',
+            country: 'US',
+            source: 'AI Parser',
+            lastUpdated: new Date().toLocaleDateString(),
+            history: [{
+                date: new Date().toLocaleDateString(),
+                stage: 'Sourced',
+                comment: 'Profile automatically generated via AI Resume Parser.',
+                user: 'System'
+            }]
+        };
+        
+        candidates.push(newCan);
+        saveData();
+        closeModal('aiResumeParseModal');
+        updateAllViews();
+        document.getElementById('ai_resume_text').value = '';
+        createAlert(`AI Successfully created profile for ${extractedName}!`, 'success');
+        
+        if(btn) { btn.innerText = 'Extract & Build Profile'; btn.disabled = false; }
+    }, 1200); // 1.2 second simulated processing delay
 }
 
 // ============================================
