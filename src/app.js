@@ -104,7 +104,7 @@ async function saveData(silent = false) {
     }
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://173.255.117.76:5000/api/sync', {
+        const res = await fetch('/api/sync', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -552,7 +552,7 @@ function openCandidateDetailsModal(canId) {
             <div style="display: flex; width: 100%; height: 100%;">
                 <!-- Left Panel: Built-in Resume Viewer -->
                 <div style="flex: 7; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-light);">
-                    ${can.resumeUrl ? `<iframe src="http://173.255.117.76:5000${can.resumeUrl}" style="width:100%; height:100%; border:none;"></iframe>` : `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-light); flex-direction:column; gap:15px;"><div style="font-size:4rem; opacity:0.5;">📄</div><div style="font-size: 1.1rem;">No Resume Uploaded</div></div>`}
+                    ${can.resumeUrl ? `<iframe src="${can.resumeUrl}" style="width:100%; height:100%; border:none;"></iframe>` : `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-light); flex-direction:column; gap:15px;"><div style="font-size:4rem; opacity:0.5;">📄</div><div style="font-size: 1.1rem;">No Resume Uploaded</div></div>`}
                 </div>
                 
                 <!-- Right Panel: Action & Details Hub -->
@@ -860,7 +860,7 @@ async function handleCandidateSubmit(e) {
         const formData = new FormData();
         formData.append('resume', fileInput.files[0]);
         try {
-            const res = await fetch('http://173.255.117.76:5000/api/upload', {
+            const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
@@ -2306,7 +2306,7 @@ function renderClientPortal() {
             <td><strong>${can.name}</strong></td>
             <td><span class="badge ${getBadgeClass(can.stage)}">${can.stage}</span></td>
             <td>${can.lastUpdated}</td>
-            <td>${can.resumeUrl ? `<a href="http://173.255.117.76:5000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+            <td>${can.resumeUrl ? `<a href="${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -2334,7 +2334,7 @@ function renderHiringManagerPortal() {
             <td><strong>${can.name}</strong><br><small style="color:var(--text-light);">${can.email}</small></td>
             <td><strong>${req ? req.id : can.reqId}</strong><br><small style="color:var(--text-light);">${req ? req.title : ''}</small></td>
             <td>${can.interviewRound || 'Interview'} on ${can.interviewDate ? new Date(can.interviewDate).toLocaleString() : 'TBD'}<br><small>${can.interviewMode || ''}</small></td>
-            <td>${can.resumeUrl ? `<a href="http://173.255.117.76:5000${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
+            <td>${can.resumeUrl ? `<a href="${can.resumeUrl}" target="_blank" style="color:var(--info); font-weight:bold;">📄 View Resume</a>` : '<span style="color:var(--text-light)">No Resume</span>'}</td>
             <td><button class="btn btn-sm" style="background: var(--success); color: white; border: none;" onclick="openHMFeedbackModal('${can.id}')">✏️ Submit Feedback</button></td>
         `;
         tbody.appendChild(tr);
@@ -3942,7 +3942,7 @@ async function generateExternalLogin() {
     status.innerText = 'Generating access...';
     
     try {
-        const res = await fetch('http://173.255.117.76:5000/api/register', {
+        const res = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: u, password: p, role: r })
@@ -4429,7 +4429,7 @@ async function initApp() {
     }
     
     try {
-        const res = await fetch('http://173.255.117.76:5000/api/sync', {
+        const res = await fetch('/api/sync', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.status === 401) {
@@ -4498,7 +4498,7 @@ async function handleRegister(e) {
     const role = document.getElementById('reg_role').value;
     const errDiv = document.getElementById('reg_error');
     try {
-        const res = await fetch('http://173.255.117.76:5000/api/register', {
+        const res = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: u, password: p, role })
@@ -4592,7 +4592,7 @@ async function handleLogin(e) {
     const pwd = document.getElementById('login_password').value || 'admin123';
     
     try {
-        const res = await fetch('http://173.255.117.76:5000/api/auth/login', {
+        const res = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username: email, password: pwd})
