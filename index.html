@@ -2685,7 +2685,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
     </div>
     
     <div id="candidate-kanban-view" style="display: none; padding-top: 10px;">
-        <div class="kanban-board" id="kanban-board" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; height: 600px;"></div></div></div>
+        <div class="kanban-board" id="kanban-board-container" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; height: 600px;"></div></div></div>
 
 <div id="interviews" class="view">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
@@ -2998,7 +2998,6 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         </p>
         <button class="btn" onclick="exportDataBackup()" style="background: var(--primary);">📥 Download Full Database Backup</button>
     </div>
-</div>
     <div class="card" style="max-width: 600px; margin-top: 20px;">
         <h4 style="margin-bottom: 10px; color: var(--text-dark);">?? Pipeline Stages (Custom Kanban)</h4>
         <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 15px;">
@@ -3012,6 +3011,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             <button class="btn btn-sm" onclick="addPipelineStage()" style="background: var(--accent); color: white;">+ Add Stage</button>
         </div>
     </div>
+</div>
 
 <div id="performance" class="view">
     <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -5255,62 +5255,6 @@ function toggleCandidateView(viewType) {
     document.getElementById('candidate-kanban-view').style.display = viewType === 'kanban' ? 'block' : 'none';
 }
 
-function renderKanban(search, filterStage) {
-    const columns = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined', 'Rejected'];
-    
-    // Clear all dropzones and counts
-    columns.forEach(stage => {
-        const dropzone = document.getElementById(`kb-col-${stage.split(' ')[0]}`); // Mapped to Sourced, Screened, Interview, Offer, Joined, Rejected
-        if(dropzone) dropzone.innerHTML = '';
-        
-        const countBadge = document.getElementById(`kb-count-${stage.split(' ')[0]}`);
-        if(countBadge) countBadge.innerText = '0';
-    });
-    
-    const filteredCans = candidates.filter(can => {
-        const matchesSearch = can.name.toLowerCase().includes(search) || can.email.toLowerCase().includes(search);
-        const matchesStage = filterStage === 'All' || can.stage === filterStage;
-        const matchesCountry = currentCandidateTab === 'All' || (can.country || 'US') === currentCandidateTab;
-        return matchesSearch && matchesStage && matchesCountry;
-    });
-
-    filteredCans.forEach(can => {
-        let colId = can.stage.split(' ')[0]; // Sourced, Screened, Interview, Offer, Joined
-        if(can.stage === 'Lost' || can.stage === 'Rejected') colId = 'Rejected';
-        
-        const req = requirements.find(r => r.id === can.reqId);
-        const match = calculateMatchScore(can, req);
-        const dropzone = document.getElementById(`kb-col-${colId}`);
-        if (dropzone) {
-            const card = document.createElement('div');
-            card.className = 'kanban-card';
-            card.style = 'background: white; border: 1px solid var(--border); border-radius: 6px; padding: 12px; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
-            card.draggable = true;
-            card.id = `kb-card-${can.id}`;
-            card.ondragstart = (e) => dragstartKanban(e, can.id);
-            
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
-                    <strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong>
-                    <div>
-                        <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
-                        <span style="background:${match.color}; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:10px; margin-left:4px;" title="AI Match Score">✨ ${match.score}%</span>
-                    </div>
-                </div>
-                <div style="font-size:0.8rem; color:var(--text-light); margin-bottom: 8px;">Req: ${can.reqId}</div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
-                    <span style="color:var(--text-light)">${can.lastUpdated}</span>
-                    ${can.skills ? '<span style="color:var(--info);">🤖 AI Parsed</span>' : ''}
-                </div>
-            `;
-            dropzone.appendChild(card);
-            
-            // Update count
-            const countBadge = document.getElementById(`kb-count-${colId}`);
-            if(countBadge) countBadge.innerText = parseInt(countBadge.innerText) + 1;
-        }
-    });
-}
 
 function dragstartKanban(e, canId) {
     e.dataTransfer.setData("text/plain", canId);

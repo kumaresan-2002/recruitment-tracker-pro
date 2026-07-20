@@ -1644,62 +1644,6 @@ function toggleCandidateView(viewType) {
     document.getElementById('candidate-kanban-view').style.display = viewType === 'kanban' ? 'block' : 'none';
 }
 
-function renderKanban(search, filterStage) {
-    const columns = ['Sourced', 'Screened', 'Interview Scheduled', 'Offer Released', 'Joined', 'Rejected'];
-    
-    // Clear all dropzones and counts
-    columns.forEach(stage => {
-        const dropzone = document.getElementById(`kb-col-${stage.split(' ')[0]}`); // Mapped to Sourced, Screened, Interview, Offer, Joined, Rejected
-        if(dropzone) dropzone.innerHTML = '';
-        
-        const countBadge = document.getElementById(`kb-count-${stage.split(' ')[0]}`);
-        if(countBadge) countBadge.innerText = '0';
-    });
-    
-    const filteredCans = candidates.filter(can => {
-        const matchesSearch = can.name.toLowerCase().includes(search) || can.email.toLowerCase().includes(search);
-        const matchesStage = filterStage === 'All' || can.stage === filterStage;
-        const matchesCountry = currentCandidateTab === 'All' || (can.country || 'US') === currentCandidateTab;
-        return matchesSearch && matchesStage && matchesCountry;
-    });
-
-    filteredCans.forEach(can => {
-        let colId = can.stage.split(' ')[0]; // Sourced, Screened, Interview, Offer, Joined
-        if(can.stage === 'Lost' || can.stage === 'Rejected') colId = 'Rejected';
-        
-        const req = requirements.find(r => r.id === can.reqId);
-        const match = calculateMatchScore(can, req);
-        const dropzone = document.getElementById(`kb-col-${colId}`);
-        if (dropzone) {
-            const card = document.createElement('div');
-            card.className = 'kanban-card';
-            card.style = 'background: white; border: 1px solid var(--border); border-radius: 6px; padding: 12px; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
-            card.draggable = true;
-            card.id = `kb-card-${can.id}`;
-            card.ondragstart = (e) => dragstartKanban(e, can.id);
-            
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
-                    <strong style="color:var(--primary); cursor:pointer;" onclick="openCandidateDetailsModal('${can.id}')">${can.name}</strong>
-                    <div>
-                        <span class="badge ${getBadgeClass(can.country === 'IN' ? 'joined' : 'active')}" style="padding: 2px 6px; font-size: 0.65rem;">${can.country || 'US'}</span>
-                        <span style="background:${match.color}; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:10px; margin-left:4px;" title="AI Match Score">✨ ${match.score}%</span>
-                    </div>
-                </div>
-                <div style="font-size:0.8rem; color:var(--text-light); margin-bottom: 8px;">Req: ${can.reqId}</div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
-                    <span style="color:var(--text-light)">${can.lastUpdated}</span>
-                    ${can.skills ? '<span style="color:var(--info);">🤖 AI Parsed</span>' : ''}
-                </div>
-            `;
-            dropzone.appendChild(card);
-            
-            // Update count
-            const countBadge = document.getElementById(`kb-count-${colId}`);
-            if(countBadge) countBadge.innerText = parseInt(countBadge.innerText) + 1;
-        }
-    });
-}
 
 function dragstartKanban(e, canId) {
     e.dataTransfer.setData("text/plain", canId);
