@@ -1,0 +1,34 @@
+<!-- View: Automations Engine -->
+<div id="automationsView"  class="view fade-in">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="color: var(--primary); margin:0;">⚡ Workflow Automations Engine</h2>
+            <p style="color: var(--text-light); margin-top:5px; font-size:0.95rem;">Background rules that keep your pipeline clean and fully automated.</p>
+        </div>
+        <button class="btn" style="background:var(--purple); color:white; border:none;" onclick="openModal('automationRuleModal')">+ Create Rule</button>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px; background:var(--bg-light); border-left:4px solid var(--purple);">
+        <h4 style="margin-bottom:10px; color:var(--text-dark);">Engine Status: <span style="color:var(--success);">Active & Running</span></h4>
+        <p style="font-size:0.9rem; color:var(--text-light);">The engine mathematically evaluates pipeline aging on every dashboard load and automatically takes actions based on the rules defined below.</p>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rule ID</th>
+                    <th>Target Entity</th>
+                    <th>Trigger Condition (IF)</th>
+                    <th>Automated Action (THEN)</th>
+                    <th>Executions</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="automations-table">
+                <!-- Filled via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>

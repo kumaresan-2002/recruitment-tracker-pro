@@ -1,0 +1,56 @@
+
+<!-- Modal: Automations Rule Builder -->
+<div id="automationRuleModal" class="modal" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>⚡ Create Automation Rule</h2>
+            <span class="close-btn" onclick="closeModal('automationRuleModal')">&times;</span>
+        </div>
+        <div class="form-group">
+            <label>Rule Target Entity</label>
+            <select id="auto_entity" class="form-control" onchange="updateAutoConditionOptions()">
+                <option value="Candidate">Candidate</option>
+                <option value="Requirement">Requirement</option>
+            </select>
+        </div>
+        
+        <div style="background:var(--bg-light); padding:15px; border-radius:6px; margin-bottom:15px; border-left:3px solid var(--primary);">
+            <h4 style="margin-bottom:10px; color:var(--primary);">1. Trigger Condition (IF)</h4>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Current Stage/Status is:</label>
+                    <select id="auto_state" class="form-control">
+                        <option value="Screened">Screened</option>
+                        <option value="Interview Scheduled">Interview Scheduled</option>
+                        <option value="Submitted to Client">Submitted to Client</option>
+                        <option value="Open">Open</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Days in state ></label>
+                    <input type="number" id="auto_days" class="form-control" placeholder="e.g. 5" min="0">
+                </div>
+            </div>
+        </div>
+
+        <div style="background:var(--bg-light); padding:15px; border-radius:6px; margin-bottom:15px; border-left:3px solid var(--purple);">
+            <h4 style="margin-bottom:10px; color:var(--purple);">2. Automated Action (THEN)</h4>
+            <div class="form-group">
+                <label>Action to Take:</label>
+                <select id="auto_actionType" class="form-control" onchange="updateAutoActionOptions()">
+                    <option value="ChangeStage">Change Stage / Status</option>
+                    <option value="AddSystemNote">Add System Note / Alert</option>
+                </select>
+            </div>
+            <div class="form-group" id="auto_actionValueContainer">
+                <label>Set To:</label>
+                <select id="auto_actionValue" class="form-control">
+                    <option value="Rejected">Rejected</option>
+                    <option value="On Hold">On Hold</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" style="width:100%; background:var(--purple); color:white; border:none;" onclick="saveAutomationRule()">Save Rule & Activate Engine</button>
+    </div>
+</div>

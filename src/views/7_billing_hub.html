@@ -1,0 +1,138 @@
+<div id="billingHubView" class="view" >
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>⏱️ Billing & Timesheets Hub</h2>
+        <div style="color:var(--text-light); font-size:0.9rem;">
+            Tracking active contractors and generating invoices.
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+        <table class="data-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Contractor Name</th>
+                    <th>Client / Project</th>
+                    <th>Start Date</th>
+                    <th>Bill Rate / Hr</th>
+                    <th>Current Week Hours</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="billing-table">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Log Timesheet -->
+<div id="timesheetModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Log Weekly Hours</h2>
+            <span class="close-btn" onclick="closeModal('timesheetModal')">&times;</span>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px;">Enter the approved hours worked this week for <strong id="ts_canName"></strong>.</p>
+        
+        <input type="hidden" id="ts_canId">
+        
+        <div class="form-group">
+            <label>Hours Worked</label>
+            <input type="number" id="ts_hours" min="0" max="168" value="40" class="form-control">
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-outline" onclick="closeModal('timesheetModal')">Cancel</button>
+            <button class="btn" style="background:var(--primary); color:white; border:none;" onclick="saveTimesheet()">Save Hours</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Invoice Overlay (Printable) -->
+<div id="invoiceModal" class="modal" style="background: rgba(15, 23, 42, 0.95); z-index: 10000;">
+    <div class="modal-content" style="max-width: 800px; background: white; color: #333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        
+        <!-- Action Bar (Not printed) -->
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;" class="no-print">
+            <button class="btn btn-outline" onclick="closeModal('invoiceModal')">Close</button>
+            <button class="btn" style="background:var(--success); color:white; border:none;" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+
+        <!-- Invoice Document -->
+        <div id="printable_invoice" style="padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px;">
+                <div>
+                    <h1 style="margin:0; font-size:2.5rem; color:#2c3e50; font-weight:800;">INVOICE</h1>
+                    <div style="color:#7f8c8d; font-size:0.9rem; margin-top:5px;">Invoice #: <span id="inv_num" style="font-weight:600;"></span></div>
+                    <div style="color:#7f8c8d; font-size:0.9rem;">Date: <span id="inv_date" style="font-weight:600;"></span></div>
+                    <div style="color:#7f8c8d; font-size:0.9rem;">Due Date: <strong style="color:#e74c3c;">Net 30</strong></div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:1.5rem; font-weight:800; color:#2980b9;">Recruitment Tracker Inc.</div>
+                    <div style="color:#7f8c8d; font-size:0.9rem;">123 Innovation Drive</div>
+                    <div style="color:#7f8c8d; font-size:0.9rem;">Tech City, CA 94016</div>
+                    <div style="color:#7f8c8d; font-size:0.9rem;">billing@recruitmenttracker.com</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:40px;">
+                <div style="font-size:1rem; font-weight:700; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px; margin-bottom:10px;">Bill To:</div>
+                <div id="inv_clientName" style="font-size:1.2rem; font-weight:600;">Client Name</div>
+                <div style="color:#7f8c8d; font-size:0.9rem;">Accounts Payable Department</div>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; margin-bottom:40px;">
+                <thead>
+                    <tr style="background:#2980b9; color:white;">
+                        <th style="padding:10px; text-align:left;">Description (Contractor Services)</th>
+                        <th style="padding:10px; text-align:center;">Hours</th>
+                        <th style="padding:10px; text-align:right;">Rate</th>
+                        <th style="padding:10px; text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #ecf0f1;">
+                        <td style="padding:15px 10px;">
+                            <div style="font-weight:600; color:#2c3e50;" id="inv_descTitle">Professional Services</div>
+                            <div style="font-size:0.85rem; color:#7f8c8d;" id="inv_descSub">Contractor Name - Week Ending</div>
+                        </td>
+                        <td style="padding:15px 10px; text-align:center;" id="inv_hours">0</td>
+                        <td style="padding:15px 10px; text-align:right;" id="inv_rate">$0.00</td>
+                        <td style="padding:15px 10px; text-align:right; font-weight:600;" id="inv_amount">$0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="display:flex; justify-content:flex-end;">
+                <div style="width:300px;">
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #ecf0f1;">
+                        <span style="color:#7f8c8d;">Subtotal:</span>
+                        <span style="font-weight:600;" id="inv_subtotal">$0.00</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #ecf0f1;">
+                        <span style="color:#7f8c8d;">Tax (0%):</span>
+                        <span style="font-weight:600;">$0.00</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:15px 0; font-size:1.4rem; font-weight:800; color:#2c3e50;">
+                        <span>Total:</span>
+                        <span id="inv_total">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top:50px; text-align:center; font-size:0.85rem; color:#95a5a6; border-top:1px solid #ecf0f1; padding-top:20px;">
+                Thank you for your business! Please make checks payable to <strong>Recruitment Tracker Inc.</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body * { visibility: hidden; }
+        #invoiceModal, #invoiceModal * { visibility: visible; }
+        #invoiceModal { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; background: white; }
+        .no-print { display: none !important; }
+        .modal-content { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+    }
+</style>

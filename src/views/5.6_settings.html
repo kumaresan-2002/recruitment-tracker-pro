@@ -29,3 +29,16 @@
         <button class="btn" onclick="exportDataBackup()" style="background: var(--primary);">📥 Download Full Database Backup</button>
     </div>
 </div>
+    <div class="card" style="max-width: 600px; margin-top: 20px;">
+        <h4 style="margin-bottom: 10px; color: var(--text-dark);">?? Pipeline Stages (Custom Kanban)</h4>
+        <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 15px;">
+            Customize the stages of your recruitment pipeline. These stages will dynamically populate your Kanban board and dropdowns.
+        </p>
+        <div id="pipeline-stages-list" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- Populated via JS -->
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="new_stage_name" placeholder="New Stage Name..." style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--border);">
+            <button class="btn btn-sm" onclick="addPipelineStage()" style="background: var(--accent); color: white;">+ Add Stage</button>
+        </div>
+    </div>

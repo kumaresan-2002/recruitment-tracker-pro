@@ -1,0 +1,75 @@
+<div id="candidate_portal" class="view">
+    <div style="margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h2 id="cp_welcomeName" style="margin: 0 0 10px 0; color: var(--primary);">Welcome, Candidate!</h2>
+            <p style="margin: 0; color: var(--text-light);">Here is the status of your current application.</p>
+        </div>
+        <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="candidateWithdraw()">Withdraw Application</button>
+    </div>
+
+    <!-- Job Details Card -->
+    <div class="card" style="margin-bottom: 30px; background: linear-gradient(135deg, rgba(37,99,235,0.05), rgba(37,99,235,0.02)); border-left: 4px solid var(--primary);">
+        <h3 id="cp_jobTitle" style="margin-top:0; color:var(--text); font-size:1.4rem;">Job Title</h3>
+        <p id="cp_jobClient" style="color: var(--text-light); font-size:1.1rem; margin-bottom:15px;">Company Name</p>
+        <div style="display: flex; gap: 20px;">
+            <div style="font-size: 0.9rem;"><strong>Location:</strong> <span id="cp_jobLocation">N/A</span></div>
+            <div style="font-size: 0.9rem;"><strong>Work Mode:</strong> <span id="cp_jobMode">N/A</span></div>
+            <div style="font-size: 0.9rem;"><strong>Applied On:</strong> <span id="cp_appliedDate">N/A</span></div>
+        </div>
+    </div>
+
+    <!-- Application Progress Tracker -->
+    <h3 style="margin-bottom: 20px;">Application Status</h3>
+    <div class="card" style="margin-bottom: 30px; padding: 40px 20px;">
+        <div class="progress-tracker" style="display:flex; justify-content: space-between; position:relative;">
+            <!-- The connecting line -->
+            <div style="position:absolute; top: 15px; left: 10%; right: 10%; height: 4px; background: var(--border); z-index: 1;"></div>
+            <div id="cp_progress_line" style="position:absolute; top: 15px; left: 10%; height: 4px; background: var(--primary); z-index: 2; width: 0%; transition: width 0.5s ease;"></div>
+            
+            <!-- Nodes -->
+            <div class="pt-node" id="pt_applied" style="position:relative; z-index: 3; text-align:center; width:20%;">
+                <div class="pt-dot" style="width:34px; height:34px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto; border: 4px solid var(--bg);">✓</div>
+                <strong>Applied</strong>
+            </div>
+            <div class="pt-node" id="pt_screened" style="position:relative; z-index: 3; text-align:center; width:20%;">
+                <div class="pt-dot" style="width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--text-light); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto; border: 4px solid var(--bg);">2</div>
+                <strong>Screened</strong>
+            </div>
+            <div class="pt-node" id="pt_interview" style="position:relative; z-index: 3; text-align:center; width:20%;">
+                <div class="pt-dot" style="width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--text-light); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto; border: 4px solid var(--bg);">3</div>
+                <strong>Interviewing</strong>
+            </div>
+            <div class="pt-node" id="pt_offer" style="position:relative; z-index: 3; text-align:center; width:20%;">
+                <div class="pt-dot" style="width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--text-light); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto; border: 4px solid var(--bg);">4</div>
+                <strong>Offer Released</strong>
+            </div>
+            <div class="pt-node" id="pt_joined" style="position:relative; z-index: 3; text-align:center; width:20%;">
+                <div class="pt-dot" style="width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--text-light); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto; border: 4px solid var(--bg);">5</div>
+                <strong>Hired</strong>
+            </div>
+        </div>
+        
+        <div id="cp_rejected_msg" style="display:none; text-align:center; color: var(--danger); font-weight: bold; margin-top: 30px; padding: 20px; background: var(--danger-light); border-radius: 8px;">
+            Application Closed / Rejected. Thank you for your interest!
+        </div>
+    </div>
+
+    <!-- Document Upload Mock -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Document Center</h3>
+            <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px;">Securely upload required compliance and background check documents.</p>
+            <input type="file" id="cp_docUpload" style="margin-bottom: 15px;">
+            <button class="btn" onclick="candidateUploadDoc()">Upload Document</button>
+            <div id="cp_doc_status" style="margin-top: 15px; font-size: 0.85rem; color: var(--success); display:none;">
+                ✓ Document uploaded successfully to your file.
+            </div>
+        </div>
+        <div class="card">
+            <h3>Action Items</h3>
+            <div id="cp_actions_list">
+                <p style="color:var(--text-light); font-size:0.9rem;">You have no pending action items at this time.</p>
+            </div>
+        </div>
+    </div>
+</div>

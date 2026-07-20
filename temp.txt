@@ -1,0 +1,41 @@
+function initApp() {
+    const loginScreen = document.getElementById('loginScreen');
+    if (!loginScreen) return; // safety guard
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+        loginScreen.style.display = 'flex';
+        return;
+    }
+    
+    try {
+        const res = await fetch('http://127.0.0.1:3000/api/sync', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            throw new Error('Unauthorized');
+        }
+        if (!res.ok) {
+            throw new Error('Server error');
+        }
+        const data = await res.json();
+        if (data.requisitions) requirements = data.requisitions;
+        if (data.candidates) candidates = data.candidates;
+        if (data.worklogs) worklogs = data.worklogs;
+        if (data.reminders) reminders = data.reminders;
+        
+        loginScreen.style.display = 'none';
+        _finishAppInit();
+    } catch (e) {
+        if (e.message === 'Unauthorized') {
+            localStorage.removeItem('token');
+            loginScreen.style.display = 'flex';
+            return;
+        }
+        // API offline — fall back to localStorage data
+        console.warn('API offline, falling back to localStorage:', e.message);
+        loginScreen.style.display = 'none';
+        showOfflineBanner();
+        _finishAppInit();
+    }
+}

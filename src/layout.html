@@ -23,7 +23,7 @@
                         onfocus="this.style.borderColor='hsl(220,85%,57%)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
                 </div>
                 <div id="login_error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px;"></div>
-                <button type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(220,85%,57%), hsl(220,85%,47%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;">
+                <button id="loginBtn" type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg, hsl(220,85%,57%), hsl(220,85%,47%)); border:none; border-radius:10px; color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;">
                     Sign In
                 </button>
             </form>
@@ -80,6 +80,7 @@
         <div class="nav-item" onclick="switchView('clientportal')" data-role-visible="Client">Client Portal (VMS)</div>
         <div class="nav-item" onclick="switchView('hiringmanager')" data-role-visible="Hiring Manager">Hiring Manager Portal <span class="nav-badge" id="nav-hm-count">0</span></div>
         <div class="nav-item" onclick="switchView('agencyportal')" data-role-visible="Agency Vendor">Agency Vendor Portal <span class="nav-badge" id="nav-ag-count">0</span></div>
+        <div class="nav-item" onclick="switchView('candidate_portal')" data-role-visible="Candidate">Candidate Self-Service Portal</div>
         <div class="nav-item" onclick="switchView('requirements')" data-role-visible="Management,Account Manager,Recruiter">All Requirements <span class="nav-badge" id="nav-req-count">0</span></div>
         <div class="nav-item" onclick="switchView('us_reqs')" data-role-visible="Management,Account Manager,Recruiter">US Requirements <span class="nav-badge" id="nav-us-count">0</span></div>
         <div class="nav-item" onclick="switchView('in_reqs')" data-role-visible="Management,Account Manager,Recruiter">India Requirements <span class="nav-badge" id="nav-in-count">0</span></div>
@@ -93,9 +94,11 @@
         <div class="nav-item" onclick="switchView('onboarding')" data-role-visible="Management,Account Manager,Recruiter">🚀 Onboarding Hub <span class="nav-badge" id="nav-onb-count">0</span></div>
         <div class="nav-item" onclick="switchView('performance')" data-role-visible="Management,Recruiter">Recruiter Performance</div>
         <div class="nav-item" onclick="switchView('clientview')" data-role-visible="Management,Account Manager">Client & Account View</div>
+        <div class="nav-item" onclick="switchView('billingHubView')" data-role-visible="Management,Account Manager">⏱️ Billing & Timesheets</div>
         <div class="nav-item" onclick="switchView('reports')" data-role-visible="Management,Account Manager">📊 Analytics Hub</div>
         <div class="nav-item" onclick="switchView('emailtemplates')" data-role-visible="Management,Account Manager,Recruiter">📧 Email Templates</div>
         <div class="nav-item" onclick="switchView('datamanagement')" data-role-visible="Management">Data Management</div>
+        <div class="nav-item" onclick="switchView('automationsView')" data-role-visible="Management,Admin" style="color:var(--purple); font-weight:600;">⚡ Automations Engine</div>
         <div class="nav-item" onclick="switchView('settings')" data-role-visible="Management">Settings</div>
         <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1)"></div>
         <div class="nav-item" onclick="loadSampleData()" data-role-visible="Management,Account Manager,Recruiter">Load Sample Data</div>
@@ -1235,6 +1238,7 @@
         </div>
     </div>
 </div>
+</div>
 <!-- Modal: Omni-Search Command Center -->
 <div id="omniSearchModal" class="modal" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);">
     <div class="modal-content" style="max-width: 600px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin-top: 10vh;">
@@ -1248,5 +1252,520 @@
                 Start typing to search your entire workspace.
             </div>
         </div>
+    </div>
+</div>
+<!-- Floating Omnichannel Dialer -->
+<div id="omniDialerWidget" style="display:none; position:fixed; bottom:20px; right:20px; width:340px; background:var(--bg-card); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); border:1px solid var(--border); z-index:9999; overflow:hidden; flex-direction:column;">
+    <div style="background:var(--primary); color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:600;">📱 Outreach Hub</div>
+        <span style="cursor:pointer; font-size:1.2rem;" onclick="closeDialer()">&times;</span>
+    </div>
+    <div style="display:flex; border-bottom:1px solid var(--border); background:var(--bg-light);">
+        <div id="dialerTab_call" class="dialer-tab" onclick="switchDialerTab('call')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:0.9rem; border-bottom:2px solid var(--primary); font-weight:600; color:var(--text-dark);">📞 Call</div>
+        <div id="dialerTab_sms" class="dialer-tab" onclick="switchDialerTab('sms')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:0.9rem; border-bottom:2px solid transparent; color:var(--text-light);">💬 SMS</div>
+        <div id="dialerTab_wa" class="dialer-tab" onclick="switchDialerTab('wa')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:0.9rem; border-bottom:2px solid transparent; color:var(--text-light);">🟢 WA</div>
+    </div>
+    <div style="padding:20px;">
+        <input type="hidden" id="dialer_canId">
+        <input type="hidden" id="dialer_currentType" value="Call">
+        <div style="margin-bottom:15px;">
+            <label style="font-size:0.8rem; color:var(--text-light);">To Candidate:</label>
+            <div id="dialer_candidateName" style="font-weight:600; font-size:1.1rem; color:var(--text-dark);"></div>
+            <div id="dialer_candidatePhone" style="font-size:0.9rem; color:var(--text-light); margin-top:2px;"></div>
+        </div>
+        
+        <div id="dialerView_call">
+            <div id="dialer_status" style="text-align:center; margin:15px 0; color:var(--text-light); font-size:0.9rem;">Ready to Call</div>
+            <button id="dialer_callBtn" class="btn full-width" style="background:var(--success); color:white; border:none; padding:15px; font-size:1.1rem; border-radius:30px;" onclick="simulateCall()">📞 Start Call</button>
+            <div id="dialer_activeCallControls" style="display:none; flex-direction:column; gap:10px;">
+                <textarea id="dialer_notes" placeholder="Type call notes here..." rows="3" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); font-size:0.85rem; resize:none;"></textarea>
+                <button class="btn full-width" style="background:var(--danger); color:white; border:none; padding:15px; font-size:1.1rem; border-radius:30px;" onclick="endCall()">🛑 End Call & Log Note</button>
+            </div>
+        </div>
+        
+        <div id="dialerView_text" style="display:none; flex-direction:column; gap:10px;">
+            <textarea id="dialer_message" placeholder="Type your message..." rows="4" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); font-size:0.85rem; resize:none;"></textarea>
+            <button class="btn full-width" style="background:var(--primary); color:white; border:none; padding:12px; border-radius:8px;" onclick="sendText()">➤ Send Message</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Omni-Post Syndication -->
+<div id="omniPostModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>📢 Omni-Post Syndication Hub</h2>
+            <span class="close-btn" onclick="closeModal('omniPostModal')">&times;</span>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px;">Syndicate <strong id="op_jobTitle" style="color:var(--text-dark);"></strong> to our premium job board partners instantly.</p>
+        
+        <input type="hidden" id="op_reqId">
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+            <!-- LinkedIn -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:30px; height:30px; background:#0a66c2; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">in</div>
+                    <div>
+                        <div style="font-weight:600;">LinkedIn</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">Premium Job Slot (12 remaining)</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="op_board_LinkedIn" style="width:20px; height:20px;">
+            </label>
+            <!-- Dice -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:30px; height:30px; background:#cc0000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">D</div>
+                    <div>
+                        <div style="font-weight:600;">Dice.com</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">Tech focused distribution</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="op_board_Dice" style="width:20px; height:20px;">
+            </label>
+            <!-- Indeed -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:30px; height:30px; background:#2164f4; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">I</div>
+                    <div>
+                        <div style="font-weight:600;">Indeed</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">Sponsored Post ($15/day budget)</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="op_board_Indeed" style="width:20px; height:20px;">
+            </label>
+            <!-- Naukri -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:30px; height:30px; background:#0071c5; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">N</div>
+                    <div>
+                        <div style="font-weight:600;">Naukri</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">Standard Post</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="op_board_Naukri" style="width:20px; height:20px;">
+            </label>
+            <!-- Monster -->
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:30px; height:30px; background:#6b4d9a; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">M</div>
+                    <div>
+                        <div style="font-weight:600;">Monster</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">Standard Post</div>
+                    </div>
+                </div>
+                <input type="checkbox" id="op_board_Monster" style="width:20px; height:20px;">
+            </label>
+        </div>
+        
+        <div id="op_publishingStatus" style="display:none; text-align:center; padding:15px; color:var(--info); font-weight:600;">
+            ⏳ Syndicating to selected boards...
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-outline" onclick="closeModal('omniPostModal')">Cancel</button>
+            <button class="btn" style="background:var(--primary); color:white; border:none;" onclick="publishToBoards()">🚀 Publish Job</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Interview Scheduler Hub -->
+<div id="interviewSchedulerModal" class="modal" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);">
+    <div class="modal-content" style="max-width: 900px; padding:0; display:flex; flex-direction:column; background:white; overflow:hidden;">
+        <div class="modal-header" style="background:var(--bg-light); padding:20px; border-bottom:1px solid var(--border);">
+            <h2>📅 Interview Scheduler Hub</h2>
+            <span class="close-btn" onclick="closeModal('interviewSchedulerModal')">&times;</span>
+        </div>
+        
+        <div style="display:flex; flex:1; height:600px;">
+            <!-- Left Side: Config -->
+            <div style="flex:3; padding:20px; border-right:1px solid var(--border); overflow-y:auto;">
+                <h3 style="margin-bottom:15px; color:var(--primary);">Meeting Details</h3>
+                <input type="hidden" id="is_canId">
+                <input type="hidden" id="is_finalSlot">
+                
+                <div class="form-group">
+                    <label>Candidate</label>
+                    <div id="is_canName" style="padding:10px; background:var(--bg-light); border-radius:6px; font-weight:600;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Interview Type</label>
+                    <select id="is_type" class="form-control">
+                        <option value="Initial Phone Screen">Initial Phone Screen (30m)</option>
+                        <option value="Technical Video Interview">Technical Video Interview (60m)</option>
+                        <option value="Onsite Final Round">Onsite Final Round (2h)</option>
+                        <option value="Cultural Fit Panel">Cultural Fit Panel (45m)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hiring Manager / Interviewer</label>
+                    <input type="text" id="is_interviewer" class="form-control" placeholder="e.g., Sarah Jenkins (VP Engineering)">
+                </div>
+                
+                <div class="form-group">
+                    <label>Selected Slot</label>
+                    <div id="is_selectedSlot" style="padding:15px; background:var(--primary-light); color:var(--primary); border-radius:6px; border:1px solid var(--primary); font-weight:600; text-align:center;">
+                        Please select a slot on the calendar ➔
+                    </div>
+                </div>
+                
+                <button class="btn full-width" style="margin-top:20px; background:var(--success); color:white; border:none; padding:15px; font-size:1.1rem; border-radius:8px;" onclick="scheduleInterviewSlot()">✉️ Send Invites & Update Stage</button>
+            </div>
+            
+            <!-- Right Side: Calendar Grid Mock -->
+            <div style="flex:5; background:#fafafa; display:flex; flex-direction:column;">
+                <div style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:white;">
+                    <button class="btn btn-sm btn-outline">◀ Prev Week</button>
+                    <strong style="font-size:1.1rem; color:var(--text-dark);">July 20 - July 24, 2026</strong>
+                    <button class="btn btn-sm btn-outline">Next Week ▶</button>
+                </div>
+                
+                <div style="flex:1; overflow-y:auto; padding:15px;">
+                    <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px;">
+                        <!-- Headers -->
+                        <div style="text-align:center; font-weight:600; color:var(--text-light); padding-bottom:10px;">Mon 20</div>
+                        <div style="text-align:center; font-weight:600; color:var(--text-light); padding-bottom:10px;">Tue 21</div>
+                        <div style="text-align:center; font-weight:600; color:var(--text-light); padding-bottom:10px;">Wed 22</div>
+                        <div style="text-align:center; font-weight:600; color:var(--text-light); padding-bottom:10px;">Thu 23</div>
+                        <div style="text-align:center; font-weight:600; color:var(--text-light); padding-bottom:10px;">Fri 24</div>
+                        
+                        <!-- Row 9AM -->
+                        <div class="cal-slot booked">9:00 AM<br><small>Busy</small></div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Tue, Jul 21 - 9:00 AM')">9:00 AM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Wed, Jul 22 - 9:00 AM')">9:00 AM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Thu, Jul 23 - 9:00 AM')">9:00 AM</div>
+                        <div class="cal-slot booked">9:00 AM<br><small>Busy</small></div>
+                        
+                        <!-- Row 10AM -->
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Mon, Jul 20 - 10:00 AM')">10:00 AM</div>
+                        <div class="cal-slot booked">10:00 AM<br><small>Busy</small></div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Wed, Jul 22 - 10:00 AM')">10:00 AM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Thu, Jul 23 - 10:00 AM')">10:00 AM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Fri, Jul 24 - 10:00 AM')">10:00 AM</div>
+                        
+                        <!-- Row 11AM -->
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Mon, Jul 20 - 11:00 AM')">11:00 AM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Tue, Jul 21 - 11:00 AM')">11:00 AM</div>
+                        <div class="cal-slot booked">11:00 AM<br><small>Busy</small></div>
+                        <div class="cal-slot booked">11:00 AM<br><small>Busy</small></div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Fri, Jul 24 - 11:00 AM')">11:00 AM</div>
+                        
+                        <!-- Row 1PM -->
+                        <div class="cal-slot booked">1:00 PM<br><small>Busy</small></div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Tue, Jul 21 - 1:00 PM')">1:00 PM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Wed, Jul 22 - 1:00 PM')">1:00 PM</div>
+                        <div class="cal-slot booked">1:00 PM<br><small>Busy</small></div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Fri, Jul 24 - 1:00 PM')">1:00 PM</div>
+                        
+                        <!-- Row 2PM -->
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Mon, Jul 20 - 2:00 PM')">2:00 PM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Tue, Jul 21 - 2:00 PM')">2:00 PM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Wed, Jul 22 - 2:00 PM')">2:00 PM</div>
+                        <div class="cal-slot available" onclick="selectSlot(this, 'Thu, Jul 23 - 2:00 PM')">2:00 PM</div>
+                        <div class="cal-slot booked">2:00 PM<br><small>Busy</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cal-slot {
+        padding: 15px 5px;
+        text-align: center;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    .cal-slot.available {
+        background: white;
+        border: 1px solid var(--border);
+        color: var(--primary);
+        cursor: pointer;
+    }
+    .cal-slot.available:hover {
+        border-color: var(--primary);
+        background: var(--primary-light);
+    }
+    .cal-slot.available.selected {
+        background: var(--primary) !important;
+        color: white !important;
+        border-color: var(--primary) !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        transform: scale(1.05);
+    }
+    .cal-slot.booked {
+        background: #f1f5f9;
+        border: 1px dashed #cbd5e1;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+</style>
+
+<!-- Modal: Submittal Package Generator -->
+<div id="submittalPackageModal" class="modal" style="background: rgba(15, 23, 42, 0.95); z-index: 10000;">
+    <div class="modal-content" style="max-width: 850px; background: white; color: #333; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        
+        <!-- Action Bar (Not printed) -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;" class="no-print">
+            <h2 style="margin:0; font-size:1.4rem;">Candidate Submittal Package</h2>
+            <div>
+                <button class="btn btn-outline" onclick="closeModal('submittalPackageModal')">Close</button>
+                <button class="btn" style="background:var(--success); color:white; border:none;" onclick="prepareSubmittalForPrint(); window.print()">🖨️ Print / Save as PDF</button>
+            </div>
+        </div>
+
+        <!-- Submittal Document -->
+        <div id="printable_submittal" style="padding: 20px;">
+            <!-- Branding Header -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:30px; border-bottom: 2px solid #2980b9; padding-bottom: 15px;">
+                <div>
+                    <h1 style="margin:0; font-size:2rem; color:#2980b9; font-weight:800; letter-spacing:1px;">RECRUITMENT TRACKER INC.</h1>
+                    <div style="color:#7f8c8d; font-size:0.9rem; margin-top:5px; font-weight:600;">CONFIDENTIAL CANDIDATE PRESENTATION</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:#34495e; font-size:0.9rem;">Date: <span id="sub_date" style="font-weight:600;"></span></div>
+                    <div style="color:#34495e; font-size:0.9rem;">Prepared By: <span id="sub_recruiter" style="font-weight:600;"></span></div>
+                </div>
+            </div>
+
+            <!-- Client & Role Context -->
+            <div style="background:#f8f9fa; border-left:4px solid #3498db; padding:15px; margin-bottom:30px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <div>
+                        <div style="font-size:0.85rem; color:#7f8c8d; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Target Role</div>
+                        <div id="sub_jobTitle" style="font-size:1.3rem; font-weight:700; color:#2c3e50;">Software Engineer</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.85rem; color:#7f8c8d; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Client / Account</div>
+                        <div id="sub_client" style="font-size:1.1rem; font-weight:600; color:#2c3e50;">Acme Corp</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Candidate Snapshot -->
+            <h3 style="color:#2c3e50; border-bottom:1px solid #ecf0f1; padding-bottom:5px; margin-bottom:15px;">Candidate Snapshot</h3>
+            
+            <div style="display:flex; gap:30px; margin-bottom:30px;">
+                <!-- Left: Fast Facts -->
+                <div style="flex:1;">
+                    <div style="font-size:1.6rem; font-weight:800; color:#2c3e50; margin-bottom:15px;" id="sub_canName">John Doe</div>
+                    
+                    <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+                        <tr style="border-bottom:1px solid #f1f2f6;">
+                            <td style="padding:8px 0; color:#7f8c8d; font-weight:600; width:40%;">Location:</td>
+                            <td style="padding:8px 0; color:#2c3e50; font-weight:600;" id="sub_location">New York, NY</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #f1f2f6;">
+                            <td style="padding:8px 0; color:#7f8c8d; font-weight:600;">Work Auth (Visa):</td>
+                            <td style="padding:8px 0; color:#2c3e50; font-weight:600;" id="sub_visa">US Citizen</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #f1f2f6;">
+                            <td style="padding:8px 0; color:#7f8c8d; font-weight:600;">Availability:</td>
+                            <td style="padding:8px 0; color:#2c3e50; font-weight:600;" id="sub_notice">2 Weeks</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #f1f2f6;">
+                            <td style="padding:8px 0; color:#7f8c8d; font-weight:600;">AI Match Score:</td>
+                            <td style="padding:8px 0; color:#27ae60; font-weight:800;" id="sub_score">92% Match</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Right: Recruiter Summary (Editable) -->
+                <div style="flex:1; display:flex; flex-direction:column;">
+                    <label style="font-size:0.85rem; color:#7f8c8d; text-transform:uppercase; font-weight:600; margin-bottom:5px;">Recruiter Pitch / Summary</label>
+                    <textarea id="sub_summary" style="flex:1; width:100%; padding:15px; border:1px solid #dcdde1; border-radius:6px; font-family:inherit; font-size:0.95rem; line-height:1.6; color:#2c3e50; resize:none;" class="submittal-textarea">John is an exceptional candidate with 8+ years of deep technical expertise aligning perfectly with the core requirements of this requisition. He possesses strong communication skills and has successfully led similar migration projects in his previous role.</textarea>
+                    <!-- Read-only version for print -->
+                    <div id="sub_summary_print" class="print-only" style="padding:15px; font-size:0.95rem; line-height:1.6; color:#2c3e50; display:none; white-space:pre-wrap; background:#fff;"></div>
+                </div>
+            </div>
+
+            <!-- Core Skills / Extracted Data -->
+            <h3 style="color:#2c3e50; border-bottom:1px solid #ecf0f1; padding-bottom:5px; margin-bottom:15px;">Core Competencies</h3>
+            <div id="sub_skills" style="display:flex; flex-wrap:wrap; gap:8px;">
+                <!-- Filled via JS -->
+            </div>
+
+            <div style="margin-top:50px; text-align:center; font-size:0.85rem; color:#95a5a6; border-top:1px solid #ecf0f1; padding-top:20px;">
+                This document contains confidential information. Please do not distribute without permission.<br>
+                For scheduling or feedback, please contact <strong>recruiting@recruitmenttracker.com</strong>.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body * { visibility: hidden; }
+        #submittalPackageModal, #submittalPackageModal * { visibility: visible; }
+        #submittalPackageModal { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; background: white; }
+        .no-print { display: none !important; }
+        .modal-content { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+        
+        /* Hide textarea, show text div */
+        .submittal-textarea { display: none !important; }
+        .print-only { display: block !important; }
+    }
+</style>
+
+<!-- Modal: AI Boolean Search Builder -->
+<div id="booleanBuilderModal" class="modal" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); z-index: 10000;">
+    <div class="modal-content" style="max-width: 800px; padding:0; display:flex; flex-direction:column; background:white; overflow:hidden;">
+        <div class="modal-header" style="background:var(--bg-light); padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.8rem;">🔍</span>
+                <h2 style="margin:0; font-size:1.3rem;">AI Boolean Search Builder</h2>
+            </div>
+            <span class="close-btn" onclick="closeModal('booleanBuilderModal')">&times;</span>
+        </div>
+        
+        <div style="padding:20px; display:flex; flex-direction:column; gap:20px; max-height:75vh; overflow-y:auto;">
+            
+            <div style="background:var(--primary-light); color:var(--primary); padding:10px; border-radius:6px; font-size:0.9rem; border:1px solid var(--primary); font-weight:600;">
+                Target Requirement: <span id="bool_reqTitle"></span>
+            </div>
+            
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <div class="form-group" style="flex:1; min-width:200px;">
+                    <label style="color:var(--success); font-weight:600;">Must Haves (AND)</label>
+                    <small style="display:block; color:var(--text-light); margin-bottom:5px;">Comma separated skills the candidate MUST possess.</small>
+                    <textarea id="bool_must" class="form-control" rows="3" placeholder="e.g. Java, Spring Boot, Microservices"></textarea>
+                </div>
+                
+                <div class="form-group" style="flex:1; min-width:200px;">
+                    <label style="color:var(--info); font-weight:600;">Nice to Haves (OR)</label>
+                    <small style="display:block; color:var(--text-light); margin-bottom:5px;">Candidate should have AT LEAST ONE of these.</small>
+                    <textarea id="bool_nice" class="form-control" rows="3" placeholder="e.g. AWS, Azure, GCP"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label style="color:var(--danger); font-weight:600;">Exclusions (NOT)</label>
+                <small style="display:block; color:var(--text-light); margin-bottom:5px;">Filter out candidates with these exact phrases.</small>
+                <input type="text" id="bool_not" class="form-control" placeholder="e.g. Manager, Director, Lead">
+            </div>
+            
+            <div style="text-align:center;">
+                <button class="btn" style="background:var(--primary); color:white; border:none; padding:12px 25px; font-size:1rem;" onclick="generateBooleanString()">⚙️ Generate Search String</button>
+            </div>
+            
+            <div style="border-top:1px solid var(--border); padding-top:20px; margin-top:10px;">
+                <h3 style="margin-bottom:10px; font-size:1.1rem; color:var(--text-dark);">Optimized Boolean Query</h3>
+                <textarea id="bool_result" class="form-control" rows="5" style="background:#1e293b; color:#10b981; font-family:monospace; font-size:1rem; padding:15px; resize:none;" readonly placeholder="Your generated string will appear here..."></textarea>
+                
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                    <button class="btn btn-outline" onclick="copyBooleanString('LinkedIn')">📋 Copy for LinkedIn</button>
+                    <button class="btn btn-outline" onclick="copyBooleanString('Standard')">📋 Copy Standard</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal: Automations Rule Builder -->
+<div id="automationRuleModal" class="modal" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>⚡ Create Automation Rule</h2>
+            <span class="close-btn" onclick="closeModal('automationRuleModal')">&times;</span>
+        </div>
+        <div class="form-group">
+            <label>Rule Target Entity</label>
+            <select id="auto_entity" class="form-control" onchange="updateAutoConditionOptions()">
+                <option value="Candidate">Candidate</option>
+                <option value="Requirement">Requirement</option>
+            </select>
+        </div>
+        
+        <div style="background:var(--bg-light); padding:15px; border-radius:6px; margin-bottom:15px; border-left:3px solid var(--primary);">
+            <h4 style="margin-bottom:10px; color:var(--primary);">1. Trigger Condition (IF)</h4>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Current Stage/Status is:</label>
+                    <select id="auto_state" class="form-control">
+                        <option value="Screened">Screened</option>
+                        <option value="Interview Scheduled">Interview Scheduled</option>
+                        <option value="Submitted to Client">Submitted to Client</option>
+                        <option value="Open">Open</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Days in state ></label>
+                    <input type="number" id="auto_days" class="form-control" placeholder="e.g. 5" min="0">
+                </div>
+            </div>
+        </div>
+
+        <div style="background:var(--bg-light); padding:15px; border-radius:6px; margin-bottom:15px; border-left:3px solid var(--purple);">
+            <h4 style="margin-bottom:10px; color:var(--purple);">2. Automated Action (THEN)</h4>
+            <div class="form-group">
+                <label>Action to Take:</label>
+                <select id="auto_actionType" class="form-control" onchange="updateAutoActionOptions()">
+                    <option value="ChangeStage">Change Stage / Status</option>
+                    <option value="AddSystemNote">Add System Note / Alert</option>
+                </select>
+            </div>
+            <div class="form-group" id="auto_actionValueContainer">
+                <label>Set To:</label>
+                <select id="auto_actionValue" class="form-control">
+                    <option value="Rejected">Rejected</option>
+                    <option value="On Hold">On Hold</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" style="width:100%; background:var(--purple); color:white; border:none;" onclick="saveAutomationRule()">Save Rule & Activate Engine</button>
+    </div>
+</div>
+
+<!-- Modal: Smart JD Entry -->
+<div id="smartJdModal" class="modal" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h2>✨ Smart JD Entry</h2>
+            <span class="close-btn" onclick="closeModal('smartJdModal')">&times;</span>
+        </div>
+        <p style="color:var(--text-light); margin-bottom:15px;">Paste the raw email or Job Description below. The AI Parser will automatically extract the Client, Role, Location, and Rate to create a new requirement.</p>
+        <div class="form-group">
+            <textarea id="smart_jd_text" rows="12" class="form-control" placeholder="Paste JD or Email text here..."></textarea>
+        </div>
+        <div class="form-group form-grid">
+            <div>
+                <label>Target Market</label>
+                <select id="smart_jd_country" class="form-control">
+                    <option value="US">US Requirement</option>
+                    <option value="IN">India Requirement</option>
+                </select>
+            </div>
+            <div>
+                <label>Expected Margin (%)</label>
+                <input type="number" id="smart_jd_margin" class="form-control" value="20">
+            </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="processSmartJD()">Auto-Fill & Create Requirement</button>
+    </div>
+</div>
+
+<!-- Modal: Attach Candidate -->
+<div id="attachCandidateModal" class="modal" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🔗 Attach Candidate</h2>
+            <span class="close-btn" onclick="closeModal('attachCandidateModal')">&times;</span>
+        </div>
+        <p style="color:var(--text-light); margin-bottom:15px;">Submitting a candidate to: <strong id="attach_req_title" style="color:var(--primary);"></strong></p>
+        <div class="form-group">
+            <label>Select Candidate from Pipeline</label>
+            <select id="attach_candidate_select" class="form-control">
+                <!-- populated dynamically -->
+            </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%; background:var(--primary);" onclick="submitAttachCandidate()">Attach & Submit to Client</button>
     </div>
 </div>
