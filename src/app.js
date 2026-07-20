@@ -162,7 +162,8 @@ function switchView(viewId) {
         'reports': '📊 Analytics Hub',
         'emailtemplates': '📧 Email Templates',
         'datamanagement': 'Data Storage Control',
-        'settings': 'System Configurations'
+        'settings': 'System Configurations',
+        'automationsView': 'Workflow Automations Engine'
     };
     document.getElementById('current-view-title').innerText = titleMap[viewId] || 'Workspace';
     

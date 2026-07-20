@@ -3494,7 +3494,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
         </div>
         </div>
     </div>
-    </div> <!-- Close email-templates-tab -->
+    <!-- Close email-templates-tab -->
 
     <!-- Campaigns Tab -->
     <div id="email-campaigns-tab" >
@@ -3555,6 +3555,7 @@ tr:hover td { background-color: hsl(210, 40%, 99%); }
             </form>
         </div>
     </div>
+</div>
 
 <!-- View: Automations Engine -->
 <div id="automationsView"  class="view fade-in">
@@ -3773,7 +3774,8 @@ function switchView(viewId) {
         'reports': '📊 Analytics Hub',
         'emailtemplates': '📧 Email Templates',
         'datamanagement': 'Data Storage Control',
-        'settings': 'System Configurations'
+        'settings': 'System Configurations',
+        'automationsView': 'Workflow Automations Engine'
     };
     document.getElementById('current-view-title').innerText = titleMap[viewId] || 'Workspace';
     
